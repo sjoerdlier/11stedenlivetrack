@@ -46,3 +46,9 @@
   font-weight: 600;
   text-align: center;
 }
+
+.tooltipRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

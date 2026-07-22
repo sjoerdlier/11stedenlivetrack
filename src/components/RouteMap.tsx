@@ -1,22 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Polyline,
+  CircleMarker,
+  Marker,
+  Tooltip,
+  Popup,
+  useMap,
+  useMapEvent,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
-import { STATUS_COLORS, isBeforeStart, type LegStatus } from "@/lib/status";
+import { STATUS_COLORS, daysUntilStart, type LegStatus } from "@/lib/status";
 import { computeRunnerPosition } from "@/lib/runnerPosition";
+import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
+import BuddyBadge from "./BuddyBadge";
 import LegSchedule from "./LegSchedule";
 import RunnerFigure from "./RunnerFigure";
 import styles from "./RouteMap.module.css";
 
 const RUNNER_ICON_SIZE = 30;
+const INITIAL_ZOOM = 11;
 
 const MARKER_RING_COLOR = "#52514e";
+// The route line no longer follows leg status (that made most of the route
+// white/invisible); it's blue by default and turns green when a leg is
+// selected from the sidebar, so the click actually stands out.
+const ROUTE_BASE_COLOR = "#2a78d6";
+const ROUTE_SELECTED_COLOR = "#16a34a";
 
 const startFinishIcon = L.icon({
   iconUrl:
@@ -37,6 +55,7 @@ interface RouteMapProps {
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   now: number;
+  checkinTimes: Map<number, number>;
 }
 
 // The map's container width changes when sibling panels (e.g. LiveTrack)
@@ -52,15 +71,34 @@ function MapResizeHandler() {
   return null;
 }
 
-export default function RouteMap({ start, legSegments, statuses, now }: RouteMapProps) {
+function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
+  const handleZoom = useCallback(
+    (e: L.LeafletEvent) => onZoom(e.target.getZoom()),
+    [onZoom],
+  );
+  useMapEvent("zoomend", handleZoom);
+  return null;
+}
+
+export default function RouteMap({
+  start,
+  legSegments,
+  statuses,
+  now,
+  checkinTimes,
+}: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(INITIAL_ZOOM);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
+  const labelMode = labelModeForZoom(zoom);
+  const cpDirections = useMemo(() => assignCpTooltipDirections(legs), [legs]);
 
   const runner = useMemo(
     () => computeRunnerPosition(legSegments, statuses, now),
     [legSegments, statuses, now]
   );
-  const beforeStart = useMemo(() => isBeforeStart(legs, now), [legs, now]);
+  const beforeStart = useMemo(() => daysUntilStart(legs, now) !== null, [legs, now]);
 
   // Before the race starts there is no active leg to run computeRunnerPosition
   // against, so show Lowie waiting at the start line instead — still bouncing
@@ -116,13 +154,30 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedNr]);
 
+  // On mobile the schedule is a collapsed bottom sheet by default — a
+  // marker/segment tap on the map needs to expand it too, otherwise the
+  // detail the user just asked for gets scrolled to but stays invisible.
+  function selectFromMap(nr: number | null) {
+    setSelectedNr(nr);
+    if (nr !== null) setMobileExpanded(true);
+  }
+
   return (
     <div className={styles.layout}>
-      <LegSchedule legs={legs} statuses={statuses} selectedNr={selectedNr} onSelect={setSelectedNr} />
+      <LegSchedule
+        legs={legs}
+        statuses={statuses}
+        checkinTimes={checkinTimes}
+        selectedNr={selectedNr}
+        onSelect={setSelectedNr}
+        mobileExpanded={mobileExpanded}
+        onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
+      />
 
       <div className={styles.mapArea}>
-        <MapContainer center={start} zoom={11} className={styles.map} scrollWheelZoom>
+        <MapContainer center={start} zoom={INITIAL_ZOOM} className={styles.map} scrollWheelZoom>
           <MapResizeHandler />
+          <ZoomWatcher onZoom={setZoom} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -145,12 +200,12 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
                 key={`line-${leg.nr}`}
                 positions={positions}
                 pathOptions={{
-                  color: STATUS_COLORS[status],
+                  color: isSelected ? ROUTE_SELECTED_COLOR : ROUTE_BASE_COLOR,
                   weight: status === "bezig" || isSelected ? 7 : 5,
                   opacity: 0.95,
                   lineCap: "round",
                 }}
-                eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
+                eventHandlers={{ click: () => selectFromMap(isSelected ? null : leg.nr) }}
               />
             );
           })}
@@ -161,6 +216,9 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
             const isCp = leg.cp_nummer !== null;
             const tijd = formatGeplandeTijd(leg.geplande_tijd);
             const baseRadius = isCp ? 8 : 6;
+            const showCpLabel = isCp && labelMode !== "hidden";
+            const cpDirection = cpDirections.get(leg.nr) ?? "right";
+            const cpOffset: [number, number] = cpDirection === "right" ? [8, 0] : [-8, 0];
             return (
               <CircleMarker
                 key={`marker-${leg.nr}`}
@@ -172,16 +230,31 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
                   fillColor: STATUS_COLORS[status],
                   fillOpacity: 1,
                 }}
-                eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
+                eventHandlers={{ click: () => selectFromMap(isSelected ? null : leg.nr) }}
               >
-                {isCp ? (
-                  <Tooltip direction="right" offset={[8, 0]} permanent className={styles.cpTooltip}>
-                    CP {leg.cp_nummer} · {leg.start_plaats}
+                {showCpLabel ? (
+                  // react-leaflet never re-applies the `permanent` option to
+                  // an already-mounted Tooltip (only path/tile layers get an
+                  // update hook, overlays don't) — a stale permanent tooltip
+                  // would stay stuck open forever once zoomed back out.
+                  // Keying on the permanent/non-permanent boundary forces a
+                  // real remount there instead of a no-op prop update.
+                  <Tooltip
+                    key="cp"
+                    direction={cpDirection}
+                    offset={cpOffset}
+                    permanent
+                    className={styles.cpTooltip}
+                  >
+                    {labelMode === "full" ? `CP ${leg.cp_nummer} · ${leg.start_plaats}` : `CP ${leg.cp_nummer}`}
                   </Tooltip>
                 ) : (
-                  <Tooltip direction="top" offset={[0, -6]}>
-                    {leg.start_plaats}
-                    {tijd ? ` · ${tijd}` : ""}
+                  <Tooltip key="hover" direction="top" offset={[0, -6]}>
+                    <span className={styles.tooltipRow}>
+                      {leg.start_plaats}
+                      {tijd ? ` · ${tijd}` : ""}
+                      {leg.loper && <BuddyBadge name={leg.loper} />}
+                    </span>
                   </Tooltip>
                 )}
               </CircleMarker>

@@ -15,8 +15,23 @@ interface RouteMapLoaderProps {
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   now: number;
+  checkinTimes: Map<number, number>;
 }
 
-export default function RouteMapLoader({ start, legSegments, statuses, now }: RouteMapLoaderProps) {
-  return <RouteMap start={start} legSegments={legSegments} statuses={statuses} now={now} />;
+export default function RouteMapLoader({
+  start,
+  legSegments,
+  statuses,
+  now,
+  checkinTimes,
+}: RouteMapLoaderProps) {
+  return (
+    <RouteMap
+      start={start}
+      legSegments={legSegments}
+      statuses={statuses}
+      now={now}
+      checkinTimes={checkinTimes}
+    />
+  );
 }

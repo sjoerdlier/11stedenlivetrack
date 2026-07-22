@@ -3,31 +3,61 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
-import { computeProgress, isBeforeStart, raceStartTime, TOTAL_ROUTE_KM, type LegStatus } from "@/lib/status";
+import type { Checkin } from "@/lib/checkins";
+import { formatClockTime, formatPaceKmh } from "@/lib/format";
+import {
+  actualAveragePaceKmh,
+  computeActualProgress,
+  estimateArrival,
+} from "@/lib/actualProgress";
+import {
+  computeProgress,
+  daysUntilStart,
+  totalPlannedPaceKmh,
+  TOTAL_ROUTE_KM,
+  type LegStatus,
+} from "@/lib/status";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   now: number;
+  checkins: Checkin[];
+  checkinTimes: Map<number, number>;
   liveTrackOpen: boolean;
   onToggleLiveTrack: () => void;
 }
 
 const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 
-function formatCountdown(startTime: number, now: number): string {
-  const daysLeft = Math.ceil((startTime - now) / (24 * 60 * 60 * 1000));
-  if (daysLeft <= 0) return "Start vandaag";
-  if (daysLeft === 1) return "Nog 1 dag tot de start";
-  return `Nog ${daysLeft} dagen tot de start`;
-}
-
-export default function TopBar({ legs, statuses, now, liveTrackOpen, onToggleLiveTrack }: TopBarProps) {
+export default function TopBar({
+  legs,
+  statuses,
+  now,
+  checkins,
+  checkinTimes,
+  liveTrackOpen,
+  onToggleLiveTrack,
+}: TopBarProps) {
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
-  const beforeStart = useMemo(() => isBeforeStart(legs, now), [legs, now]);
-  const startTime = useMemo(() => raceStartTime(legs), [legs]);
+  const countdownDays = useMemo(() => daysUntilStart(legs, now), [legs, now]);
+  const plannedPaceKmh = useMemo(() => totalPlannedPaceKmh(legs), [legs]);
+  const paceLabel = useMemo(() => formatPaceKmh(plannedPaceKmh), [plannedPaceKmh]);
   const [copied, setCopied] = useState(false);
+
+  // Once at least one check-in exists, the real status bar (built from
+  // actual arrivals) takes over from the schedule-based one entirely —
+  // before that (checkins is empty pre-race day, the normal state) the
+  // countdown / planned-progress display below is unchanged.
+  const actual = useMemo(() => {
+    if (checkins.length === 0) return null;
+    const progress = computeActualProgress(legs, checkinTimes);
+    const remainingKm = Math.max(0, TOTAL_ROUTE_KM - progress.km);
+    const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+    const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, checkins.length);
+    return { progress, remainingKm, paceKmh, arrival };
+  }, [checkins.length, legs, checkinTimes, now, plannedPaceKmh]);
 
   async function handleShare() {
     const shareData = { title: "Lowie — 11Stedentocht", url: window.location.href };
@@ -48,23 +78,54 @@ export default function TopBar({ legs, statuses, now, liveTrackOpen, onToggleLiv
 
   return (
     <header className={styles.bar}>
-      <div className={styles.progress}>
-        {beforeStart && startTime !== null ? (
-          <span className={styles.progressText}>{formatCountdown(startTime, now)}</span>
-        ) : (
-          <>
-            <span className={styles.progressText}>
-              <span className={styles.progressFull}>
-                {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
-              </span>
-              {Math.round(percent)}%
+      {actual ? (
+        <div className={styles.progress}>
+          <span className={styles.progressText}>
+            <span className={styles.progressFull}>
+              {actual.progress.km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
             </span>
-            <span className={styles.progressTrack}>
-              <span className={styles.progressFill} style={{ width: `${percent}%` }} />
+            {Math.round(actual.progress.percent)}%
+          </span>
+          <span className={styles.progressTrack}>
+            <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
+          </span>
+          <span className={styles.pace}>
+            Te gaan: {actual.remainingKm.toLocaleString("nl-NL")} km
+            {actual.paceKmh !== null && <> · Tempo: {formatPaceKmh(actual.paceKmh)}</>}
+            {actual.arrival && (
+              <>
+                {" "}
+                · Aankomst ± {formatClockTime(actual.arrival.time)}
+                {actual.arrival.basis === "gepland" && " (schatting o.b.v. gepland tempo)"}
+              </>
+            )}
+          </span>
+        </div>
+      ) : countdownDays !== null ? (
+        <div className={styles.progress}>
+          <span className={styles.progressText}>
+            <span className={styles.progressFull}>Nog </span>
+            {countdownDays}
+            <span className={styles.progressFull}> {countdownDays === 1 ? "dag" : "dagen"} tot de start</span>
+            <span className={styles.progressShort}>d tot start</span>
+          </span>
+        </div>
+      ) : (
+        <div className={styles.progress}>
+          <span className={styles.progressText}>
+            <span className={styles.progressFull}>
+              {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
             </span>
-          </>
-        )}
-      </div>
+            {Math.round(percent)}%
+          </span>
+          <span className={styles.progressTrack}>
+            <span className={styles.progressFill} style={{ width: `${percent}%` }} />
+          </span>
+          {paceLabel && (
+            <span className={styles.pace}>Gem. tempo: {paceLabel} (gepland)</span>
+          )}
+        </div>
+      )}
 
       <nav className={styles.actions}>
         <button

@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
+import type { Checkin } from "@/lib/checkins";
+import { firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import { computeLegStatuses } from "@/lib/status";
-import { useNow } from "@/lib/useNow";
+import { useSimulatedNow } from "@/lib/useSimulatedNow";
 import TopBar from "./TopBar";
 import RouteMapLoader from "./RouteMapLoader";
 import LiveTrackPanel from "./LiveTrackPanel";
@@ -15,12 +17,14 @@ const STATUS_REFRESH_MS = 30_000;
 interface AppShellProps {
   start: LatLng;
   legSegments: LegSegment[];
+  checkins: Checkin[];
 }
 
-export default function AppShell({ start, legSegments }: AppShellProps) {
-  const now = useNow(STATUS_REFRESH_MS);
+export default function AppShell({ start, legSegments, checkins }: AppShellProps) {
+  const now = useSimulatedNow(STATUS_REFRESH_MS);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
+  const checkinTimes = useMemo(() => firstCheckinTimesByLeg(checkins), [checkins]);
   const [liveTrackOpen, setLiveTrackOpen] = useState(false);
 
   return (
@@ -29,12 +33,20 @@ export default function AppShell({ start, legSegments }: AppShellProps) {
         legs={legs}
         statuses={statuses}
         now={now}
+        checkins={checkins}
+        checkinTimes={checkinTimes}
         liveTrackOpen={liveTrackOpen}
         onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
       />
       <div className={styles.body}>
         <div className={styles.mapWrap}>
-          <RouteMapLoader start={start} legSegments={legSegments} statuses={statuses} now={now} />
+          <RouteMapLoader
+            start={start}
+            legSegments={legSegments}
+            statuses={statuses}
+            now={now}
+            checkinTimes={checkinTimes}
+          />
         </div>
         <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} />
       </div>

@@ -12,7 +12,7 @@ export const STATUS_COLORS: Record<LegStatus, string> = {
 export const STATUS_LABELS: Record<LegStatus, string> = {
   voltooid: "Voltooid",
   bezig: "Bezig",
-  "nog-te-gaan": "Nog te gaan",
+  "nog-te-gaan": "Gepland",
 };
 
 // A leg is "voltooid" once the next leg's geplande_tijd has passed, "bezig"
@@ -38,19 +38,23 @@ export function computeLegStatuses(legs: Leg[], now: number): Map<number, LegSta
   return map;
 }
 
-// The race's start time is leg 1's geplande_tijd. Legs assumed sorted by nr.
-export function raceStartTime(legs: Leg[]): number | null {
-  const time = legs[0]?.geplande_tijd ? new Date(legs[0].geplande_tijd).getTime() : null;
-  return time !== null && !Number.isNaN(time) ? time : null;
-}
-
-// True until leg 1's start time is reached, i.e. before anyone is "bezig" yet.
-export function isBeforeStart(legs: Leg[], now: number): boolean {
-  const startTime = raceStartTime(legs);
-  return startTime !== null && now < startTime;
-}
-
 export const TOTAL_ROUTE_KM = 202;
+
+// Total planned average pace over the whole route: the fixed route distance
+// over the scheduled duration from the first leg's time to the last, a
+// constant until live tracking data (fase 4b) replaces it.
+export function totalPlannedPaceKmh(legs: Leg[]): number | null {
+  const first = legs[0];
+  const last = legs[legs.length - 1];
+  if (!first?.geplande_tijd || !last?.geplande_tijd) return null;
+
+  const start = new Date(first.geplande_tijd).getTime();
+  const end = new Date(last.geplande_tijd).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+
+  const hours = (end - start) / (1000 * 60 * 60);
+  return TOTAL_ROUTE_KM / hours;
+}
 
 export interface Progress {
   km: number;
@@ -68,4 +72,18 @@ export function computeProgress(legs: Leg[], statuses: Map<number, LegStatus>): 
   }
   const percent = Math.min(100, Math.max(0, (km / TOTAL_ROUTE_KM) * 100));
   return { km, percent };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Whole days remaining until leg 1's geplande_tijd, or null once that time
+// has passed (or is unknown) — the signal the top bar uses to switch from
+// the pre-start countdown to the normal progress display. Rounds up so
+// "starts in 6 hours" still reads as "nog 1 dag" rather than "nog 0 dagen".
+export function daysUntilStart(legs: Leg[], now: number): number | null {
+  const firstLeg = legs.find((l) => l.nr === 1);
+  const startTime = firstLeg?.geplande_tijd ? new Date(firstLeg.geplande_tijd).getTime() : null;
+
+  if (startTime === null || Number.isNaN(startTime) || now >= startTime) return null;
+  return Math.max(1, Math.ceil((startTime - now) / DAY_MS));
 }

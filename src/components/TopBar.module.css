@@ -45,6 +45,18 @@
   }
 }
 
+.progressShort {
+  display: none;
+  font-weight: 400;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .progressShort {
+    color: #c3c2b7;
+  }
+}
+
 .progressTrack {
   display: block;
   width: 160px;
@@ -67,6 +79,24 @@
   background: #2a78d6;
   border-radius: 999px;
   transition: width 0.4s ease;
+}
+
+.pace {
+  font-size: 12px;
+  color: #898781;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pace {
+    color: #a3a29a;
+  }
+}
+
+@media (max-width: 640px) {
+  .pace {
+    display: none;
+  }
 }
 
 .actions {
@@ -158,6 +188,10 @@
 
   .progressFull {
     display: none;
+  }
+
+  .progressShort {
+    display: inline;
   }
 
   .progressTrack {

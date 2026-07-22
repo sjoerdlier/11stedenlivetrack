@@ -1,5 +1,6 @@
 import type { Leg } from "@/lib/legs";
-import { formatGeplandeTijd, formatPaceKmh, googleMapsUrl } from "@/lib/format";
+import type { LegTiming } from "@/lib/actualProgress";
+import { formatGeplandeTijd, formatClockTime, formatPaceKmh, googleMapsUrl } from "@/lib/format";
 import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
 import RunnerFigure from "./RunnerFigure";
 import BuddyBadge from "./BuddyBadge";
@@ -9,13 +10,13 @@ interface LegCardProps {
   leg: Leg;
   status: LegStatus;
   expanded: boolean;
-  pace: number | null;
+  timing: LegTiming;
   onToggle: () => void;
 }
 
-export default function LegCard({ leg, status, expanded, pace, onToggle }: LegCardProps) {
-  const tijd = formatGeplandeTijd(leg.geplande_tijd);
-  const paceLabel = formatPaceKmh(pace);
+const DASH = "–";
+
+export default function LegCard({ leg, status, expanded, timing, onToggle }: LegCardProps) {
   const isCp = leg.cp_nummer !== null;
   const compact = status === "voltooid" && !expanded;
 
@@ -43,7 +44,11 @@ export default function LegCard({ leg, status, expanded, pace, onToggle }: LegCa
           />
           <span className={styles.plaats}>{leg.start_plaats}</span>
           {isCp && <span className={styles.cpBadge}>CP {leg.cp_nummer}</span>}
-          <span className={styles.tijd}>{tijd ?? "–"}</span>
+          {compact ? (
+            <span className={styles.tijd}>{formatGeplandeTijd(leg.geplande_tijd) ?? DASH}</span>
+          ) : (
+            <span className={styles.statusLabel}>{STATUS_LABELS[status]}</span>
+          )}
         </div>
 
         {expanded && status === "bezig" && (
@@ -53,29 +58,68 @@ export default function LegCard({ leg, status, expanded, pace, onToggle }: LegCa
         )}
 
         {!compact && (
-          <div className={styles.metaRow}>
-            {leg.afstand_km !== null && <span>{leg.afstand_km} km</span>}
-            {paceLabel && <span>{paceLabel}</span>}
-            <span className={styles.statusPill}>{STATUS_LABELS[status]}</span>
-          </div>
-        )}
-
-        {expanded && (
-          <div className={styles.details}>
-            <dl className={styles.factList}>
-              <div className={styles.fact}>
-                <dt>Cumulatief</dt>
-                <dd>{leg.cumulatief_start_km} km</dd>
-              </div>
-              {leg.loper && (
-                <div className={styles.fact}>
-                  <dt>Buddy</dt>
-                  <dd>
-                    <BuddyBadge name={leg.loper} />
-                  </dd>
-                </div>
+          <>
+            <div className={styles.metaRow}>
+              {leg.afstand_km !== null && (
+                <>
+                  <span>{leg.afstand_km} km</span>
+                  <span aria-hidden>·</span>
+                </>
               )}
-            </dl>
+              <span>{leg.cumulatief_start_km} km totaal</span>
+            </div>
+
+            <table className={styles.timingTable}>
+              <thead>
+                <tr>
+                  <th scope="col" />
+                  <th scope="col">Gepland</th>
+                  <th scope="col">Werkelijk</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Aankomst</th>
+                  <td>{formatGeplandeTijd(leg.geplande_tijd) ?? DASH}</td>
+                  <td className={timing.aankomstWerkelijk === null ? styles.pending : ""}>
+                    {timing.aankomstWerkelijk !== null
+                      ? formatClockTime(timing.aankomstWerkelijk) ?? DASH
+                      : DASH}
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Vertrek</th>
+                  <td>
+                    {timing.vertrekGepland !== null
+                      ? formatClockTime(timing.vertrekGepland) ?? DASH
+                      : DASH}
+                  </td>
+                  <td className={timing.vertrekWerkelijk === null ? styles.pending : ""}>
+                    {timing.vertrekWerkelijk !== null
+                      ? formatClockTime(timing.vertrekWerkelijk) ?? DASH
+                      : DASH}
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Tempo</th>
+                  <td>{formatPaceKmh(timing.tempoGepland) ?? DASH}</td>
+                  <td className={timing.tempoWerkelijk === null ? styles.pending : ""}>
+                    {formatPaceKmh(timing.tempoWerkelijk) ?? DASH}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {timing.stopMinutes > 0 && (
+              <div className={styles.stopLine}>Stop: {timing.stopMinutes} min (CP)</div>
+            )}
+
+            {leg.loper && (
+              <div className={styles.buddyRow}>
+                <span className={styles.buddyLabel}>Buddy</span>
+                <BuddyBadge name={leg.loper} />
+              </div>
+            )}
 
             {leg.adres && (
               <a
@@ -100,7 +144,7 @@ export default function LegCard({ leg, status, expanded, pace, onToggle }: LegCa
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
       </button>
     </li>

@@ -170,14 +170,28 @@
 
 .donateTodo {
   background: transparent;
-  border: 1px dashed #eb6834;
-  color: #eb6834;
+  /* #eb6834 text on this bar's #fcfcfb background is only 3.20:1 — below
+     the 4.5:1 AA text minimum. #c1440e keeps the same vivid-orange hue at
+     ~4.99:1. The old opacity:0.8 diluted whatever color sat here back
+     toward the light background (nearly reproducing #eb6834), which is why
+     it's dropped instead of kept for the "muted" look. */
+  border: 1px dashed #c1440e;
+  color: #c1440e;
   cursor: not-allowed;
-  opacity: 0.8;
 }
 
 .donateTodo:hover {
   background: transparent;
+}
+
+/* Dark mode's #161615 background already gave the original #eb6834 a
+   healthy 5.66:1 — restore it here since the darker light-mode color above
+   would only measure ~3.5:1 against that dark background. */
+@media (prefers-color-scheme: dark) {
+  .donateTodo {
+    border-color: #eb6834;
+    color: #eb6834;
+  }
 }
 
 @media (max-width: 640px) {

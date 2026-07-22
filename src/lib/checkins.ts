@@ -27,10 +27,10 @@ export async function insertCheckin(checkin: NewCheckin): Promise<void> {
   }
 }
 
-// Loaded once per page request (force-dynamic) so the top bar and sidebar
-// can derive real progress/pace from actual check-ins instead of the
-// schedule. Empty before race day — that's the expected starting state, not
-// an error.
+// Wrapped in unstable_cache by page.tsx (20s data cache, route stays
+// force-dynamic) so the top bar and sidebar can derive real progress/pace
+// from actual check-ins instead of the schedule. Empty before race day —
+// that's the expected starting state, not an error.
 export async function loadCheckins(): Promise<Checkin[]> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;

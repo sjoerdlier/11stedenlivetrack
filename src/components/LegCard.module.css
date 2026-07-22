@@ -38,7 +38,7 @@
 }
 
 .compact {
-  padding: 8px 16px;
+  padding: 11px 16px;
 }
 
 .compact .plaats {
@@ -118,14 +118,28 @@
   }
 }
 
-.active .tijd {
-  color: #2a78d6;
+.statusLabel {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
   font-weight: 700;
-  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #52514e;
 }
 
 @media (prefers-color-scheme: dark) {
-  .active .tijd {
+  .statusLabel {
+    color: #c3c2b7;
+  }
+}
+
+.active .statusLabel {
+  color: #2a78d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .active .statusLabel {
     color: #3987e5;
   }
 }
@@ -143,57 +157,109 @@
   margin-top: 4px;
   margin-left: 19px;
   font-size: 12px;
-  color: #898781;
+  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum; #52514e
+     clears it comfortably (same fix as LegSchedule's .hint). Too dark for
+     the near-black dark background, so dark mode keeps the established
+     #c3c2b7 counterpart below instead of inheriting this value. */
+  color: #52514e;
 }
 
-.statusPill {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+@media (prefers-color-scheme: dark) {
+  .metaRow {
+    color: #c3c2b7;
+  }
+}
+
+.timingTable {
+  width: calc(100% - 19px);
+  margin: 10px 0 0 19px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.timingTable th,
+.timingTable td {
+  text-align: left;
+  padding: 3px 8px 3px 0;
+}
+
+.timingTable thead th {
   font-size: 10px;
-}
-
-.statusPill::before {
-  content: "· ";
-}
-
-.details {
-  margin-top: 12px;
-  margin-left: 19px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.factList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 0;
-}
-
-.fact {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.fact dt {
-  font-size: 11px;
-  color: #898781;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  color: #52514e;
 }
 
-.fact dd {
-  margin: 0;
-  font-size: 13px;
+@media (prefers-color-scheme: dark) {
+  .timingTable thead th {
+    color: #c3c2b7;
+  }
+}
+
+.timingTable tbody th {
+  font-weight: 500;
+  color: #52514e;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .timingTable tbody th {
+    color: #c3c2b7;
+  }
+}
+
+.timingTable td {
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+/* Distinguishes an unfilled "–" from a real value by weight, not by
+   lowering contrast — a dimmer color here would just reintroduce the
+   sub-4.5:1 text-contrast issue fixed earlier for this same muted-gray
+   role. */
+.pending {
+  font-weight: 400;
+}
+
+.stopLine {
+  margin: 8px 0 0 19px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stopLine {
+    color: #c3c2b7;
+  }
+}
+
+.buddyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0 19px;
+}
+
+.buddyLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .buddyLabel {
+    color: #c3c2b7;
+  }
 }
 
 .adres {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin: 10px 0 0 19px;
   font-size: 13px;
   color: #2a78d6;
   text-decoration: none;
@@ -213,6 +279,7 @@
 .warning {
   display: flex;
   gap: 8px;
+  margin: 10px 0 0 19px;
   background: #fab21926;
   border-left: 3px solid #fab219;
   border-radius: 6px;

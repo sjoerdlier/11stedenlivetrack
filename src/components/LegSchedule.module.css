@@ -37,9 +37,20 @@
 }
 
 .hint {
-  color: #898781;
+  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum; #52514e
+     (already used elsewhere for this same "secondary text" role) clears
+     it comfortably. It's too dark for the near-black dark background
+     though, so dark mode gets back the established #c3c2b7 counterpart
+     instead of inheriting this value. */
+  color: #52514e;
   font-size: 13px;
   margin-top: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .hint {
+    color: #c3c2b7;
+  }
 }
 
 .list {
@@ -54,6 +65,19 @@
 
 .chevron {
   display: none;
+}
+
+/* Between the bottom-sheet breakpoint and full desktop, the sidebar stays
+   beside the map (not a bottom sheet — there's room) but the desktop
+   min-width of 380px still eats over half a landscape phone/portrait
+   tablet screen (e.g. 380/700 = 54%). Narrow the bounds so it settles
+   around a third of the viewport instead. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 38vw;
+    min-width: 260px;
+    max-width: 320px;
+  }
 }
 
 /* Below 768px the sidebar can't sit next to the map (min-width alone

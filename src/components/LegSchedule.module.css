@@ -37,9 +37,20 @@
 }
 
 .hint {
-  color: #898781;
+  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum; #52514e
+     (already used elsewhere for this same "secondary text" role) clears
+     it comfortably. It's too dark for the near-black dark background
+     though, so dark mode gets back the established #c3c2b7 counterpart
+     instead of inheriting this value. */
+  color: #52514e;
   font-size: 13px;
   margin-top: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .hint {
+    color: #c3c2b7;
+  }
 }
 
 .list {

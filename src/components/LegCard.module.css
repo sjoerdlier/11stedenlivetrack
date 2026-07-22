@@ -137,7 +137,17 @@
   margin-top: 4px;
   margin-left: 19px;
   font-size: 12px;
-  color: #898781;
+  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum; #52514e
+     clears it comfortably (same fix as LegSchedule's .hint). Too dark for
+     the near-black dark background, so dark mode keeps the established
+     #c3c2b7 counterpart below instead of inheriting this value. */
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .metaRow {
+    color: #c3c2b7;
+  }
 }
 
 .statusPill {
@@ -173,9 +183,15 @@
 
 .fact dt {
   font-size: 11px;
-  color: #898781;
+  color: #52514e;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .fact dt {
+    color: #c3c2b7;
+  }
 }
 
 .fact dd {

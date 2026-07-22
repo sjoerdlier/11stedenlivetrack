@@ -61,6 +61,14 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   verkleint typografie zodat het schema op één vel past — als gewone webpagina
   blijft de tabel ook prima leesbaar. Bedoeld als scherm-loze achtervang
   (uitprinten voor in de auto).
+- `src/components/LiveTrackPanel.tsx` — uit-/inklapbaar paneel naast de kaart
+  met de Garmin LiveTrack-iframe (`NEXT_PUBLIC_GARMIN_LIVETRACK_URL`). Zonder
+  die env var toont het paneel een placeholder in plaats van een kapotte
+  iframe. Standaard dichtgeklapt (breedte 0, geen ruimte), togglebaar via de
+  "Live"-knop in de topbar — die state leeft in `AppShell`. `RouteMap.tsx`
+  bevat een kleine `MapResizeHandler` (ResizeObserver + `map.invalidateSize()`)
+  omdat Leaflet zelf niet doorheeft dat zijn container breder/smaller wordt
+  als dit paneel open- of dichtklapt.
 
 ## Supabase
 

@@ -1,5 +1,5 @@
 import type { Leg } from "@/lib/legs";
-import { actualLegPaceKmh } from "@/lib/actualProgress";
+import { computeLegTiming } from "@/lib/actualProgress";
 import type { LegStatus } from "@/lib/status";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
@@ -52,7 +52,7 @@ export default function LegSchedule({
           // The active leg auto-expands when nothing else is picked; a click
           // always wins so any card (past or upcoming) can be inspected.
           const expanded = isSelected || (selectedNr === null && status === "bezig");
-          const pace = actualLegPaceKmh(legs, checkinTimes, index);
+          const timing = computeLegTiming(legs, checkinTimes, index);
 
           return (
             <LegCard
@@ -60,7 +60,7 @@ export default function LegSchedule({
               leg={leg}
               status={status}
               expanded={expanded}
-              pace={pace}
+              timing={timing}
               onToggle={() => onSelect(isSelected ? null : leg.nr)}
             />
           );

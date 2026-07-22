@@ -56,25 +56,36 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
 - `src/lib/actualProgress.ts` — alle berekeningen op basis van **echte**
   check-ins in plaats van het schema: `firstCheckinTimesByLeg` (eerste
   check-in per `leg_nr`), `computeActualProgress` (afgelegde km/%),
-  `actualLegPaceKmh` (het werkelijke tempo van de zojuist gelopen etappe: de
-  afstand van de vórige leg over de echte tijd tussen de check-in van de
-  vorige en die van deze leg — alleen als check-ins voor beide bestaan),
-  `actualAveragePaceKmh` en `estimateArrival` (valt terug op het geplande
-  tempo zolang er nog geen 2 check-ins zijn).
+  `actualLegPaceKmh` (het werkelijke tempo over een etappe: de afstand van de
+  leg vóór de gegeven index over de echte tijd tussen de check-in van die
+  vorige leg en die van de gegeven leg — alleen als check-ins voor beide
+  bestaan), `actualAveragePaceKmh` en `estimateArrival` (valt terug op het
+  geplande tempo zolang er nog geen 2 check-ins zijn). `computeLegTiming`
+  bouwt hierop voort voor de leg-kaarten in de sidebar: per leg
+  `stopMinutes` (10 bij een CP, anders 0 — voorlopig een vaste aanname,
+  geen aparte databron), `vertrekGepland` (`geplande_tijd` + stopMinutes),
+  `tempoGepland` (`afstand_km` van déze leg over de geplande duur tot
+  vertrek bij de vólgende leg), `aankomstWerkelijk` (de check-in-tijd van
+  déze leg), `vertrekWerkelijk` (`aankomstWerkelijk` + stopMinutes) en
+  `tempoWerkelijk` — dat laatste is `actualLegPaceKmh` op de vólgende
+  leg-index, zodat het dezelfde etappe meet als `tempoGepland` (this→next),
+  niet de etappe die net gelopen is om hier aan te komen (prev→this).
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe
-  is een kaart-blok. Detailniveau volgt de status: voltooid = compacte
-  ingeklapte regel, bezig = automatisch volledig uitgeklapt en uitgelicht,
-  nog-te-gaan = huidig niveau (klik om buddy/adres/bijzonderheden te tonen).
-  Checkpoints (`cp_nummer` niet leeg) krijgen een badge en een groter bolletje.
+  is een kaart-blok. Compact (voltooid en niet aangeklikt) blijft een
+  ingeklapte regel — plaats, CP-badge, geplande tijd. Elke andere kaart
+  (bezig, nog-te-gaan, of een voltooide kaart die is aangeklikt) toont in één
+  oogopslag de volledige structuur, zonder extra klik: plaatsnaam + CP-badge +
+  statuslabel, afstand deze leg · cumulatieve afstand, een Gepland/Werkelijk-
+  tabel (Aankomst/Vertrek/Tempo — `computeLegTiming`, hierboven), een
+  stopregel ("Stop: 10 min (CP)") als het een checkpoint is, de buddy-badge en
+  het adres. De Werkelijk-kolom toont "–" (niet vetgedrukt, om 'm duidelijk
+  als placeholder te onderscheiden van een echte waarde) zolang er geen
+  check-in is — nooit een misleidende 0 of een schatting. Checkpoints
+  (`cp_nummer` niet leeg) krijgen een badge en een groter bolletje.
   Bijzonderheden krijgen een opvallende "Let op"-waarschuwingsbox, niet
-  weggemoffeld. Elke kaart toont daarnaast het werkelijke tempo
-  (`actualLegPaceKmh`) waarmee die etappe is gelopen, maar alléén als er
-  check-ins zijn voor zowel deze als de vorige leg — zonder die data toont de
-  kaart niets (geen placeholder, geen schatting op basis van het schema; die
-  is er bewust uitgehaald omdat 'm per leg tonen als puur-schema-getal als
-  ruis/fout overkwam). Onder 768px breedte is het side-menu geen vaste
+  weggemoffeld. Onder 768px breedte is het side-menu geen vaste
   33vw-kolom meer (die liet op een telefoon geen ruimte over voor de kaart)
   maar een `position: fixed` bottom sheet: standaard ingeklapt tot een 84px
   handvat met titel, tikken (of Enter/spatie) klapt 'm uit tot 75vh scrollbare

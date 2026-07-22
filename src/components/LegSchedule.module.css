@@ -1,6 +1,8 @@
 .sidebar {
   height: 100%;
-  width: 320px;
+  width: 33vw;
+  min-width: 380px;
+  max-width: 560px;
   flex: none;
   overflow-y: auto;
   background: #fcfcfb;
@@ -10,15 +12,16 @@
 
 @media (prefers-color-scheme: dark) {
   .sidebar {
-    background: #1a1a19;
+    background: #161615;
     color: #ffffff;
     border-right-color: #2c2c2a;
   }
 }
 
 .header {
-  padding: 16px 16px 12px;
+  padding: 20px 30px 14px;
   border-bottom: 1px solid #e1e0d9;
+  margin-bottom: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,7 +32,8 @@
 
 .title {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 20px;
+  letter-spacing: -0.01em;
 }
 
 .hint {
@@ -41,103 +45,5 @@
 .list {
   list-style: none;
   margin: 0;
-  padding: 0;
-}
-
-.row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  padding: 10px 16px;
-  border-bottom: 1px solid #e1e0d914;
-}
-
-.row:hover {
-  background: #0b0b0b0d;
-}
-
-@media (prefers-color-scheme: dark) {
-  .row:hover {
-    background: #ffffff0d;
-  }
-}
-
-.rowSelected {
-  background: #2a78d61a;
-}
-
-@media (prefers-color-scheme: dark) {
-  .rowSelected {
-    background: #2a78d633;
-  }
-}
-
-.dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex: none;
-  margin-top: 4px;
-  box-shadow: 0 0 0 1px rgba(11, 11, 11, 0.25);
-}
-
-.rowMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.rowTop {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.plaats {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tijd {
-  color: #52514e;
-  flex: none;
-  font-variant-numeric: tabular-nums;
-}
-
-@media (prefers-color-scheme: dark) {
-  .tijd {
-    color: #c3c2b7;
-  }
-}
-
-.rowBottom {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  color: #898781;
-}
-
-.detail {
-  font-size: 12px;
-  color: #52514e;
-  margin-top: 4px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .detail {
-    color: #c3c2b7;
-  }
+  padding: 0 0 16px;
 }

@@ -85,7 +85,7 @@ export default function RouteMap({ start, legSegments }: RouteMapProps) {
                   opacity: 0.95,
                   lineCap: "round",
                 }}
-                eventHandlers={{ click: () => setSelectedNr(leg.nr) }}
+                eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
               />
             );
           })}
@@ -93,24 +93,32 @@ export default function RouteMap({ start, legSegments }: RouteMapProps) {
           {legSegments.map(({ leg }) => {
             const status = statuses.get(leg.nr) ?? "nog-te-gaan";
             const isSelected = leg.nr === selectedNr;
+            const isCp = leg.cp_nummer !== null;
             const tijd = formatGeplandeTijd(leg.geplande_tijd);
+            const baseRadius = isCp ? 8 : 6;
             return (
               <CircleMarker
                 key={`marker-${leg.nr}`}
                 center={[leg.start_lat, leg.start_lon]}
-                radius={isSelected ? 9 : 6}
+                radius={isSelected ? baseRadius + 3 : baseRadius}
                 pathOptions={{
                   color: MARKER_RING_COLOR,
-                  weight: isSelected ? 2.5 : 1.5,
+                  weight: isCp || isSelected ? 2.5 : 1.5,
                   fillColor: STATUS_COLORS[status],
                   fillOpacity: 1,
                 }}
-                eventHandlers={{ click: () => setSelectedNr(leg.nr) }}
+                eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
               >
-                <Tooltip direction="top" offset={[0, -6]}>
-                  {leg.start_plaats}
-                  {tijd ? ` · ${tijd}` : ""}
-                </Tooltip>
+                {isCp ? (
+                  <Tooltip direction="right" offset={[8, 0]} permanent className={styles.cpTooltip}>
+                    CP {leg.cp_nummer} · {leg.start_plaats}
+                  </Tooltip>
+                ) : (
+                  <Tooltip direction="top" offset={[0, -6]}>
+                    {leg.start_plaats}
+                    {tijd ? ` · ${tijd}` : ""}
+                  </Tooltip>
+                )}
               </CircleMarker>
             );
           })}

@@ -14,3 +14,7 @@ export function formatGeplandeTijd(value: string | null | undefined): string | n
   if (Number.isNaN(date.getTime())) return value;
   return geplandeTijdFormatter.format(date);
 }
+
+export function googleMapsUrl(lat: number, lon: number): string {
+  return `https://maps.google.com/?q=${lat},${lon}`;
+}

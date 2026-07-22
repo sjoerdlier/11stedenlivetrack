@@ -3,12 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 export interface Leg {
   nr: number;
   start_plaats: string;
-  afstand_km: number;
-  loper: string;
+  afstand_km: number | null;
+  loper: string | null;
   cumulatief_start_km: number;
   start_lat: number;
   start_lon: number;
   geplande_tijd: string | null;
+  cp_nummer: number | null;
+  adres: string | null;
+  bijzonderheden: string | null;
 }
 
 export async function loadLegs(): Promise<Leg[]> {
@@ -25,7 +28,7 @@ export async function loadLegs(): Promise<Leg[]> {
   const { data, error } = await supabase
     .from("legs")
     .select(
-      "nr, start_plaats, afstand_km, loper, cumulatief_start_km, start_lat, start_lon, geplande_tijd",
+      "nr, start_plaats, afstand_km, loper, cumulatief_start_km, start_lat, start_lon, geplande_tijd, cp_nummer, adres, bijzonderheden",
     )
     .order("nr", { ascending: true });
 

@@ -1,9 +1,16 @@
 .page {
   max-width: 1100px;
+  width: 100%;
+  /* body is a flex container (globals.css); as a flex item this page
+     defaults to min-width:auto, which refuses to shrink below the table's
+     content width (nowrap for horizontal scroll). min-width:0 lets it
+     actually respect the viewport instead of the table dictating it. */
+  min-width: 0;
   margin: 0 auto;
   padding: 32px 24px 64px;
   background: #ffffff;
   color: #0b0b0b;
+  box-sizing: border-box;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -72,6 +79,61 @@
 
 .bijzonderheden {
   min-width: 220px;
+}
+
+.tableScroll {
+  width: 100%;
+}
+
+/* 9 columns don't fit a phone screen at any font size. .tableScroll becomes
+   the horizontal scroll container so the table can overflow it rather than
+   the page (page-level overflow, combined with body's overflow-x:hidden,
+   was what made the rightmost columns — Cumulatief/Buddy/Adres/
+   Bijzonderheden — permanently unreachable before this fix). Sizing the
+   table itself (display:block + width:100%) doesn't work here: a table's
+   intrinsic content width wins over a percentage width in every engine
+   tested, so nothing was left to actually overflow — hence the wrapper
+   instead of trying to make <table> its own scroll container. The Plaats
+   column stays pinned so it's still clear which stop you're looking at
+   while scrolling right. */
+@media (max-width: 768px) {
+  .page {
+    padding: 20px 16px 48px;
+  }
+
+  .nav a {
+    display: inline-block;
+    padding: 10px 0;
+    font-size: 15px;
+  }
+
+  .tableScroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    width: max-content;
+    min-width: 100%;
+    white-space: nowrap;
+  }
+
+  .table th:nth-child(3),
+  .table td:nth-child(3) {
+    position: sticky;
+    left: 0;
+    background: #ffffff;
+    box-shadow: 2px 0 4px rgba(11, 11, 11, 0.08);
+  }
+
+  .table tbody tr:nth-child(even) td:nth-child(3) {
+    background: #f9f9f7;
+  }
+
+  .bijzonderheden {
+    white-space: normal;
+    min-width: 200px;
+  }
 }
 
 @media print {

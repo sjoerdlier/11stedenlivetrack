@@ -31,36 +31,38 @@ export default async function SchemaPage() {
         <p className={styles.subtitle}>Volledig schema · gegenereerd {generatedAt}</p>
       </header>
 
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Nr</th>
-            <th>CP</th>
-            <th>Plaats</th>
-            <th>Tijd</th>
-            <th>Afstand</th>
-            <th>Cumulatief</th>
-            <th>Buddy</th>
-            <th>Adres</th>
-            <th>Bijzonderheden</th>
-          </tr>
-        </thead>
-        <tbody>
-          {legs.map((leg) => (
-            <tr key={leg.nr}>
-              <td>{leg.nr}</td>
-              <td>{leg.cp_nummer ?? ""}</td>
-              <td className={styles.plaats}>{leg.start_plaats}</td>
-              <td>{formatGeplandeTijd(leg.geplande_tijd) ?? ""}</td>
-              <td>{leg.afstand_km !== null ? `${leg.afstand_km} km` : ""}</td>
-              <td>{leg.cumulatief_start_km} km</td>
-              <td>{leg.loper ?? ""}</td>
-              <td>{leg.adres ?? ""}</td>
-              <td className={styles.bijzonderheden}>{leg.bijzonderheden ?? ""}</td>
+      <div className={styles.tableScroll}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Nr</th>
+              <th>CP</th>
+              <th>Plaats</th>
+              <th>Tijd</th>
+              <th>Afstand</th>
+              <th>Cumulatief</th>
+              <th>Buddy</th>
+              <th>Adres</th>
+              <th>Bijzonderheden</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {legs.map((leg) => (
+              <tr key={leg.nr}>
+                <td>{leg.nr}</td>
+                <td>{leg.cp_nummer ?? ""}</td>
+                <td className={styles.plaats}>{leg.start_plaats}</td>
+                <td>{formatGeplandeTijd(leg.geplande_tijd) ?? ""}</td>
+                <td>{leg.afstand_km !== null ? `${leg.afstand_km} km` : ""}</td>
+                <td>{leg.cumulatief_start_km} km</td>
+                <td>{leg.loper ?? ""}</td>
+                <td>{leg.adres ?? ""}</td>
+                <td className={styles.bijzonderheden}>{leg.bijzonderheden ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }

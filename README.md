@@ -96,7 +96,12 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   tabel. `@media print` zet 'm op A4 liggend, verbergt de "terug"-link en
   verkleint typografie zodat het schema op één vel past — als gewone webpagina
   blijft de tabel ook prima leesbaar. Bedoeld als scherm-loze achtervang
-  (uitprinten voor in de auto).
+  (uitprinten voor in de auto). Onder 768px breedte staat de tabel (9 kolommen)
+  in een `.tableScroll`-wrapper die zelf de horizontale scroll-container is —
+  niet de `<table>`, want een table's intrinsieke content-breedte wint altijd
+  van een percentage-breedte, dus er viel niets te scrollen totdat de wrapper
+  erbij kwam. De "Plaats"-kolom blijft `position: sticky` links staan zodat
+  duidelijk blijft welke stop je bekijkt tijdens het scrollen.
 - `src/components/LiveTrackPanel.tsx` — uit-/inklapbaar paneel naast de kaart
   met de Garmin LiveTrack-iframe (`NEXT_PUBLIC_GARMIN_LIVETRACK_URL`). Zonder
   die env var toont het paneel een placeholder in plaats van een kapotte

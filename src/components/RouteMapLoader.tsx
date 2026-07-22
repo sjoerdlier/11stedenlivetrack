@@ -12,9 +12,8 @@ const RouteMap = dynamic(() => import("./RouteMap"), {
 interface RouteMapLoaderProps {
   start: LatLng;
   legSegments: LegSegment[];
-  runnerOrder: string[];
 }
 
-export default function RouteMapLoader({ start, legSegments, runnerOrder }: RouteMapLoaderProps) {
-  return <RouteMap start={start} legSegments={legSegments} runnerOrder={runnerOrder} />;
+export default function RouteMapLoader({ start, legSegments }: RouteMapLoaderProps) {
+  return <RouteMap start={start} legSegments={legSegments} />;
 }

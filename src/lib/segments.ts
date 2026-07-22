@@ -4,12 +4,7 @@ import type { Leg } from "./legs";
 export interface LegSegment {
   leg: Leg;
   positions: LatLng[];
-  color: string;
 }
-
-// Categorical palette (dataviz skill, light-mode slots 1-5), assigned in
-// order of each runner's first appearance in the leg list.
-const LOPER_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -39,18 +34,7 @@ function findTrackIndex(points: LatLng[], lat: number, lon: number, fromIdx: num
   return bestIdx;
 }
 
-export function colorForLoper(loper: string, runnerOrder: string[]): string {
-  const idx = runnerOrder.indexOf(loper);
-  return LOPER_COLORS[idx % LOPER_COLORS.length];
-}
-
-export function runnerOrderOf(legs: Leg[]): string[] {
-  return [...new Set(legs.map((l) => l.loper))];
-}
-
 export function buildLegSegments(points: LatLng[], legs: Leg[]): LegSegment[] {
-  const runnerOrder = runnerOrderOf(legs);
-
   const indices: number[] = [];
   let fromIdx = 0;
   for (const leg of legs) {
@@ -64,7 +48,6 @@ export function buildLegSegments(points: LatLng[], legs: Leg[]): LegSegment[] {
     return {
       leg,
       positions: points.slice(startIdx, endIdx + 1),
-      color: colorForLoper(leg.loper, runnerOrder),
     };
   });
 }

@@ -1,29 +1,33 @@
 # 11Stedentocht Live Track
 
 Next.js (App Router) app die de 11Stedentocht wandelroute (204 km, komoot-export)
-toont op een Leaflet-kaart, opgedeeld in 22 legs (Supabase) per loper. Basis voor
-een latere fase met live locatie.
+toont op een Leaflet-kaart. Lowie is het onderwerp: de route staat als één
+doorlopende lijn met de verwachte tijd per startpunt; wie welk stuk loopt
+(buddy) staat pas in de klik-detail. Basis voor een latere fase met live locatie.
 
 ## Hoe het werkt
 
 - `data/route.gpx` — de GPX-track (komoot-export, één track, geen waypoints).
 - `src/lib/gpx.ts` — leest en parsed de GPX server-side (`fast-xml-parser`) tot
   een lijst van `[lat, lon]`-punten.
-- `src/lib/legs.ts` — haalt de 22 legs (start_plaats, afstand_km, loper, start_lat/lon)
-  server-side op uit de Supabase-tabel `legs`.
+- `src/lib/legs.ts` — haalt de 22 legs (start_plaats, afstand_km, loper,
+  geplande_tijd, start_lat/lon) server-side op uit de Supabase-tabel `legs`.
 - `src/lib/segments.ts` — knipt de GPX-track in stukken per leg: zoekt voor elk
   leg-startpunt het dichtstbijzijnde trackpoint (voorwaarts vanaf het vorige leg,
   zodat plekken die de route twee keer passeert — zoals Bartlehiem — niet door
-  elkaar lopen) en wijst per loper een vaste kleur toe.
+  elkaar lopen).
+- `src/lib/format.ts` — formatteert `geplande_tijd` (timestamptz) als "za 18:32"
+  in de Europe/Amsterdam-tijdzone.
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
   live uit Supabase) die route + legs combineert en doorgeeft aan de kaart.
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
-- `src/components/RouteMap.tsx` — de `react-leaflet`-kaart: elk leg-segment als
-  gekleurde lijn (kleur per loper, witte casing voor leesbaarheid), een marker
-  met plaatsnaam op elk leg-startpunt, een start/finish-marker op Leeuwarden, en
-  een zijpaneel dat bij klikken op een segment/marker loper, afstand en cumulatieve
-  afstand toont (met legenda als er niets geselecteerd is).
+- `src/components/RouteMap.tsx` — de `react-leaflet`-kaart: de hele route als
+  één doorlopende lijn (één kleur, geen kleur-per-loper meer), een marker met
+  plaatsnaam + verwachte tijd op elk leg-startpunt, een start/finish-marker op
+  Leeuwarden, en een zijpaneel dat bij klikken op een segment/marker de
+  verwachte tijd, afstand en cumulatieve afstand toont — met de buddy (loper)
+  als losse, secundaire regel onderaan.
 
 ## Supabase
 

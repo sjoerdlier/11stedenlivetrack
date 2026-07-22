@@ -8,6 +8,7 @@ export interface Leg {
   cumulatief_start_km: number;
   start_lat: number;
   start_lon: number;
+  geplande_tijd: string | null;
 }
 
 export async function loadLegs(): Promise<Leg[]> {
@@ -23,7 +24,9 @@ export async function loadLegs(): Promise<Leg[]> {
   const supabase = createClient(url, key);
   const { data, error } = await supabase
     .from("legs")
-    .select("nr, start_plaats, afstand_km, loper, cumulatief_start_km, start_lat, start_lon")
+    .select(
+      "nr, start_plaats, afstand_km, loper, cumulatief_start_km, start_lat, start_lon, geplande_tijd",
+    )
     .order("nr", { ascending: true });
 
   if (error) {

@@ -3,7 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
-import { computeProgress, daysUntilStart, TOTAL_ROUTE_KM, type LegStatus } from "@/lib/status";
+import { formatPaceKmh } from "@/lib/format";
+import {
+  computeProgress,
+  daysUntilStart,
+  totalPlannedPaceKmh,
+  TOTAL_ROUTE_KM,
+  type LegStatus,
+} from "@/lib/status";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
@@ -19,6 +26,7 @@ const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 export default function TopBar({ legs, statuses, now, liveTrackOpen, onToggleLiveTrack }: TopBarProps) {
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
   const countdownDays = useMemo(() => daysUntilStart(legs, now), [legs, now]);
+  const paceLabel = useMemo(() => formatPaceKmh(totalPlannedPaceKmh(legs)), [legs]);
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -60,6 +68,9 @@ export default function TopBar({ legs, statuses, now, liveTrackOpen, onToggleLiv
           <span className={styles.progressTrack}>
             <span className={styles.progressFill} style={{ width: `${percent}%` }} />
           </span>
+          {paceLabel && (
+            <span className={styles.pace}>Gem. tempo: {paceLabel} (gepland)</span>
+          )}
         </div>
       )}
 

@@ -38,6 +38,18 @@ export function computeLegStatuses(legs: Leg[], now: number): Map<number, LegSta
   return map;
 }
 
+// The race's start time is leg 1's geplande_tijd. Legs assumed sorted by nr.
+export function raceStartTime(legs: Leg[]): number | null {
+  const time = legs[0]?.geplande_tijd ? new Date(legs[0].geplande_tijd).getTime() : null;
+  return time !== null && !Number.isNaN(time) ? time : null;
+}
+
+// True until leg 1's start time is reached, i.e. before anyone is "bezig" yet.
+export function isBeforeStart(legs: Leg[], now: number): boolean {
+  const startTime = raceStartTime(legs);
+  return startTime !== null && now < startTime;
+}
+
 export const TOTAL_ROUTE_KM = 202;
 
 export interface Progress {

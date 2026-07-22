@@ -26,7 +26,10 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   volgende leg z'n tijd voorbij is, bezig zodra de eigen tijd voorbij is,
   anders nog-te-gaan. Levert ook de gedeelde statuskleuren (grijs/blauw/wit) en
   labels — dezelfde module voedt zowel het side-menu als de kaart. Herberekent
-  elke 30s (client-side klok).
+  elke 30s (client-side klok). `isBeforeStart`/`raceStartTime` leiden de
+  "nog niet begonnen"-staat af uit leg 1's `geplande_tijd` (géén losse
+  hardcoded datum), gebruikt door `TopBar` (countdown) en `RouteMap` (loper op
+  het startpunt).
 - `src/lib/geo.ts` — gedeelde geo-wiskunde: `haversineMeters` (afstand tussen
   twee punten) en `bearingDeg` (kompaskoers van punt a naar punt b, 0=noord).
   Gebruikt door zowel `segments.ts` (leg-track knippen) als
@@ -51,7 +54,9 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   clipboard-fallback + "Gekopieerd!"-bevestiging), en een donatieknop uit
   `NEXT_PUBLIC_DONATION_URL` — zonder die env var toont de knop een zichtbare
   TODO-placeholder in plaats van een hardcoded url. Op mobiel compact (alleen
-  percentage + iconen), op desktop volledig uitgeschreven.
+  percentage + iconen), op desktop volledig uitgeschreven. Zolang de tocht nog
+  niet begonnen is (`isBeforeStart`) toont dit blok een countdown ("Nog X
+  dagen tot de start") in plaats van de voortgangsbalk.
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
 - `src/components/RunnerFigure.tsx` — de geanimeerde SVG-rennerfiguur van
@@ -74,7 +79,9 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   side-menu synchroniseert de selectie beide kanten op. De actieve loper
   krijgt een eigen marker (`RunnerFigure` als Leaflet `divIcon`, geroteerd naar
   `bearingDeg`); een klik erop toont de uitvergrote detailweergave in een
-  popup.
+  popup. Zolang de tocht nog niet begonnen is, staat deze marker alvast op het
+  startpunt (leg 1) met de bounce-animatie aan maar de benen stil
+  (`running={false}`) — aan het opwarmen, nog niet aan het lopen.
 - `src/app/schema/page.tsx` — losstaande, printbare lijstweergave van alle
   stops (server component, geen kaart, geen interactieve elementen): nr, CP,
   plaats, tijd, afstand, cumulatief, buddy, adres, bijzonderheden in een platte
@@ -163,11 +170,22 @@ wandeldagen te wachten, kan de klok via de querystring versneld worden
   in ~2 minuten voorbij, inclusief de bewegende/roterende loper op de kaart.
 - `?debug=<snelheid>` — eigen snelheidsfactor, bijv. `?debug=600` voor 10
   minuten schema per seconde.
-- `&debugTime=2026-07-18T09:00:00` — start de simulatie op een gekozen
+- `&debugTime=2026-08-29T07:00:00` — start de simulatie op een gekozen
   moment (bijv. de officiële starttijd) in plaats van vanaf "nu", zodat elk
   punt in het schema op aanvraag te bekijken is.
 
-Voorbeeld: `http://localhost:3000/?debug=1&debugTime=2026-07-18T09:00:00`.
+Beide staten van de "nog niet begonnen"-weergave (`isBeforeStart` in
+`status.ts`) zijn hiermee te bekijken zonder op de kalender te wachten:
+
+- **Idle-staat** (vóór leg 1's `geplande_tijd`): standaard gedrag als de
+  querystring leeg is, of expliciet met een `debugTime` vóór de starttijd,
+  bijv. `?debug=1&debugTime=2026-08-01T00:00:00`. Toont de countdown in de
+  topbar en de loper (bounce, stilstaande benen) op het startpunt.
+- **Actieve staat**: `?debug=600&debugTime=2026-08-29T07:00:00` (of later)
+  springt direct naar/voorbij de starttijd — countdown maakt plaats voor de
+  voortgangsbalk en de loper begint te bewegen/rennen langs de actieve leg.
+
+Voorbeeld: `http://localhost:3000/?debug=600&debugTime=2026-08-29T07:00:00`.
 
 ## Route vervangen
 

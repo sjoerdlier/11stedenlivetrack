@@ -8,7 +8,7 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
-import { STATUS_COLORS, type LegStatus } from "@/lib/status";
+import { STATUS_COLORS, isBeforeStart, type LegStatus } from "@/lib/status";
 import { computeRunnerPosition } from "@/lib/runnerPosition";
 import LegSchedule from "./LegSchedule";
 import RunnerFigure from "./RunnerFigure";
@@ -60,18 +60,46 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
     () => computeRunnerPosition(legSegments, statuses, now),
     [legSegments, statuses, now]
   );
+  const beforeStart = useMemo(() => isBeforeStart(legs, now), [legs, now]);
+
+  // Before the race starts there is no active leg to run computeRunnerPosition
+  // against, so show Lowie waiting at the start line instead — still bouncing
+  // (warming up), but not mid-stride since he isn't running yet.
+  const displayRunner = useMemo(() => {
+    if (runner) {
+      const legIndex = legs.findIndex((leg) => leg.nr === runner.legNr);
+      const from = legs[legIndex]?.start_plaats;
+      const to = legs[legIndex + 1]?.start_plaats;
+      return {
+        position: runner.position,
+        bearingDeg: runner.bearingDeg,
+        running: true,
+        label: to ? `${from} → ${to}` : from ?? "",
+      };
+    }
+    if (beforeStart && legs[0]) {
+      return {
+        position: [legs[0].start_lat, legs[0].start_lon] as LatLng,
+        bearingDeg: 90,
+        running: false,
+        label: `Start bij ${legs[0].start_plaats}`,
+      };
+    }
+    return null;
+  }, [runner, beforeStart, legs]);
 
   // Rotate the figure (drawn facing east) to face its actual running
   // direction; rebuilt as a divIcon since Leaflet renders markers outside
   // React's own DOM tree.
   const runnerIcon = useMemo(() => {
-    if (!runner) return null;
+    if (!displayRunner) return null;
     return L.divIcon({
       html: renderToStaticMarkup(
         <RunnerFigure
           size={RUNNER_ICON_SIZE}
           color={STATUS_COLORS.bezig}
-          rotationDeg={runner.bearingDeg - 90}
+          rotationDeg={displayRunner.bearingDeg - 90}
+          running={displayRunner.running}
           bounce
         />
       ),
@@ -79,15 +107,7 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
       iconSize: [RUNNER_ICON_SIZE, RUNNER_ICON_SIZE],
       iconAnchor: [RUNNER_ICON_SIZE / 2, RUNNER_ICON_SIZE / 2],
     });
-  }, [runner]);
-
-  const runnerLegLabel = useMemo(() => {
-    if (!runner) return "";
-    const legIndex = legs.findIndex((leg) => leg.nr === runner.legNr);
-    const from = legs[legIndex]?.start_plaats;
-    const to = legs[legIndex + 1]?.start_plaats;
-    return to ? `${from} → ${to}` : from ?? "";
-  }, [legs, runner]);
+  }, [displayRunner]);
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -168,12 +188,12 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
             );
           })}
 
-          {runner && runnerIcon && (
-            <Marker position={runner.position} icon={runnerIcon} zIndexOffset={1000}>
+          {displayRunner && runnerIcon && (
+            <Marker position={displayRunner.position} icon={runnerIcon} zIndexOffset={1000}>
               <Popup className={styles.runnerPopup}>
                 <div className={styles.runnerPopupContent}>
-                  <RunnerFigure size={140} color={STATUS_COLORS.bezig} />
-                  <div className={styles.runnerPopupLabel}>{runnerLegLabel}</div>
+                  <RunnerFigure size={140} color={STATUS_COLORS.bezig} running={displayRunner.running} />
+                  <div className={styles.runnerPopupLabel}>{displayRunner.label}</div>
                 </div>
               </Popup>
             </Marker>

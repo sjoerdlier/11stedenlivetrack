@@ -3,20 +3,30 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
-import { computeProgress, TOTAL_ROUTE_KM, type LegStatus } from "@/lib/status";
+import { computeProgress, isBeforeStart, raceStartTime, TOTAL_ROUTE_KM, type LegStatus } from "@/lib/status";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
   legs: Leg[];
   statuses: Map<number, LegStatus>;
+  now: number;
   liveTrackOpen: boolean;
   onToggleLiveTrack: () => void;
 }
 
 const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 
-export default function TopBar({ legs, statuses, liveTrackOpen, onToggleLiveTrack }: TopBarProps) {
+function formatCountdown(startTime: number, now: number): string {
+  const daysLeft = Math.ceil((startTime - now) / (24 * 60 * 60 * 1000));
+  if (daysLeft <= 0) return "Start vandaag";
+  if (daysLeft === 1) return "Nog 1 dag tot de start";
+  return `Nog ${daysLeft} dagen tot de start`;
+}
+
+export default function TopBar({ legs, statuses, now, liveTrackOpen, onToggleLiveTrack }: TopBarProps) {
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
+  const beforeStart = useMemo(() => isBeforeStart(legs, now), [legs, now]);
+  const startTime = useMemo(() => raceStartTime(legs), [legs]);
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -39,15 +49,21 @@ export default function TopBar({ legs, statuses, liveTrackOpen, onToggleLiveTrac
   return (
     <header className={styles.bar}>
       <div className={styles.progress}>
-        <span className={styles.progressText}>
-          <span className={styles.progressFull}>
-            {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
-          </span>
-          {Math.round(percent)}%
-        </span>
-        <span className={styles.progressTrack}>
-          <span className={styles.progressFill} style={{ width: `${percent}%` }} />
-        </span>
+        {beforeStart && startTime !== null ? (
+          <span className={styles.progressText}>{formatCountdown(startTime, now)}</span>
+        ) : (
+          <>
+            <span className={styles.progressText}>
+              <span className={styles.progressFull}>
+                {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
+              </span>
+              {Math.round(percent)}%
+            </span>
+            <span className={styles.progressTrack}>
+              <span className={styles.progressFill} style={{ width: `${percent}%` }} />
+            </span>
+          </>
+        )}
       </div>
 
       <nav className={styles.actions}>

@@ -28,6 +28,7 @@ export default function AppShell({ start, legSegments }: AppShellProps) {
       <TopBar
         legs={legs}
         statuses={statuses}
+        now={now}
         liveTrackOpen={liveTrackOpen}
         onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
       />

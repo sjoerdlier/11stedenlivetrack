@@ -23,3 +23,9 @@
   border: 1px solid #4a3aa7;
   color: #4a3aa7;
 }
+
+.tooltipRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

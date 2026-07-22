@@ -1,6 +1,7 @@
 import type { Leg } from "@/lib/legs";
 import { formatGeplandeTijd, formatPaceKmh, googleMapsUrl } from "@/lib/format";
 import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
+import BuddyBadge from "./BuddyBadge";
 import styles from "./LegCard.module.css";
 
 interface LegCardProps {
@@ -62,7 +63,9 @@ export default function LegCard({ leg, status, expanded, pace, onToggle }: LegCa
               {leg.loper && (
                 <div className={styles.fact}>
                   <dt>Buddy</dt>
-                  <dd>{leg.loper}</dd>
+                  <dd>
+                    <BuddyBadge name={leg.loper} />
+                  </dd>
                 </div>
               )}
             </dl>

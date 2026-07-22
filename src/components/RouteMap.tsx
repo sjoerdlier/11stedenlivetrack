@@ -19,12 +19,18 @@ import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
 import { STATUS_COLORS, type LegStatus } from "@/lib/status";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
+import BuddyBadge from "./BuddyBadge";
 import LegSchedule from "./LegSchedule";
 import styles from "./RouteMap.module.css";
 
 const INITIAL_ZOOM = 11;
 
 const MARKER_RING_COLOR = "#52514e";
+// The route line no longer follows leg status (that made most of the route
+// white/invisible); it's blue by default and turns green when a leg is
+// selected from the sidebar, so the click actually stands out.
+const ROUTE_BASE_COLOR = "#2a78d6";
+const ROUTE_SELECTED_COLOR = "#16a34a";
 
 const startFinishIcon = L.icon({
   iconUrl:
@@ -112,7 +118,7 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
                 key={`line-${leg.nr}`}
                 positions={positions}
                 pathOptions={{
-                  color: STATUS_COLORS[status],
+                  color: isSelected ? ROUTE_SELECTED_COLOR : ROUTE_BASE_COLOR,
                   weight: status === "bezig" || isSelected ? 7 : 5,
                   opacity: 0.95,
                   lineCap: "round",
@@ -162,8 +168,11 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
                   </Tooltip>
                 ) : (
                   <Tooltip key="hover" direction="top" offset={[0, -6]}>
-                    {leg.start_plaats}
-                    {tijd ? ` · ${tijd}` : ""}
+                    <span className={styles.tooltipRow}>
+                      {leg.start_plaats}
+                      {tijd ? ` · ${tijd}` : ""}
+                      {leg.loper && <BuddyBadge name={leg.loper} />}
+                    </span>
                   </Tooltip>
                 )}
               </CircleMarker>

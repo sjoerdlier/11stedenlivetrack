@@ -12,7 +12,7 @@ export const STATUS_COLORS: Record<LegStatus, string> = {
 export const STATUS_LABELS: Record<LegStatus, string> = {
   voltooid: "Voltooid",
   bezig: "Bezig",
-  "nog-te-gaan": "Nog te gaan",
+  "nog-te-gaan": "Gepland",
 };
 
 // A leg is "voltooid" once the next leg's geplande_tijd has passed, "bezig"

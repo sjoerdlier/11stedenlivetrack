@@ -1,4 +1,4 @@
-const geplandeTijdFormatter = new Intl.DateTimeFormat("nl-NL", {
+const dutchClockFormatter = new Intl.DateTimeFormat("nl-NL", {
   weekday: "short",
   hour: "2-digit",
   minute: "2-digit",
@@ -12,7 +12,14 @@ export function formatGeplandeTijd(value: string | null | undefined): string | n
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return geplandeTijdFormatter.format(date);
+  return dutchClockFormatter.format(date);
+}
+
+// Formats a computed timestamp (e.g. an estimated arrival) the same way as
+// formatGeplandeTijd, as "za 18:32".
+export function formatClockTime(ms: number): string | null {
+  if (!Number.isFinite(ms)) return null;
+  return dutchClockFormatter.format(new Date(ms));
 }
 
 export function googleMapsUrl(lat: number, lon: number): string {

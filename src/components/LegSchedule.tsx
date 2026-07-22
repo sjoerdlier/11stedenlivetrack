@@ -1,16 +1,24 @@
 import type { Leg } from "@/lib/legs";
-import { legPlannedPaceKmh, type LegStatus } from "@/lib/status";
+import { actualLegPaceKmh } from "@/lib/actualProgress";
+import type { LegStatus } from "@/lib/status";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
 
 interface LegScheduleProps {
   legs: Leg[];
   statuses: Map<number, LegStatus>;
+  checkinTimes: Map<number, number>;
   selectedNr: number | null;
   onSelect: (nr: number | null) => void;
 }
 
-export default function LegSchedule({ legs, statuses, selectedNr, onSelect }: LegScheduleProps) {
+export default function LegSchedule({
+  legs,
+  statuses,
+  checkinTimes,
+  selectedNr,
+  onSelect,
+}: LegScheduleProps) {
   return (
     <div className={styles.sidebar}>
       <div className={styles.header}>
@@ -25,7 +33,7 @@ export default function LegSchedule({ legs, statuses, selectedNr, onSelect }: Le
           // The active leg auto-expands when nothing else is picked; a click
           // always wins so any card (past or upcoming) can be inspected.
           const expanded = isSelected || (selectedNr === null && status === "bezig");
-          const pace = legPlannedPaceKmh(legs, index);
+          const pace = actualLegPaceKmh(legs, checkinTimes, index);
 
           return (
             <LegCard

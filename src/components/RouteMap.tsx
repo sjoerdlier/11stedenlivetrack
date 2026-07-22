@@ -50,6 +50,7 @@ interface RouteMapProps {
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
+  checkinTimes: Map<number, number>;
 }
 
 // The map's container width changes when sibling panels (e.g. LiveTrack)
@@ -74,7 +75,7 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
-export default function RouteMap({ start, legSegments, statuses }: RouteMapProps) {
+export default function RouteMap({ start, legSegments, statuses, checkinTimes }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
@@ -90,7 +91,13 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
 
   return (
     <div className={styles.layout}>
-      <LegSchedule legs={legs} statuses={statuses} selectedNr={selectedNr} onSelect={setSelectedNr} />
+      <LegSchedule
+        legs={legs}
+        statuses={statuses}
+        checkinTimes={checkinTimes}
+        selectedNr={selectedNr}
+        onSelect={setSelectedNr}
+      />
 
       <div className={styles.mapArea}>
         <MapContainer center={start} zoom={INITIAL_ZOOM} className={styles.map} scrollWheelZoom>

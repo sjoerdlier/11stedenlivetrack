@@ -23,3 +23,26 @@
   border: 1px solid #4a3aa7;
   color: #4a3aa7;
 }
+
+.runnerIcon {
+  background: transparent;
+  border: none;
+}
+
+.runnerPopup :global(.leaflet-popup-content) {
+  margin: 6px 10px;
+}
+
+.runnerPopupContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+}
+
+.runnerPopupLabel {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}

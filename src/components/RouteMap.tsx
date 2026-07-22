@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -8,8 +9,12 @@ import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
 import { STATUS_COLORS, type LegStatus } from "@/lib/status";
+import { computeRunnerPosition } from "@/lib/runnerPosition";
 import LegSchedule from "./LegSchedule";
+import RunnerFigure from "./RunnerFigure";
 import styles from "./RouteMap.module.css";
+
+const RUNNER_ICON_SIZE = 30;
 
 const MARKER_RING_COLOR = "#52514e";
 
@@ -31,11 +36,45 @@ interface RouteMapProps {
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
+  now: number;
 }
 
-export default function RouteMap({ start, legSegments, statuses }: RouteMapProps) {
+export default function RouteMap({ start, legSegments, statuses, now }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
+
+  const runner = useMemo(
+    () => computeRunnerPosition(legSegments, statuses, now),
+    [legSegments, statuses, now]
+  );
+
+  // Rotate the figure (drawn facing east) to face its actual running
+  // direction; rebuilt as a divIcon since Leaflet renders markers outside
+  // React's own DOM tree.
+  const runnerIcon = useMemo(() => {
+    if (!runner) return null;
+    return L.divIcon({
+      html: renderToStaticMarkup(
+        <RunnerFigure
+          size={RUNNER_ICON_SIZE}
+          color={STATUS_COLORS.bezig}
+          rotationDeg={runner.bearingDeg - 90}
+          bounce
+        />
+      ),
+      className: styles.runnerIcon,
+      iconSize: [RUNNER_ICON_SIZE, RUNNER_ICON_SIZE],
+      iconAnchor: [RUNNER_ICON_SIZE / 2, RUNNER_ICON_SIZE / 2],
+    });
+  }, [runner]);
+
+  const runnerLegLabel = useMemo(() => {
+    if (!runner) return "";
+    const legIndex = legs.findIndex((leg) => leg.nr === runner.legNr);
+    const from = legs[legIndex]?.start_plaats;
+    const to = legs[legIndex + 1]?.start_plaats;
+    return to ? `${from} → ${to}` : from ?? "";
+  }, [legs, runner]);
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -114,6 +153,17 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
               </CircleMarker>
             );
           })}
+
+          {runner && runnerIcon && (
+            <Marker position={runner.position} icon={runnerIcon} zIndexOffset={1000}>
+              <Popup className={styles.runnerPopup}>
+                <div className={styles.runnerPopupContent}>
+                  <RunnerFigure size={140} color={STATUS_COLORS.bezig} />
+                  <div className={styles.runnerPopupLabel}>{runnerLegLabel}</div>
+                </div>
+              </Popup>
+            </Marker>
+          )}
 
           <Marker position={start} icon={startFinishIcon}>
             <Popup>

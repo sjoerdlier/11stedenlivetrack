@@ -27,10 +27,21 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   anders nog-te-gaan. Levert ook de gedeelde statuskleuren (grijs/blauw/wit) en
   labels — dezelfde module voedt zowel het side-menu als de kaart. Herberekent
   elke 30s (client-side klok).
+- `src/lib/geo.ts` — gedeelde geo-wiskunde: `haversineMeters` (afstand tussen
+  twee punten) en `bearingDeg` (kompaskoers van punt a naar punt b, 0=noord).
+  Gebruikt door zowel `segments.ts` (leg-track knippen) als
+  `runnerPosition.ts` (loper-positie en looprichting).
+- `src/lib/runnerPosition.ts` — er is nog geen live GPS-feed, dus de positie
+  van de loper wordt gesimuleerd: op de actieve leg wordt hij langs de track
+  geplaatst naar verhouding van hoe ver de tijdsvensters (`geplande_tijd` van
+  de leg tot die van de volgende) al verstreken zijn, met de looprichting
+  (`bearingDeg`) afgeleid uit het naastliggende trackstuk.
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
   live uit Supabase) die route + legs combineert en doorgeeft aan `AppShell`.
 - `src/lib/useNow.ts` — kleine client-clock hook (tick elke N ms), gebruikt om
-  status live te houden zonder page reload.
+  status live te houden zonder page reload. Ondersteunt een debug/simulatie-
+  modus via de querystring (`?debug=…`) om het schema te versnellen zonder op
+  de daadwerkelijke wandeldagen te wachten — zie "Debug/simulatiemodus" hieronder.
 - `src/components/AppShell.tsx` — client component die once de statusklok +
   `computeLegStatuses` berekent en doorgeeft aan zowel `TopBar` als de kaart,
   zodat voortgang en status-kleuren gegarandeerd hetzelfde snapshot lezen.
@@ -43,17 +54,27 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   percentage + iconen), op desktop volledig uitgeschreven.
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
+- `src/components/RunnerFigure.tsx` — de geanimeerde SVG-rennerfiguur van
+  Lowie: hoofd (cirkel), romp en twee losse armen/benen die elk om hun eigen
+  gewricht (heup/schouder) roteren. Armen en benen zwaaien in CSS-keyframes
+  in tegengestelde fase, cyclus van 500ms. Eén component voor zowel de
+  compacte kaart-marker (klein, met `bounce` en `rotationDeg` naar de
+  looprichting) als de uitvergrote detailweergave (`size` 4-5x groter, geen
+  rotatie/bounce nodig — hier is de beenbeweging het duidelijkst zichtbaar).
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe
   is een kaart-blok. Detailniveau volgt de status: voltooid = compacte
-  ingeklapte regel, bezig = automatisch volledig uitgeklapt en uitgelicht,
-  nog-te-gaan = huidig niveau (klik om buddy/adres/bijzonderheden te tonen).
-  Checkpoints (`cp_nummer` niet leeg) krijgen een badge en een groter bolletje.
-  Bijzonderheden krijgen een opvallende "Let op"-waarschuwingsbox, niet
-  weggemoffeld.
+  ingeklapte regel, bezig = automatisch volledig uitgeklapt en uitgelicht (met
+  de uitvergrote `RunnerFigure` erbij), nog-te-gaan = huidig niveau (klik om
+  buddy/adres/bijzonderheden te tonen). Checkpoints (`cp_nummer` niet leeg)
+  krijgen een badge en een groter bolletje. Bijzonderheden krijgen een
+  opvallende "Let op"-waarschuwingsbox, niet weggemoffeld.
 - `src/components/RouteMap.tsx` — de `react-leaflet`-kaart naast het side-menu:
   elk leg-segment en elke startmarker gekleurd naar dezelfde status; CP's
   krijgen een grotere marker met permanent badge-label. Klik op kaart of
-  side-menu synchroniseert de selectie beide kanten op.
+  side-menu synchroniseert de selectie beide kanten op. De actieve loper
+  krijgt een eigen marker (`RunnerFigure` als Leaflet `divIcon`, geroteerd naar
+  `bearingDeg`); een klik erop toont de uitvergrote detailweergave in een
+  popup.
 - `src/app/schema/page.tsx` — losstaande, printbare lijstweergave van alle
   stops (server component, geen kaart, geen interactieve elementen): nr, CP,
   plaats, tijd, afstand, cumulatief, buddy, adres, bijzonderheden in een platte
@@ -91,6 +112,23 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Debug/simulatiemodus
+
+Om de rennende marker en het schema te bekijken zonder op de echte
+wandeldagen te wachten, kan de klok via de querystring versneld worden
+(`src/lib/useNow.ts`):
+
+- `?debug=1` — zet de simulatieklok aan, standaard 60x snelheid vanaf het
+  moment van laden. Een volledige leg-tijdvenster van bijv. 2 uur schiet dan
+  in ~2 minuten voorbij, inclusief de bewegende/roterende loper op de kaart.
+- `?debug=<snelheid>` — eigen snelheidsfactor, bijv. `?debug=600` voor 10
+  minuten schema per seconde.
+- `&debugTime=2026-07-18T09:00:00` — start de simulatie op een gekozen
+  moment (bijv. de officiële starttijd) in plaats van vanaf "nu", zodat elk
+  punt in het schema op aanvraag te bekijken is.
+
+Voorbeeld: `http://localhost:3000/?debug=1&debugTime=2026-07-18T09:00:00`.
 
 ## Route vervangen
 

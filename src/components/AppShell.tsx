@@ -25,7 +25,7 @@ export default function AppShell({ start, legSegments }: AppShellProps) {
     <div className={styles.shell}>
       <TopBar legs={legs} statuses={statuses} />
       <div className={styles.body}>
-        <RouteMapLoader start={start} legSegments={legSegments} statuses={statuses} />
+        <RouteMapLoader start={start} legSegments={legSegments} statuses={statuses} now={now} />
       </div>
     </div>
   );

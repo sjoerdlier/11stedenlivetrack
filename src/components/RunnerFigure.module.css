@@ -1,0 +1,91 @@
+.wrap {
+  display: inline-block;
+  line-height: 0;
+}
+
+.figure {
+  display: block;
+}
+
+/* Joints: legs pivot at the hip (28, 54), arms at the shoulder (29, 30). */
+.legBack,
+.legFront {
+  transform-origin: 28px 54px;
+}
+
+.armBack,
+.armFront {
+  transform-origin: 29px 30px;
+}
+
+/* Front and back limbs swing in opposite phase, ~500ms per stride. */
+.legFront.animated {
+  animation: swingLegFront 0.5s linear infinite;
+}
+
+.legBack.animated {
+  animation: swingLegBack 0.5s linear infinite;
+}
+
+.armFront.animated {
+  animation: swingArmFront 0.5s linear infinite;
+}
+
+.armBack.animated {
+  animation: swingArmBack 0.5s linear infinite;
+}
+
+@keyframes swingLegFront {
+  0%,
+  100% {
+    transform: rotate(-30deg);
+  }
+  50% {
+    transform: rotate(32deg);
+  }
+}
+
+@keyframes swingLegBack {
+  0%,
+  100% {
+    transform: rotate(32deg);
+  }
+  50% {
+    transform: rotate(-30deg);
+  }
+}
+
+@keyframes swingArmFront {
+  0%,
+  100% {
+    transform: rotate(30deg);
+  }
+  50% {
+    transform: rotate(-26deg);
+  }
+}
+
+@keyframes swingArmBack {
+  0%,
+  100% {
+    transform: rotate(-26deg);
+  }
+  50% {
+    transform: rotate(30deg);
+  }
+}
+
+/* Subtle hop, independent of the rotation applied to .figure. */
+.bounce {
+  animation: hop 0.5s ease-in-out infinite;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}

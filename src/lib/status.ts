@@ -38,22 +38,6 @@ export function computeLegStatuses(legs: Leg[], now: number): Map<number, LegSta
   return map;
 }
 
-// Average planned pace for a leg: its distance over the elapsed time between
-// this leg's geplande_tijd and the next leg's. The last leg has no next time
-// to measure against, so its pace is unknown.
-export function legPlannedPaceKmh(legs: Leg[], index: number): number | null {
-  const leg = legs[index];
-  const next = legs[index + 1];
-  if (leg.afstand_km === null || !leg.geplande_tijd || !next?.geplande_tijd) return null;
-
-  const start = new Date(leg.geplande_tijd).getTime();
-  const end = new Date(next.geplande_tijd).getTime();
-  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
-
-  const hours = (end - start) / (1000 * 60 * 60);
-  return leg.afstand_km / hours;
-}
-
 export const TOTAL_ROUTE_KM = 202;
 
 // Total planned average pace over the whole route: the fixed route distance

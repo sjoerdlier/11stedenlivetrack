@@ -34,15 +34,33 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
 - `src/components/AppShell.tsx` — client component die once de statusklok +
   `computeLegStatuses` berekent en doorgeeft aan zowel `TopBar` als de kaart,
   zodat voortgang en status-kleuren gegarandeerd hetzelfde snapshot lezen.
-- `src/components/TopBar.tsx` — vaste balk boven kaart + sidebar: voortgang
-  (`computeProgress` in `status.ts`, cumulatief_start_km van de laatst voltooide
-  leg / 202 km), of — zolang leg 1 nog niet gestart is — een countdown
-  ("Nog X dagen tot de start", via `daysUntilStart`). Verder een link naar
+- `src/components/TopBar.tsx` — vaste balk boven kaart + sidebar. Zodra er
+  minstens 1 rij in `checkins` staat, toont de balk de **echte** status:
+  afgelegde km + % (som van `afstand_km` van elke leg wiens eindpunt een
+  check-in heeft), actueel gemiddeld tempo (afgelegde km / verstreken tijd
+  sinds de eerste check-in) en een geschatte aankomsttijd (nu + resterende km
+  / tempo). Met minder dan 2 check-ins is er nog geen betrouwbaar actueel
+  tempo — de aankomstschatting valt dan terug op het geplande tempo, duidelijk
+  gelabeld ("schatting o.b.v. gepland tempo"). Zolang `checkins` leeg is (vóór
+  de racedag, de normale staat) blijft het oude, schema-gebaseerde gedrag
+  staan: voortgang (`computeProgress` in `status.ts`, cumulatief_start_km van
+  de laatst voltooide leg / 202 km) + gepland gemiddeld tempo, of — zolang leg
+  1 nog niet gestart is — een countdown ("Nog X dagen tot de start", via
+  `daysUntilStart`). Al deze berekeningen zitten in `src/lib/actualProgress.ts`
+  (echt) resp. `src/lib/status.ts` (gepland/schema). Verder een link naar
   `/schema`, een deel-knop (Web Share API met clipboard-fallback +
   "Gekopieerd!"-bevestiging), en een donatieknop uit `NEXT_PUBLIC_DONATION_URL`
   — zonder die env var toont de knop een zichtbare TODO-placeholder in plaats
   van een hardcoded url. Op mobiel compact (alleen percentage/countdown +
   iconen), op desktop volledig uitgeschreven.
+- `src/lib/actualProgress.ts` — alle berekeningen op basis van **echte**
+  check-ins in plaats van het schema: `firstCheckinTimesByLeg` (eerste
+  check-in per `leg_nr`), `computeActualProgress` (afgelegde km/%),
+  `actualLegPaceKmh` (het werkelijke tempo van de zojuist gelopen etappe: de
+  afstand van de vórige leg over de echte tijd tussen de check-in van de
+  vorige en die van deze leg — alleen als check-ins voor beide bestaan),
+  `actualAveragePaceKmh` en `estimateArrival` (valt terug op het geplande
+  tempo zolang er nog geen 2 check-ins zijn).
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe
@@ -51,7 +69,12 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   nog-te-gaan = huidig niveau (klik om buddy/adres/bijzonderheden te tonen).
   Checkpoints (`cp_nummer` niet leeg) krijgen een badge en een groter bolletje.
   Bijzonderheden krijgen een opvallende "Let op"-waarschuwingsbox, niet
-  weggemoffeld.
+  weggemoffeld. Elke kaart toont daarnaast het werkelijke tempo
+  (`actualLegPaceKmh`) waarmee die etappe is gelopen, maar alléén als er
+  check-ins zijn voor zowel deze als de vorige leg — zonder die data toont de
+  kaart niets (geen placeholder, geen schatting op basis van het schema; die
+  is er bewust uitgehaald omdat 'm per leg tonen als puur-schema-getal als
+  ruis/fout overkwam).
 - `src/components/RouteMap.tsx` — de `react-leaflet`-kaart naast het side-menu:
   elk leg-segment en elke startmarker gekleurd naar dezelfde status; CP's
   krijgen een grotere marker met permanent badge-label. Klik op kaart of
@@ -98,8 +121,31 @@ Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
   daarna het formulier (tijdstip default nu, leg-dropdown, optioneel lat/lon,
   notitie, naam invoerder). Bij succesvol opslaan: bevestiging tonen, formulier
   volledig leegmaken voor de volgende invoer.
-- `src/lib/checkins.ts` — insert in de Supabase-tabel `checkins` met de
-  bestaande anon key (zelfde patroon als `legs`/`loadLegs`).
+- `src/lib/checkins.ts` — `insertCheckin` (insert) en `loadCheckins` (select,
+  gesorteerd op `tijdstip`) tegen de Supabase-tabel `checkins`, met de
+  bestaande anon key (zelfde patroon als `legs`/`loadLegs`). `loadCheckins`
+  wordt op elke page-load in `src/app/page.tsx` aangeroepen en gevoed aan
+  `AppShell` → `TopBar` + `LegSchedule`/`LegCard` (zie `actualProgress.ts`
+  hierboven). Een lege tabel (vóór de racedag) is de normale staat, geen fout.
+
+### Dit testen zonder op de racedag te wachten
+
+Voeg testrijen toe aan `checkins` — via `/invoer` (PIN uit `CHECKIN_PIN`) of
+rechtstreeks in de Supabase table editor — en herlaad `/`:
+
+- **1 check-in** (bijv. leg 1, tijdstip nu): topbar schakelt over naar de
+  echte statusbalk, maar "Afgelegd" blijft 0 km (er is nog geen leg *voltooid*)
+  en de aankomstschatting valt terug op het geplande tempo.
+- **2 check-ins** voor opeenvolgende legs (bijv. leg 1 om 08:00, leg 2 om
+  12:30): "Afgelegd" springt naar `afstand_km` van leg 1, de topbar toont nu
+  een actueel tempo, de aankomstschatting gebruikt dat tempo (niet meer het
+  schema), en de kaart van leg 2 in de sidebar toont het werkelijke tempo van
+  die etappe.
+- **Sidebar zonder check-in voor een leg**: die kaart toont simpelweg geen
+  tempo-regel (geen placeholder) — zo kun je ook testen dat legs die je
+  oversLaat correct niets tonen.
+- Voeg een `tijdstip` in het verleden toe (i.p.v. "nu") om een realistisch
+  verstreken-tijd/tempo te simuleren zonder echt te hoeven wachten.
 
 **Aanname over het `checkins`-schema** (geen SQL meegestuurd dit keer): kolommen
 `tijdstip` (timestamptz), `leg_nr` (int, verwijst naar `legs.nr`), `lat`/`lon`

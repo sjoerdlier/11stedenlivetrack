@@ -194,7 +194,9 @@
 .field textarea {
   font: inherit;
   font-weight: 400;
-  font-size: 15px;
+  /* iOS Safari auto-zooms the page on focus for any input under 16px —
+     disruptive on a form filled out multiple times an hour. */
+  font-size: 16px;
   color: inherit;
   background: transparent;
   border: 1px solid #e1e0d9;

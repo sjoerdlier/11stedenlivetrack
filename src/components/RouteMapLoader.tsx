@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { LatLng } from "@/lib/gpx";
+import type { LegSegment } from "@/lib/segments";
 
 const RouteMap = dynamic(() => import("./RouteMap"), {
   ssr: false,
@@ -9,10 +10,11 @@ const RouteMap = dynamic(() => import("./RouteMap"), {
 });
 
 interface RouteMapLoaderProps {
-  points: LatLng[];
   start: LatLng;
+  legSegments: LegSegment[];
+  runnerOrder: string[];
 }
 
-export default function RouteMapLoader({ points, start }: RouteMapLoaderProps) {
-  return <RouteMap points={points} start={start} />;
+export default function RouteMapLoader({ start, legSegments, runnerOrder }: RouteMapLoaderProps) {
+  return <RouteMap start={start} legSegments={legSegments} runnerOrder={runnerOrder} />;
 }

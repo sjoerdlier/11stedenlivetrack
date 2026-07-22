@@ -18,3 +18,14 @@ export function formatGeplandeTijd(value: string | null | undefined): string | n
 export function googleMapsUrl(lat: number, lon: number): string {
   return `https://maps.google.com/?q=${lat},${lon}`;
 }
+
+const paceFormatter = new Intl.NumberFormat("nl-NL", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+// Formats a km/u pace as "6,3 km/u", nl-NL style with one decimal.
+export function formatPaceKmh(value: number | null): string | null {
+  if (value === null || !Number.isFinite(value)) return null;
+  return `${paceFormatter.format(value)} km/u`;
+}

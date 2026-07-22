@@ -1,5 +1,5 @@
 import type { Leg } from "@/lib/legs";
-import type { LegStatus } from "@/lib/status";
+import { legPlannedPaceKmh, type LegStatus } from "@/lib/status";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
 
@@ -19,12 +19,13 @@ export default function LegSchedule({ legs, statuses, selectedNr, onSelect }: Le
       </div>
 
       <ol className={styles.list}>
-        {legs.map((leg) => {
+        {legs.map((leg, index) => {
           const status = statuses.get(leg.nr) ?? "nog-te-gaan";
           const isSelected = leg.nr === selectedNr;
           // The active leg auto-expands when nothing else is picked; a click
           // always wins so any card (past or upcoming) can be inspected.
           const expanded = isSelected || (selectedNr === null && status === "bezig");
+          const pace = legPlannedPaceKmh(legs, index);
 
           return (
             <LegCard
@@ -32,6 +33,7 @@ export default function LegSchedule({ legs, statuses, selectedNr, onSelect }: Le
               leg={leg}
               status={status}
               expanded={expanded}
+              pace={pace}
               onToggle={() => onSelect(isSelected ? null : leg.nr)}
             />
           );

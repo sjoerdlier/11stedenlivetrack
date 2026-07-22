@@ -1,5 +1,5 @@
 import type { Leg } from "@/lib/legs";
-import { formatGeplandeTijd, googleMapsUrl } from "@/lib/format";
+import { formatGeplandeTijd, formatPaceKmh, googleMapsUrl } from "@/lib/format";
 import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
 import styles from "./LegCard.module.css";
 
@@ -7,11 +7,13 @@ interface LegCardProps {
   leg: Leg;
   status: LegStatus;
   expanded: boolean;
+  pace: number | null;
   onToggle: () => void;
 }
 
-export default function LegCard({ leg, status, expanded, onToggle }: LegCardProps) {
+export default function LegCard({ leg, status, expanded, pace, onToggle }: LegCardProps) {
   const tijd = formatGeplandeTijd(leg.geplande_tijd);
+  const paceLabel = formatPaceKmh(pace);
   const isCp = leg.cp_nummer !== null;
   const compact = status === "voltooid" && !expanded;
 
@@ -45,6 +47,7 @@ export default function LegCard({ leg, status, expanded, onToggle }: LegCardProp
         {!compact && (
           <div className={styles.metaRow}>
             {leg.afstand_km !== null && <span>{leg.afstand_km} km</span>}
+            {paceLabel && <span>{paceLabel}</span>}
             <span className={styles.statusPill}>{STATUS_LABELS[status]}</span>
           </div>
         )}

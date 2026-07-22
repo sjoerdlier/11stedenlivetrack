@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
+import { computeLegStatuses, STATUS_COLORS } from "@/lib/status";
+import LegSchedule from "./LegSchedule";
 import styles from "./RouteMap.module.css";
 
-// Lowie is the subject of the map: one route color, not a color per buddy.
-const ROUTE_COLOR = "#2a78d6";
+const STATUS_REFRESH_MS = 30_000;
+const MARKER_RING_COLOR = "#52514e";
 
 const startFinishIcon = L.icon({
   iconUrl:
@@ -33,100 +35,94 @@ interface RouteMapProps {
 
 export default function RouteMap({ start, legSegments }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
-  const selected = legSegments.find((s) => s.leg.nr === selectedNr) ?? null;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), STATUS_REFRESH_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
+  const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
+
+  useEffect(() => {
+    if (selectedNr === null) return;
+    document
+      .getElementById(`leg-row-${selectedNr}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [selectedNr]);
 
   return (
-    <div className={styles.wrapper}>
-      <MapContainer center={start} zoom={11} className={styles.map} scrollWheelZoom>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+    <div className={styles.layout}>
+      <LegSchedule legs={legs} statuses={statuses} selectedNr={selectedNr} onSelect={setSelectedNr} />
 
-        {legSegments.map(({ leg, positions }) => (
-          <Polyline
-            key={`casing-${leg.nr}`}
-            positions={positions}
-            pathOptions={{ color: "#ffffff", weight: 8, opacity: 0.9, lineCap: "round" }}
-            interactive={false}
+      <div className={styles.mapArea}>
+        <MapContainer center={start} zoom={11} className={styles.map} scrollWheelZoom>
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-        ))}
 
-        {legSegments.map(({ leg, positions }) => (
-          <Polyline
-            key={`line-${leg.nr}`}
-            positions={positions}
-            pathOptions={{ color: ROUTE_COLOR, weight: 5, opacity: 0.95, lineCap: "round" }}
-            eventHandlers={{ click: () => setSelectedNr(leg.nr) }}
-          />
-        ))}
+          {legSegments.map(({ leg, positions }) => (
+            <Polyline
+              key={`casing-${leg.nr}`}
+              positions={positions}
+              pathOptions={{ color: "#c3c2b7", weight: 8, opacity: 0.9, lineCap: "round" }}
+              interactive={false}
+            />
+          ))}
 
-        {legSegments.map(({ leg }) => {
-          const tijd = formatGeplandeTijd(leg.geplande_tijd);
-          return (
-            <CircleMarker
-              key={`marker-${leg.nr}`}
-              center={[leg.start_lat, leg.start_lon]}
-              radius={6}
-              pathOptions={{ color: "#ffffff", weight: 2, fillColor: ROUTE_COLOR, fillOpacity: 1 }}
-              eventHandlers={{ click: () => setSelectedNr(leg.nr) }}
-            >
-              <Tooltip direction="bottom" offset={[0, 6]} permanent className={styles.timeLabel}>
-                {leg.start_plaats}
-                {tijd ? ` · ${tijd}` : ""}
-              </Tooltip>
-            </CircleMarker>
-          );
-        })}
+          {legSegments.map(({ leg, positions }) => {
+            const status = statuses.get(leg.nr) ?? "nog-te-gaan";
+            const isSelected = leg.nr === selectedNr;
+            return (
+              <Polyline
+                key={`line-${leg.nr}`}
+                positions={positions}
+                pathOptions={{
+                  color: STATUS_COLORS[status],
+                  weight: status === "bezig" || isSelected ? 7 : 5,
+                  opacity: 0.95,
+                  lineCap: "round",
+                }}
+                eventHandlers={{ click: () => setSelectedNr(leg.nr) }}
+              />
+            );
+          })}
 
-        <Marker position={start} icon={startFinishIcon}>
-          <Popup>
-            Start / Finish — Leeuwarden
-            <br />
-            11Stedentocht wandelroute (204 km)
-          </Popup>
-        </Marker>
-      </MapContainer>
+          {legSegments.map(({ leg }) => {
+            const status = statuses.get(leg.nr) ?? "nog-te-gaan";
+            const isSelected = leg.nr === selectedNr;
+            const tijd = formatGeplandeTijd(leg.geplande_tijd);
+            return (
+              <CircleMarker
+                key={`marker-${leg.nr}`}
+                center={[leg.start_lat, leg.start_lon]}
+                radius={isSelected ? 9 : 6}
+                pathOptions={{
+                  color: MARKER_RING_COLOR,
+                  weight: isSelected ? 2.5 : 1.5,
+                  fillColor: STATUS_COLORS[status],
+                  fillOpacity: 1,
+                }}
+                eventHandlers={{ click: () => setSelectedNr(leg.nr) }}
+              >
+                <Tooltip direction="top" offset={[0, -6]}>
+                  {leg.start_plaats}
+                  {tijd ? ` · ${tijd}` : ""}
+                </Tooltip>
+              </CircleMarker>
+            );
+          })}
 
-      <div className={styles.panel}>
-        {selected ? (
-          <>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={() => setSelectedNr(null)}
-              aria-label="Sluiten"
-            >
-              ✕
-            </button>
-            <div className={styles.panelTitle}>{selected.leg.start_plaats}</div>
-            <div className={styles.legRow}>
-              <span className={styles.legLabel}>Verwacht</span>
-              <span>{formatGeplandeTijd(selected.leg.geplande_tijd) ?? "onbekend"}</span>
-            </div>
-            <div className={styles.legRow}>
-              <span className={styles.legLabel}>Afstand</span>
-              <span>{selected.leg.afstand_km} km</span>
-            </div>
-            <div className={styles.legRow}>
-              <span className={styles.legLabel}>Cumulatief</span>
-              <span>{selected.leg.cumulatief_start_km} km</span>
-            </div>
-            <div className={styles.divider} />
-            <div className={styles.legRow}>
-              <span className={styles.legLabel}>Buddy</span>
-              <span>{selected.leg.loper}</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className={styles.panelTitle}>Lowie — 11Stedentocht</div>
-            <div className={styles.hint}>
-              204 km, 22 etappes. Klik op de route of een startpunt voor de verwachte tijd en wie
-              er meeloopt.
-            </div>
-          </>
-        )}
+          <Marker position={start} icon={startFinishIcon}>
+            <Popup>
+              Start / Finish — Leeuwarden
+              <br />
+              11Stedentocht wandelroute (204 km)
+            </Popup>
+          </Marker>
+        </MapContainer>
       </div>
     </div>
   );

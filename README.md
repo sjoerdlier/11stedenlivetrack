@@ -1,9 +1,10 @@
 # 11Stedentocht Live Track
 
 Next.js (App Router) app die de 11Stedentocht wandelroute (204 km, komoot-export)
-toont op een Leaflet-kaart. Lowie is het onderwerp: de route staat als één
-doorlopende lijn met de verwachte tijd per startpunt; wie welk stuk loopt
-(buddy) staat pas in de klik-detail. Basis voor een latere fase met live locatie.
+toont op een Leaflet-kaart. Lowie is het onderwerp: een vast side-menu toont het
+volledige schema (22 etappes, tijd, afstand, status), de kaart toont dezelfde
+status in kleur. Wie welk stuk loopt (buddy) staat pas in de klik-detail. Basis
+voor een latere fase met live locatie.
 
 ## Hoe het werkt
 
@@ -18,16 +19,23 @@ doorlopende lijn met de verwachte tijd per startpunt; wie welk stuk loopt
   elkaar lopen).
 - `src/lib/format.ts` — formatteert `geplande_tijd` (timestamptz) als "za 18:32"
   in de Europe/Amsterdam-tijdzone.
+- `src/lib/status.ts` — bepaalt client-side per leg de status (`voltooid` /
+  `bezig` / `nog-te-gaan`) op basis van `geplande_tijd`: voltooid zodra de
+  volgende leg z'n tijd voorbij is, bezig zodra de eigen tijd voorbij is,
+  anders nog-te-gaan. Levert ook de gedeelde statuskleuren (grijs/blauw/wit) en
+  labels — dezelfde module voedt zowel het side-menu als de kaart, dus ze
+  kunnen niet uit elkaar lopen. Herberekent elke 30s (client-side klok).
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
   live uit Supabase) die route + legs combineert en doorgeeft aan de kaart.
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
-- `src/components/RouteMap.tsx` — de `react-leaflet`-kaart: de hele route als
-  één doorlopende lijn (één kleur, geen kleur-per-loper meer), een marker met
-  plaatsnaam + verwachte tijd op elk leg-startpunt, een start/finish-marker op
-  Leeuwarden, en een zijpaneel dat bij klikken op een segment/marker de
-  verwachte tijd, afstand en cumulatieve afstand toont — met de buddy (loper)
-  als losse, secundaire regel onderaan.
+- `src/components/LegSchedule.tsx` — het side-menu: alle 22 legs op volgorde
+  met statusstip, plaatsnaam, tijd en afstand. Klikken op een rij selecteert 'm
+  (toont buddy + cumulatieve afstand inline) en synchroniseert met de kaart.
+- `src/components/RouteMap.tsx` — de `react-leaflet`-kaart naast het side-menu:
+  elk leg-segment en elke startmarker gekleurd naar dezelfde status als het
+  side-menu, een start/finish-marker op Leeuwarden, en tweerichtings-selectie
+  (klik op kaart scrollt het side-menu mee, en andersom).
 
 ## Supabase
 

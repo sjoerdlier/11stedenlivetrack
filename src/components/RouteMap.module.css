@@ -1,90 +1,17 @@
-.wrapper {
-  position: relative;
+.layout {
+  display: flex;
   height: 100%;
   width: 100%;
+}
+
+.mapArea {
+  position: relative;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .map {
   height: 100%;
   width: 100%;
-}
-
-.panel {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1000;
-  width: 260px;
-  max-height: calc(100% - 24px);
-  overflow-y: auto;
-  background: #fcfcfbf2;
-  color: #0b0b0b;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(11, 11, 11, 0.25);
-  padding: 14px 16px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .panel {
-    background: #1a1a19f2;
-    color: #ffffff;
-  }
-}
-
-.panelTitle {
-  font-weight: 700;
-  font-size: 15px;
-  margin-bottom: 8px;
-}
-
-.closeButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.6;
-}
-
-.closeButton:hover {
-  opacity: 1;
-}
-
-.legRow {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.legLabel {
-  color: #898781;
-  min-width: 90px;
-}
-
-.divider {
-  height: 1px;
-  background: #e1e0d9;
-  margin: 10px 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .divider {
-    background: #2c2c2a;
-  }
-}
-
-.hint {
-  color: #898781;
-}
-
-.timeLabel {
-  font-size: 11px;
-  padding: 1px 5px;
-  font-weight: 600;
 }

@@ -1,0 +1,244 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f9f9f7;
+  color: #0b0b0b;
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    background: #0d0d0d;
+    color: #ffffff;
+  }
+}
+
+/* PIN screen */
+
+.pinWrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.pinCard {
+  width: 100%;
+  max-width: 320px;
+  background: #fcfcfb;
+  border-radius: 14px;
+  padding: 28px 24px;
+  box-shadow: 0 2px 16px rgba(11, 11, 11, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pinCard {
+    background: #161615;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.pinTitle {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pinHint {
+  margin: 0;
+  font-size: 13px;
+  color: #898781;
+  text-align: center;
+}
+
+.pinInput {
+  font-size: 28px;
+  letter-spacing: 0.5em;
+  text-align: center;
+  padding: 12px 8px 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #e1e0d9;
+  background: transparent;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pinInput {
+    border-color: #2c2c2a;
+  }
+}
+
+.pinInput:focus {
+  outline: 2px solid #2a78d6;
+  outline-offset: 1px;
+}
+
+.pinError {
+  color: #d03b3b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.pinSubmit {
+  border: none;
+  background: #2a78d6;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.pinSubmit:hover {
+  background: #2568bd;
+}
+
+.pinSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Check-in form */
+
+.formWrap {
+  width: 100%;
+  max-width: 480px;
+  background: #fcfcfb;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 16px rgba(11, 11, 11, 0.12);
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  .formWrap {
+    background: #161615;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.formHeader {
+  margin-bottom: 16px;
+}
+
+.formTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.formHint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #898781;
+}
+
+.confirmation {
+  background: #0ca30c26;
+  border-left: 3px solid #0ca30c;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.formError {
+  background: #d03b3b26;
+  border-left: 3px solid #d03b3b;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 12px;
+}
+
+.fieldRow .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .field {
+    color: #c3c2b7;
+  }
+}
+
+.field input,
+.field select,
+.field textarea {
+  font: inherit;
+  font-weight: 400;
+  font-size: 15px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #e1e0d9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  .field input,
+  .field select,
+  .field textarea {
+    border-color: #2c2c2a;
+  }
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid #2a78d6;
+  outline-offset: 1px;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.submitButton {
+  border: none;
+  background: #2a78d6;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 10px;
+  padding: 13px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.submitButton:hover {
+  background: #2568bd;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

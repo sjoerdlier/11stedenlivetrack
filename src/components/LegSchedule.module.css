@@ -67,6 +67,19 @@
   display: none;
 }
 
+/* Between the bottom-sheet breakpoint and full desktop, the sidebar stays
+   beside the map (not a bottom sheet — there's room) but the desktop
+   min-width of 380px still eats over half a landscape phone/portrait
+   tablet screen (e.g. 380/700 = 54%). Narrow the bounds so it settles
+   around a third of the viewport instead. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 38vw;
+    min-width: 260px;
+    max-width: 320px;
+  }
+}
+
 /* Below 768px the sidebar can't sit next to the map (min-width alone
    exceeds most phone screens) — it becomes a bottom sheet instead: a
    collapsed handle bar that overlays the (now full-width) map, expandable

@@ -1,0 +1,120 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  background: #ffffff;
+  color: #0b0b0b;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.nav {
+  margin-bottom: 16px;
+}
+
+.nav a {
+  color: #2a78d6;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.header {
+  margin-bottom: 20px;
+  border-bottom: 2px solid #0b0b0b;
+  padding-bottom: 12px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #52514e;
+  font-size: 13px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e1e0d9;
+  vertical-align: top;
+}
+
+.table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #52514e;
+  border-bottom: 2px solid #0b0b0b;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #f9f9f7;
+}
+
+.plaats {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bijzonderheden {
+  min-width: 220px;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  .noprint {
+    display: none !important;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .header {
+    margin-bottom: 12px;
+  }
+
+  .header h1 {
+    font-size: 18pt;
+  }
+
+  .subtitle {
+    font-size: 9pt;
+  }
+
+  .table {
+    font-size: 9pt;
+  }
+
+  .table th,
+  .table td {
+    padding: 4pt 6pt;
+  }
+
+  .table tbody tr {
+    break-inside: avoid;
+  }
+
+  .table thead {
+    display: table-header-group;
+  }
+}

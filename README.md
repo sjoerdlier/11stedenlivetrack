@@ -54,6 +54,13 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   elk leg-segment en elke startmarker gekleurd naar dezelfde status; CP's
   krijgen een grotere marker met permanent badge-label. Klik op kaart of
   side-menu synchroniseert de selectie beide kanten op.
+- `src/app/schema/page.tsx` — losstaande, printbare lijstweergave van alle
+  stops (server component, geen kaart, geen interactieve elementen): nr, CP,
+  plaats, tijd, afstand, cumulatief, buddy, adres, bijzonderheden in een platte
+  tabel. `@media print` zet 'm op A4 liggend, verbergt de "terug"-link en
+  verkleint typografie zodat het schema op één vel past — als gewone webpagina
+  blijft de tabel ook prima leesbaar. Bedoeld als scherm-loze achtervang
+  (uitprinten voor in de auto).
 
 ## Supabase
 

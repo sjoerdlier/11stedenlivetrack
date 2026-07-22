@@ -109,7 +109,11 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   "Live"-knop in de topbar — die state leeft in `AppShell`. `RouteMap.tsx`
   bevat een kleine `MapResizeHandler` (ResizeObserver + `map.invalidateSize()`)
   omdat Leaflet zelf niet doorheeft dat zijn container breder/smaller wordt
-  als dit paneel open- of dichtklapt.
+  als dit paneel open- of dichtklapt. Onder 768px breedte (320px vaste
+  paneelbreedte was ~85% van een telefoonscherm, bovenop een sidebar die toen
+  al geen ruimte overliet) wordt het een full-screen overlay die van onderaf
+  omhoog schuift (`transform: translateY`), met een duidelijke 44×44px
+  sluitknop rechtsboven.
 
 ## /invoer — fallback check-in met PIN
 

@@ -97,6 +97,16 @@
   background: #0b0b0b0d;
 }
 
+.actionActive {
+  background: #2a78d6;
+  border-color: #2a78d6;
+  color: #ffffff;
+}
+
+.actionActive:hover {
+  background: #2568bd;
+}
+
 @media (prefers-color-scheme: dark) {
   .action {
     border-color: #2c2c2a;

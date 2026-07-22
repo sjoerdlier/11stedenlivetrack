@@ -82,6 +82,45 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   verkleint typografie zodat het schema op één vel past — als gewone webpagina
   blijft de tabel ook prima leesbaar. Bedoeld als scherm-loze achtervang
   (uitprinten voor in de auto).
+- `src/components/LiveTrackPanel.tsx` — uit-/inklapbaar paneel naast de kaart
+  met de Garmin LiveTrack-iframe (`NEXT_PUBLIC_GARMIN_LIVETRACK_URL`). Zonder
+  die env var toont het paneel een placeholder in plaats van een kapotte
+  iframe. Standaard dichtgeklapt (breedte 0, geen ruimte), togglebaar via de
+  "Live"-knop in de topbar — die state leeft in `AppShell`. `RouteMap.tsx`
+  bevat een kleine `MapResizeHandler` (ResizeObserver + `map.invalidateSize()`)
+  omdat Leaflet zelf niet doorheeft dat zijn container breder/smaller wordt
+  als dit paneel open- of dichtklapt.
+
+## /invoer — fallback check-in met PIN
+
+Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
+4-cijferige PIN:
+
+- `src/lib/checkinAuth.ts` — de PIN zelf (`CHECKIN_PIN`, server-only) verlaat
+  de server nooit. `/api/invoer/verify` vergelijkt de ingevoerde PIN
+  server-side en zet bij een match een **httpOnly** cookie met een
+  SHA-256-hash van de PIN (12u geldig) — nooit de PIN zelf, en niet vergelijkbaar
+  vanuit client-JS. `/api/invoer` (de check-in-insert) herberekent diezelfde
+  hash server-side uit `CHECKIN_PIN` en vergelijkt met de cookie op **elke**
+  submit, dus een directe POST zonder geldige PIN-sessie geeft altijd 401 —
+  geverifieerd met curl.
+- `src/app/invoer/page.tsx` — server component, leest de cookie zodat een
+  al-geautoriseerde sessie na een reload niet opnieuw hoeft in te loggen.
+  Haalt legs op voor de dropdown; als Supabase daarbij faalt, blokkeert dat
+  niet de PIN-poort zelf (legs-fout wordt pas zichtbaar in het formulier).
+- `PinScreen.tsx` / `CheckinForm.tsx` / `InvoerClient.tsx` — PIN-scherm, en
+  daarna het formulier (tijdstip default nu, leg-dropdown, optioneel lat/lon,
+  notitie, naam invoerder). Bij succesvol opslaan: bevestiging tonen, formulier
+  volledig leegmaken voor de volgende invoer.
+- `src/lib/checkins.ts` — insert in de Supabase-tabel `checkins` met de
+  bestaande anon key (zelfde patroon als `legs`/`loadLegs`).
+
+**Aanname over het `checkins`-schema** (geen SQL meegestuurd dit keer): kolommen
+`tijdstip` (timestamptz), `leg_nr` (int, verwijst naar `legs.nr`), `lat`/`lon`
+(numeric, nullable), `notitie` (text, nullable), `invoerder` (text). Check dit
+tegen je eigen tabel — als de kolomnamen afwijken, geeft de insert een
+duidelijke Supabase-foutmelding in het formulier (geen silent failure), en is
+`src/lib/checkins.ts` de enige plek die moet worden aangepast.
 
 ## Supabase
 

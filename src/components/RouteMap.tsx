@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
@@ -37,6 +37,19 @@ interface RouteMapProps {
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   now: number;
+}
+
+// The map's container width changes when sibling panels (e.g. LiveTrack)
+// toggle open/closed; Leaflet doesn't notice on its own, so nudge it.
+function MapResizeHandler() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
 }
 
 export default function RouteMap({ start, legSegments, statuses, now }: RouteMapProps) {
@@ -89,6 +102,7 @@ export default function RouteMap({ start, legSegments, statuses, now }: RouteMap
 
       <div className={styles.mapArea}>
         <MapContainer center={start} zoom={11} className={styles.map} scrollWheelZoom>
+          <MapResizeHandler />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -1,15 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Tooltip, Popup, useMap } from "react-leaflet";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Polyline,
+  CircleMarker,
+  Marker,
+  Tooltip,
+  Popup,
+  useMap,
+  useMapEvent,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
 import { STATUS_COLORS, type LegStatus } from "@/lib/status";
+import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import LegSchedule from "./LegSchedule";
 import styles from "./RouteMap.module.css";
+
+const INITIAL_ZOOM = 11;
 
 const MARKER_RING_COLOR = "#52514e";
 
@@ -46,9 +59,21 @@ function MapResizeHandler() {
   return null;
 }
 
+function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
+  const handleZoom = useCallback(
+    (e: L.LeafletEvent) => onZoom(e.target.getZoom()),
+    [onZoom],
+  );
+  useMapEvent("zoomend", handleZoom);
+  return null;
+}
+
 export default function RouteMap({ start, legSegments, statuses }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
+  const labelMode = labelModeForZoom(zoom);
+  const cpDirections = useMemo(() => assignCpTooltipDirections(legs), [legs]);
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -62,8 +87,9 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
       <LegSchedule legs={legs} statuses={statuses} selectedNr={selectedNr} onSelect={setSelectedNr} />
 
       <div className={styles.mapArea}>
-        <MapContainer center={start} zoom={11} className={styles.map} scrollWheelZoom>
+        <MapContainer center={start} zoom={INITIAL_ZOOM} className={styles.map} scrollWheelZoom>
           <MapResizeHandler />
+          <ZoomWatcher onZoom={setZoom} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -102,6 +128,9 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
             const isCp = leg.cp_nummer !== null;
             const tijd = formatGeplandeTijd(leg.geplande_tijd);
             const baseRadius = isCp ? 8 : 6;
+            const showCpLabel = isCp && labelMode !== "hidden";
+            const cpDirection = cpDirections.get(leg.nr) ?? "right";
+            const cpOffset: [number, number] = cpDirection === "right" ? [8, 0] : [-8, 0];
             return (
               <CircleMarker
                 key={`marker-${leg.nr}`}
@@ -115,12 +144,24 @@ export default function RouteMap({ start, legSegments, statuses }: RouteMapProps
                 }}
                 eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
               >
-                {isCp ? (
-                  <Tooltip direction="right" offset={[8, 0]} permanent className={styles.cpTooltip}>
-                    CP {leg.cp_nummer} · {leg.start_plaats}
+                {showCpLabel ? (
+                  // react-leaflet never re-applies the `permanent` option to
+                  // an already-mounted Tooltip (only path/tile layers get an
+                  // update hook, overlays don't) — a stale permanent tooltip
+                  // would stay stuck open forever once zoomed back out.
+                  // Keying on the permanent/non-permanent boundary forces a
+                  // real remount there instead of a no-op prop update.
+                  <Tooltip
+                    key="cp"
+                    direction={cpDirection}
+                    offset={cpOffset}
+                    permanent
+                    className={styles.cpTooltip}
+                  >
+                    {labelMode === "full" ? `CP ${leg.cp_nummer} · ${leg.start_plaats}` : `CP ${leg.cp_nummer}`}
                   </Tooltip>
                 ) : (
-                  <Tooltip direction="top" offset={[0, -6]}>
+                  <Tooltip key="hover" direction="top" offset={[0, -6]}>
                     {leg.start_plaats}
                     {tijd ? ` · ${tijd}` : ""}
                   </Tooltip>

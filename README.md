@@ -53,7 +53,12 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
 - `src/components/RouteMap.tsx` — de `react-leaflet`-kaart naast het side-menu:
   elk leg-segment en elke startmarker gekleurd naar dezelfde status; CP's
   krijgen een grotere marker met permanent badge-label. Klik op kaart of
-  side-menu synchroniseert de selectie beide kanten op.
+  side-menu synchroniseert de selectie beide kanten op. CP-labels reageren op
+  zoomniveau (`src/lib/mapLabels.ts`): volledig ("CP 1 · Leeuwarden") vanaf
+  zoom 12, alleen het nummer tussen 10–11, helemaal verborgen (hover-only)
+  daaronder. Coïnciderende markers — met name start/finish bij Leeuwarden —
+  worden per coördinaat gegroepeerd en waaieren om en om links/rechts uit
+  zodat hun labels nooit stapelen.
 - `src/app/schema/page.tsx` — losstaande, printbare lijstweergave van alle
   stops (server component, geen kaart, geen interactieve elementen): nr, CP,
   plaats, tijd, afstand, cumulatief, buddy, adres, bijzonderheden in een platte

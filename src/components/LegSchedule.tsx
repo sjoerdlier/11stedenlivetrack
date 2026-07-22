@@ -10,6 +10,8 @@ interface LegScheduleProps {
   checkinTimes: Map<number, number>;
   selectedNr: number | null;
   onSelect: (nr: number | null) => void;
+  mobileExpanded: boolean;
+  onToggleMobileExpanded: () => void;
 }
 
 export default function LegSchedule({
@@ -18,12 +20,29 @@ export default function LegSchedule({
   checkinTimes,
   selectedNr,
   onSelect,
+  mobileExpanded,
+  onToggleMobileExpanded,
 }: LegScheduleProps) {
   return (
-    <div className={styles.sidebar}>
-      <div className={styles.header}>
-        <div className={styles.title}>Lowie — 11Stedentocht</div>
-        <div className={styles.hint}>204 km, {legs.length} stops</div>
+    <div className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}>
+      <div className={styles.handle} aria-hidden />
+      <div
+        className={styles.header}
+        onClick={onToggleMobileExpanded}
+        role="button"
+        tabIndex={0}
+        aria-expanded={mobileExpanded}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onToggleMobileExpanded();
+        }}
+      >
+        <div>
+          <div className={styles.title}>Lowie — 11Stedentocht</div>
+          <div className={styles.hint}>204 km, {legs.length} stops</div>
+        </div>
+        <span className={styles.chevron} aria-hidden>
+          ▲
+        </span>
       </div>
 
       <ol className={styles.list}>

@@ -74,7 +74,13 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   check-ins zijn voor zowel deze als de vorige leg — zonder die data toont de
   kaart niets (geen placeholder, geen schatting op basis van het schema; die
   is er bewust uitgehaald omdat 'm per leg tonen als puur-schema-getal als
-  ruis/fout overkwam).
+  ruis/fout overkwam). Onder 768px breedte is het side-menu geen vaste
+  33vw-kolom meer (die liet op een telefoon geen ruimte over voor de kaart)
+  maar een `position: fixed` bottom sheet: standaard ingeklapt tot een 84px
+  handvat met titel, tikken (of Enter/spatie) klapt 'm uit tot 75vh scrollbare
+  hoogte. Een tik op de kaart klapt de sheet automatisch open via
+  `selectFromMap` in `RouteMap.tsx`, zodat de detail die je net opvroeg ook
+  zichtbaar wordt.
 - `src/components/RouteMap.tsx` — de `react-leaflet`-kaart naast het side-menu:
   elk leg-segment en elke startmarker gekleurd naar dezelfde status; CP's
   krijgen een grotere marker met permanent badge-label. Klik op kaart of

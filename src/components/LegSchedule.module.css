@@ -47,3 +47,91 @@
   margin: 0;
   padding: 0 0 16px;
 }
+
+.handle {
+  display: none;
+}
+
+.chevron {
+  display: none;
+}
+
+/* Below 768px the sidebar can't sit next to the map (min-width alone
+   exceeds most phone screens) — it becomes a bottom sheet instead: a
+   collapsed handle bar that overlays the (now full-width) map, expandable
+   by tapping the handle. The map itself needs no extra rule for this: once
+   the sidebar leaves normal flow via position:fixed, RouteMap's flex `.mapArea`
+   naturally fills the full width as the only remaining flex child. */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    height: 84px;
+    min-width: 0;
+    max-width: none;
+    max-height: 84px;
+    border-right: none;
+    border-top: 1px solid #e1e0d9;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -6px 24px rgba(11, 11, 11, 0.18);
+    transition: max-height 0.25s ease, height 0.25s ease;
+    z-index: 1000;
+    overflow-y: hidden;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .sidebar {
+      border-top-color: #2c2c2a;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  .sidebar.expanded {
+    height: 75vh;
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+
+  .handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: #e1e0d9;
+    margin: 8px auto 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .handle {
+      background: #2c2c2a;
+    }
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 20px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .chevron {
+    display: block;
+    flex: none;
+    font-size: 13px;
+    color: #898781;
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar.expanded .chevron {
+    transform: rotate(180deg);
+  }
+}

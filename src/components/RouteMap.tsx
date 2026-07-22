@@ -78,6 +78,7 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
 export default function RouteMap({ start, legSegments, statuses, checkinTimes }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const labelMode = labelModeForZoom(zoom);
   const cpDirections = useMemo(() => assignCpTooltipDirections(legs), [legs]);
@@ -89,6 +90,14 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedNr]);
 
+  // On mobile the schedule is a collapsed bottom sheet by default — a
+  // marker/segment tap on the map needs to expand it too, otherwise the
+  // detail the user just asked for gets scrolled to but stays invisible.
+  function selectFromMap(nr: number | null) {
+    setSelectedNr(nr);
+    if (nr !== null) setMobileExpanded(true);
+  }
+
   return (
     <div className={styles.layout}>
       <LegSchedule
@@ -97,6 +106,8 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
         checkinTimes={checkinTimes}
         selectedNr={selectedNr}
         onSelect={setSelectedNr}
+        mobileExpanded={mobileExpanded}
+        onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
       />
 
       <div className={styles.mapArea}>
@@ -130,7 +141,7 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
                   opacity: 0.95,
                   lineCap: "round",
                 }}
-                eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
+                eventHandlers={{ click: () => selectFromMap(isSelected ? null : leg.nr) }}
               />
             );
           })}
@@ -155,7 +166,7 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
                   fillColor: STATUS_COLORS[status],
                   fillOpacity: 1,
                 }}
-                eventHandlers={{ click: () => setSelectedNr(isSelected ? null : leg.nr) }}
+                eventHandlers={{ click: () => selectFromMap(isSelected ? null : leg.nr) }}
               >
                 {showCpLabel ? (
                   // react-leaflet never re-applies the `permanent` option to

@@ -37,3 +37,23 @@ export function computeLegStatuses(legs: Leg[], now: number): Map<number, LegSta
   });
   return map;
 }
+
+export const TOTAL_ROUTE_KM = 202;
+
+export interface Progress {
+  km: number;
+  percent: number;
+}
+
+// Progress is the cumulatief_start_km of the last completed (voltooid) leg,
+// as a share of the official route distance. Legs assumed sorted by nr.
+export function computeProgress(legs: Leg[], statuses: Map<number, LegStatus>): Progress {
+  let km = 0;
+  for (const leg of legs) {
+    if (statuses.get(leg.nr) === "voltooid") {
+      km = leg.cumulatief_start_km;
+    }
+  }
+  const percent = Math.min(100, Math.max(0, (km / TOTAL_ROUTE_KM) * 100));
+  return { km, percent };
+}

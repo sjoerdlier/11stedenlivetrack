@@ -1,0 +1,166 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  flex: none;
+  padding: 0 18px;
+  background: #fcfcfb;
+  color: #0b0b0b;
+  border-bottom: 1px solid #e1e0d9;
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bar {
+    background: #161615;
+    color: #ffffff;
+    border-bottom-color: #2c2c2a;
+  }
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.progressText {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.progressFull {
+  font-weight: 400;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .progressFull {
+    color: #c3c2b7;
+  }
+}
+
+.progressTrack {
+  display: block;
+  width: 160px;
+  max-width: 40vw;
+  height: 4px;
+  border-radius: 999px;
+  background: #e1e0d9;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .progressTrack {
+    background: #2c2c2a;
+  }
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: #2a78d6;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e1e0d9;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.action:hover {
+  background: #0b0b0b0d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .action {
+    border-color: #2c2c2a;
+  }
+
+  .action:hover {
+    background: #ffffff14;
+  }
+}
+
+.donate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  background: #eb6834;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.donate:hover {
+  background: #d95926;
+}
+
+.donateTodo {
+  background: transparent;
+  border: 1px dashed #eb6834;
+  color: #eb6834;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.donateTodo:hover {
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .bar {
+    padding: 0 12px;
+    gap: 10px;
+  }
+
+  .progressFull {
+    display: none;
+  }
+
+  .progressTrack {
+    width: 90px;
+  }
+
+  .actionLabel {
+    display: none;
+  }
+
+  .action,
+  .donate,
+  .donateTodo {
+    padding: 8px;
+  }
+}

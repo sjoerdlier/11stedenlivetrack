@@ -28,7 +28,19 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   labels — dezelfde module voedt zowel het side-menu als de kaart. Herberekent
   elke 30s (client-side klok).
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
-  live uit Supabase) die route + legs combineert en doorgeeft aan de kaart.
+  live uit Supabase) die route + legs combineert en doorgeeft aan `AppShell`.
+- `src/lib/useNow.ts` — kleine client-clock hook (tick elke N ms), gebruikt om
+  status live te houden zonder page reload.
+- `src/components/AppShell.tsx` — client component die once de statusklok +
+  `computeLegStatuses` berekent en doorgeeft aan zowel `TopBar` als de kaart,
+  zodat voortgang en status-kleuren gegarandeerd hetzelfde snapshot lezen.
+- `src/components/TopBar.tsx` — vaste balk boven kaart + sidebar: voortgang
+  (`computeProgress` in `status.ts`, cumulatief_start_km van de laatst voltooide
+  leg / 202 km), een link naar `/schema`, een deel-knop (Web Share API met
+  clipboard-fallback + "Gekopieerd!"-bevestiging), en een donatieknop uit
+  `NEXT_PUBLIC_DONATION_URL` — zonder die env var toont de knop een zichtbare
+  TODO-placeholder in plaats van een hardcoded url. Op mobiel compact (alleen
+  percentage + iconen), op desktop volledig uitgeschreven.
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe
@@ -56,6 +68,13 @@ SUPABASE_ANON_KEY=jouw-anon-key
 Zie `.env.example`. Voor een Vercel-deploy zet je dezelfde twee variabelen in
 de project settings (Environment Variables) — zonder deze faalt de pagina met
 een duidelijke foutmelding.
+
+## Donatieknop
+
+`NEXT_PUBLIC_DONATION_URL` (in `.env.local` en in Vercel's Environment
+Variables) bepaalt waar de "Doneer"-knop in de topbar naartoe linkt. Zonder
+deze variabele blijft de knop zichtbaar maar niet-klikbaar met een TODO-label,
+zodat een vergeten configuratie opvalt in plaats van stil te falen.
 
 ## Lokaal draaien
 

@@ -7,11 +7,10 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
-import { computeLegStatuses, STATUS_COLORS } from "@/lib/status";
+import { STATUS_COLORS, type LegStatus } from "@/lib/status";
 import LegSchedule from "./LegSchedule";
 import styles from "./RouteMap.module.css";
 
-const STATUS_REFRESH_MS = 30_000;
 const MARKER_RING_COLOR = "#52514e";
 
 const startFinishIcon = L.icon({
@@ -31,19 +30,12 @@ const startFinishIcon = L.icon({
 interface RouteMapProps {
   start: LatLng;
   legSegments: LegSegment[];
+  statuses: Map<number, LegStatus>;
 }
 
-export default function RouteMap({ start, legSegments }: RouteMapProps) {
+export default function RouteMap({ start, legSegments, statuses }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), STATUS_REFRESH_MS);
-    return () => clearInterval(id);
-  }, []);
-
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
-  const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
 
   useEffect(() => {
     if (selectedNr === null) return;

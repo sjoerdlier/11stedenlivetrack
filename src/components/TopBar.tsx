@@ -3,20 +3,22 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
-import { computeProgress, TOTAL_ROUTE_KM, type LegStatus } from "@/lib/status";
+import { computeProgress, daysUntilStart, TOTAL_ROUTE_KM, type LegStatus } from "@/lib/status";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
   legs: Leg[];
   statuses: Map<number, LegStatus>;
+  now: number;
   liveTrackOpen: boolean;
   onToggleLiveTrack: () => void;
 }
 
 const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 
-export default function TopBar({ legs, statuses, liveTrackOpen, onToggleLiveTrack }: TopBarProps) {
+export default function TopBar({ legs, statuses, now, liveTrackOpen, onToggleLiveTrack }: TopBarProps) {
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
+  const countdownDays = useMemo(() => daysUntilStart(legs, now), [legs, now]);
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -38,17 +40,28 @@ export default function TopBar({ legs, statuses, liveTrackOpen, onToggleLiveTrac
 
   return (
     <header className={styles.bar}>
-      <div className={styles.progress}>
-        <span className={styles.progressText}>
-          <span className={styles.progressFull}>
-            {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
+      {countdownDays !== null ? (
+        <div className={styles.progress}>
+          <span className={styles.progressText}>
+            <span className={styles.progressFull}>Nog </span>
+            {countdownDays}
+            <span className={styles.progressFull}> {countdownDays === 1 ? "dag" : "dagen"} tot de start</span>
+            <span className={styles.progressShort}>d tot start</span>
           </span>
-          {Math.round(percent)}%
-        </span>
-        <span className={styles.progressTrack}>
-          <span className={styles.progressFill} style={{ width: `${percent}%` }} />
-        </span>
-      </div>
+        </div>
+      ) : (
+        <div className={styles.progress}>
+          <span className={styles.progressText}>
+            <span className={styles.progressFull}>
+              {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
+            </span>
+            {Math.round(percent)}%
+          </span>
+          <span className={styles.progressTrack}>
+            <span className={styles.progressFill} style={{ width: `${percent}%` }} />
+          </span>
+        </div>
+      )}
 
       <nav className={styles.actions}>
         <button

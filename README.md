@@ -29,18 +29,20 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   elke 30s (client-side klok).
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
   live uit Supabase) die route + legs combineert en doorgeeft aan `AppShell`.
-- `src/lib/useNow.ts` — kleine client-clock hook (tick elke N ms), gebruikt om
-  status live te houden zonder page reload.
+- `src/lib/useSimulatedNow.ts` — client-clock hook (tick elke N ms), met
+  `?debugTime=<ISO-datum>`-override (zie "Debug mode" hieronder).
 - `src/components/AppShell.tsx` — client component die once de statusklok +
   `computeLegStatuses` berekent en doorgeeft aan zowel `TopBar` als de kaart,
   zodat voortgang en status-kleuren gegarandeerd hetzelfde snapshot lezen.
 - `src/components/TopBar.tsx` — vaste balk boven kaart + sidebar: voortgang
   (`computeProgress` in `status.ts`, cumulatief_start_km van de laatst voltooide
-  leg / 202 km), een link naar `/schema`, een deel-knop (Web Share API met
-  clipboard-fallback + "Gekopieerd!"-bevestiging), en een donatieknop uit
-  `NEXT_PUBLIC_DONATION_URL` — zonder die env var toont de knop een zichtbare
-  TODO-placeholder in plaats van een hardcoded url. Op mobiel compact (alleen
-  percentage + iconen), op desktop volledig uitgeschreven.
+  leg / 202 km), of — zolang leg 1 nog niet gestart is — een countdown
+  ("Nog X dagen tot de start", via `daysUntilStart`). Verder een link naar
+  `/schema`, een deel-knop (Web Share API met clipboard-fallback +
+  "Gekopieerd!"-bevestiging), en een donatieknop uit `NEXT_PUBLIC_DONATION_URL`
+  — zonder die env var toont de knop een zichtbare TODO-placeholder in plaats
+  van een hardcoded url. Op mobiel compact (alleen percentage/countdown +
+  iconen), op desktop volledig uitgeschreven.
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe
@@ -105,6 +107,26 @@ Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
 tegen je eigen tabel — als de kolomnamen afwijken, geeft de insert een
 duidelijke Supabase-foutmelding in het formulier (geen silent failure), en is
 `src/lib/checkins.ts` de enige plek die moet worden aangepast.
+
+## Debug mode
+
+`?debugTime=<ISO-datum>` op elke URL (bijv. `/?debugTime=2026-08-29T13:30:00Z`)
+vervangt "nu" overal in de app door die vaste waarde — geen live klok meer
+zolang de parameter aanwezig is. Daarmee test je statuskleuren, voortgang en
+de pre-start countdown zonder op de echte racedag te wachten:
+
+- Vóór leg 1's `geplande_tijd`: `/?debugTime=2026-08-25T07:00:00Z` → countdown
+  in de topbar ("Nog 4 dagen tot de start").
+- Tijdens: `/?debugTime=2026-08-29T13:30:00Z` → normale voortgangsbalk en
+  status­kleuren (grijs/blauw/wit) per leg, precies zoals op de dag zelf.
+- Na afloop: een datum ruim na de laatste `geplande_tijd` → voortgang richting
+  100%.
+
+`useSimulatedNow` (`src/lib/useSimulatedNow.ts`) is de plek die dit
+implementeert. **Let op voor een toekomstige samenvoeging met de
+RunnerFigure-PR**: die zal vermoedelijk een eigen tijd-simulatiemechanisme
+willen; dit bestand is bewust de plek waar dat samenkomt — een merge-conflict
+hier is te verwachten, niet iets om te vermijden.
 
 ## Supabase
 

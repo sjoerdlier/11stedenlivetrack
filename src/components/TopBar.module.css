@@ -45,6 +45,18 @@
   }
 }
 
+.progressShort {
+  display: none;
+  font-weight: 400;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .progressShort {
+    color: #c3c2b7;
+  }
+}
+
 .progressTrack {
   display: block;
   width: 160px;
@@ -158,6 +170,10 @@
 
   .progressFull {
     display: none;
+  }
+
+  .progressShort {
+    display: inline;
   }
 
   .progressTrack {

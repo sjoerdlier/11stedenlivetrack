@@ -57,3 +57,17 @@ export function computeProgress(legs: Leg[], statuses: Map<number, LegStatus>): 
   const percent = Math.min(100, Math.max(0, (km / TOTAL_ROUTE_KM) * 100));
   return { km, percent };
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Whole days remaining until leg 1's geplande_tijd, or null once that time
+// has passed (or is unknown) — the signal the top bar uses to switch from
+// the pre-start countdown to the normal progress display. Rounds up so
+// "starts in 6 hours" still reads as "nog 1 dag" rather than "nog 0 dagen".
+export function daysUntilStart(legs: Leg[], now: number): number | null {
+  const firstLeg = legs.find((l) => l.nr === 1);
+  const startTime = firstLeg?.geplande_tijd ? new Date(firstLeg.geplande_tijd).getTime() : null;
+
+  if (startTime === null || Number.isNaN(startTime) || now >= startTime) return null;
+  return Math.max(1, Math.ceil((startTime - now) / DAY_MS));
+}

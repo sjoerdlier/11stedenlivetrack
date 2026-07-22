@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { computeLegStatuses } from "@/lib/status";
-import { useNow } from "@/lib/useNow";
+import { useSimulatedNow } from "@/lib/useSimulatedNow";
 import TopBar from "./TopBar";
 import RouteMapLoader from "./RouteMapLoader";
 import LiveTrackPanel from "./LiveTrackPanel";
@@ -18,7 +18,7 @@ interface AppShellProps {
 }
 
 export default function AppShell({ start, legSegments }: AppShellProps) {
-  const now = useNow(STATUS_REFRESH_MS);
+  const now = useSimulatedNow(STATUS_REFRESH_MS);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
   const [liveTrackOpen, setLiveTrackOpen] = useState(false);
@@ -28,6 +28,7 @@ export default function AppShell({ start, legSegments }: AppShellProps) {
       <TopBar
         legs={legs}
         statuses={statuses}
+        now={now}
         liveTrackOpen={liveTrackOpen}
         onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
       />

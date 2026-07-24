@@ -77,6 +77,19 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
+// Switching routes (11 Steden <-> KAT100) re-renders RouteMap with new
+// legSegments in place rather than remounting it — react-leaflet's
+// MapContainer only reads center/zoom on the *initial* mount, so without
+// this the map would stay parked on whichever route loaded first. Refits
+// to the new route's full extent whenever its bounds change.
+function MapViewController({ bounds }: { bounds: L.LatLngBounds | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (bounds) map.fitBounds(bounds, { padding: [24, 24] });
+  }, [map, bounds]);
+  return null;
+}
+
 export default function RouteMap({ activeRoute, start, legSegments, statuses, checkinTimes }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
@@ -86,6 +99,10 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
   const cpDirections = useMemo(() => assignCpTooltipDirections(legs), [legs]);
   const config = routeConfig(activeRoute);
   const totalKm = useMemo(() => totalRouteKm(legs), [legs]);
+  const routeBounds = useMemo(() => {
+    const allPoints = legSegments.flatMap((s) => s.positions);
+    return allPoints.length > 0 ? L.latLngBounds(allPoints) : null;
+  }, [legSegments]);
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -119,6 +136,7 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
         <MapContainer center={start} zoom={INITIAL_ZOOM} className={styles.map} scrollWheelZoom>
           <MapResizeHandler />
           <ZoomWatcher onZoom={setZoom} />
+          <MapViewController bounds={routeBounds} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

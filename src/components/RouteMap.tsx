@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   MapContainer,
   TileLayer,
@@ -17,12 +18,15 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
-import { STATUS_COLORS, type LegStatus } from "@/lib/status";
+import { STATUS_COLORS, daysUntilStart, type LegStatus } from "@/lib/status";
+import { computeRunnerPosition } from "@/lib/runnerPosition";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import BuddyBadge from "./BuddyBadge";
 import LegSchedule from "./LegSchedule";
+import RunnerFigure from "./RunnerFigure";
 import styles from "./RouteMap.module.css";
 
+const RUNNER_ICON_SIZE = 30;
 const INITIAL_ZOOM = 11;
 
 const MARKER_RING_COLOR = "#52514e";
@@ -50,6 +54,7 @@ interface RouteMapProps {
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
+  now: number;
   checkinTimes: Map<number, number>;
 }
 
@@ -75,13 +80,72 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
-export default function RouteMap({ start, legSegments, statuses, checkinTimes }: RouteMapProps) {
+export default function RouteMap({
+  start,
+  legSegments,
+  statuses,
+  now,
+  checkinTimes,
+}: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const labelMode = labelModeForZoom(zoom);
   const cpDirections = useMemo(() => assignCpTooltipDirections(legs), [legs]);
+
+  const runner = useMemo(
+    () => computeRunnerPosition(legSegments, statuses, now),
+    [legSegments, statuses, now]
+  );
+  const beforeStart = useMemo(() => daysUntilStart(legs, now) !== null, [legs, now]);
+
+  // Before the race starts there is no active leg to run computeRunnerPosition
+  // against, so show Lowie waiting at the start line instead — still bouncing
+  // (warming up), but not mid-stride since he isn't running yet.
+  const displayRunner = useMemo(() => {
+    if (runner) {
+      const legIndex = legs.findIndex((leg) => leg.nr === runner.legNr);
+      const from = legs[legIndex]?.start_plaats;
+      const to = legs[legIndex + 1]?.start_plaats;
+      return {
+        position: runner.position,
+        bearingDeg: runner.bearingDeg,
+        running: true,
+        label: to ? `${from} → ${to}` : from ?? "",
+      };
+    }
+    if (beforeStart && legs[0]) {
+      return {
+        position: [legs[0].start_lat, legs[0].start_lon] as LatLng,
+        bearingDeg: 90,
+        running: false,
+        label: `Start bij ${legs[0].start_plaats}`,
+      };
+    }
+    return null;
+  }, [runner, beforeStart, legs]);
+
+  // Rotate the figure (drawn facing east) to face its actual running
+  // direction; rebuilt as a divIcon since Leaflet renders markers outside
+  // React's own DOM tree.
+  const runnerIcon = useMemo(() => {
+    if (!displayRunner) return null;
+    return L.divIcon({
+      html: renderToStaticMarkup(
+        <RunnerFigure
+          size={RUNNER_ICON_SIZE}
+          color={STATUS_COLORS.bezig}
+          rotationDeg={displayRunner.bearingDeg - 90}
+          running={displayRunner.running}
+          bounce
+        />
+      ),
+      className: styles.runnerIcon,
+      iconSize: [RUNNER_ICON_SIZE, RUNNER_ICON_SIZE],
+      iconAnchor: [RUNNER_ICON_SIZE / 2, RUNNER_ICON_SIZE / 2],
+    });
+  }, [displayRunner]);
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -196,6 +260,17 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
               </CircleMarker>
             );
           })}
+
+          {displayRunner && runnerIcon && (
+            <Marker position={displayRunner.position} icon={runnerIcon} zIndexOffset={1000}>
+              <Popup className={styles.runnerPopup}>
+                <div className={styles.runnerPopupContent}>
+                  <RunnerFigure size={140} color={STATUS_COLORS.bezig} running={displayRunner.running} />
+                  <div className={styles.runnerPopupLabel}>{displayRunner.label}</div>
+                </div>
+              </Popup>
+            </Marker>
+          )}
 
           <Marker position={start} icon={startFinishIcon}>
             <Popup>

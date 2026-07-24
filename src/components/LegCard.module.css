@@ -144,6 +144,12 @@
   }
 }
 
+.runner {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 2px;
+}
+
 .metaRow {
   display: flex;
   align-items: center;

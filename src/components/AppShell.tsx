@@ -44,6 +44,7 @@ export default function AppShell({ start, legSegments, checkins }: AppShellProps
             start={start}
             legSegments={legSegments}
             statuses={statuses}
+            now={now}
             checkinTimes={checkinTimes}
           />
         </div>

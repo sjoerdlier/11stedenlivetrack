@@ -2,33 +2,62 @@
 
 import { useEffect, useState } from "react";
 
-function parseDebugTime(): number | null {
+const DEFAULT_DEBUG_SPEED = 60;
+const DEBUG_TICK_MS = 250;
+
+interface DebugClock {
+  baseTime: number;
+  speed: number | null; // null = frozen, no ticking
+}
+
+function readDebugClock(): DebugClock | null {
   if (typeof window === "undefined") return null;
-  const raw = new URLSearchParams(window.location.search).get("debugTime");
-  if (!raw) return null;
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+  const params = new URLSearchParams(window.location.search);
+
+  const debugTimeRaw = params.get("debugTime");
+  const parsedBase = debugTimeRaw ? new Date(debugTimeRaw).getTime() : NaN;
+  const hasBase = !Number.isNaN(parsedBase);
+
+  if (!params.has("debug")) {
+    return hasBase ? { baseTime: parsedBase, speed: null } : null;
+  }
+
+  const rawSpeed = Number(params.get("debug"));
+  const speed = Number.isFinite(rawSpeed) && rawSpeed > 0 ? rawSpeed : DEFAULT_DEBUG_SPEED;
+  return { baseTime: hasBase ? parsedBase : Date.now(), speed };
 }
 
 // A client-side clock that ticks every `intervalMs`, so status derived from
-// geplande_tijd stays current without a page reload — unless a
-// `?debugTime=<ISO date>` query param is present, in which case "now" is
-// frozen at that value instead. Lets status colors, the pre-start countdown,
-// etc. be tested deterministically without waiting for race day.
+// geplande_tijd stays current without a page reload — unless overridden via
+// the querystring for deterministic testing without waiting for race day:
 //
-// NOTE: a future RunnerFigure PR will likely want its own simulated-time
-// source (probably to drive marker position along the route). This hook is
-// the natural place to reconcile the two — expect a merge conflict here,
-// don't route around it.
+// - `?debugTime=<ISO date>` freezes "now" at that value (no ticking at all)
+//   — status colors, progress, the pre-start countdown, etc. all read that
+//   fixed point in time.
+// - `?debug=<speed>` (optionally combined with debugTime) instead ticks
+//   forward from that point (or from the real time, if no debugTime) at
+//   <speed>x real time (default 60x), so a moving/rotating map marker or
+//   other time-driven animation can be watched progress without a real day
+//   passing.
 export function useSimulatedNow(intervalMs: number): number {
-  const [debugTime] = useState(parseDebugTime);
-  const [now, setNow] = useState(() => debugTime ?? Date.now());
+  const [debugClock] = useState(readDebugClock);
+  const [now, setNow] = useState(() => debugClock?.baseTime ?? Date.now());
 
   useEffect(() => {
-    if (debugTime !== null) return;
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [debugTime, intervalMs]);
+    if (debugClock === null) {
+      const id = setInterval(() => setNow(Date.now()), intervalMs);
+      return () => clearInterval(id);
+    }
 
-  return debugTime ?? now;
+    const { baseTime, speed } = debugClock;
+    if (speed === null) return; // frozen: initial state already holds baseTime
+
+    const mountedAt = Date.now();
+    const id = setInterval(() => {
+      setNow(baseTime + (Date.now() - mountedAt) * speed);
+    }, DEBUG_TICK_MS);
+    return () => clearInterval(id);
+  }, [debugClock, intervalMs]);
+
+  return now;
 }

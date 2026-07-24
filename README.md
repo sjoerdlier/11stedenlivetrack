@@ -26,11 +26,26 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   volgende leg z'n tijd voorbij is, bezig zodra de eigen tijd voorbij is,
   anders nog-te-gaan. Levert ook de gedeelde statuskleuren (grijs/blauw/wit) en
   labels — dezelfde module voedt zowel het side-menu als de kaart. Herberekent
-  elke 30s (client-side klok).
+  elke 30s (client-side klok). `daysUntilStart` leidt de "nog niet
+  begonnen"-staat af uit leg 1's `geplande_tijd` (géén losse hardcoded
+  datum), gebruikt door `TopBar` (countdown) en `RouteMap` (loper op het
+  startpunt).
+- `src/lib/geo.ts` — gedeelde geo-wiskunde: `haversineMeters` (afstand tussen
+  twee punten) en `bearingDeg` (kompaskoers van punt a naar punt b, 0=noord).
+  Gebruikt door zowel `segments.ts` (leg-track knippen) als
+  `runnerPosition.ts` (loper-positie en looprichting).
+- `src/lib/runnerPosition.ts` — er is nog geen live GPS-feed, dus de positie
+  van de loper wordt gesimuleerd: op de actieve leg wordt hij langs de track
+  geplaatst naar verhouding van hoe ver de tijdsvensters (`geplande_tijd` van
+  de leg tot die van de volgende) al verstreken zijn, met de looprichting
+  (`bearingDeg`) afgeleid uit het naastliggende trackstuk.
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
   live uit Supabase) die route + legs combineert en doorgeeft aan `AppShell`.
-- `src/lib/useSimulatedNow.ts` — client-clock hook (tick elke N ms), met
-  `?debugTime=<ISO-datum>`-override (zie "Debug mode" hieronder).
+- `src/lib/useSimulatedNow.ts` — client-clock hook (tick elke N ms). Met
+  `?debugTime=<ISO-datum>` bevriest "nu" op die waarde (geen ticken meer); met
+  `?debug=<snelheid>` (optioneel samen met `debugTime`) tikt de klok juist
+  door vanaf dat punt (of vanaf de echte tijd) op `<snelheid>`x, standaard
+  60x — zie "Debug mode" hieronder.
 - `src/components/AppShell.tsx` — client component die once de statusklok +
   `computeLegStatuses` berekent en doorgeeft aan zowel `TopBar` als de kaart,
   zodat voortgang en status-kleuren gegarandeerd hetzelfde snapshot lezen.
@@ -72,6 +87,13 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   niet de etappe die net gelopen is om hier aan te komen (prev→this).
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
+- `src/components/RunnerFigure.tsx` — de geanimeerde SVG-rennerfiguur van
+  Lowie: hoofd (cirkel), romp en twee losse armen/benen die elk om hun eigen
+  gewricht (heup/schouder) roteren. Armen en benen zwaaien in CSS-keyframes
+  in tegengestelde fase, cyclus van 500ms. Eén component voor zowel de
+  compacte kaart-marker (klein, met `bounce` en `rotationDeg` naar de
+  looprichting) als de uitvergrote detailweergave (`size` 4-5x groter, geen
+  rotatie/bounce nodig — hier is de beenbeweging het duidelijkst zichtbaar).
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe
   is een kaart-blok. Compact (voltooid en niet aangeklikt) blijft een
   ingeklapte regel — plaats, CP-badge, geplande tijd. Elke andere kaart
@@ -82,7 +104,8 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   stopregel ("Stop: 10 min (CP)") als het een checkpoint is, de buddy-badge en
   het adres. De Werkelijk-kolom toont "–" (niet vetgedrukt, om 'm duidelijk
   als placeholder te onderscheiden van een echte waarde) zolang er geen
-  check-in is — nooit een misleidende 0 of een schatting. Checkpoints
+  check-in is — nooit een misleidende 0 of een schatting. De actieve
+  ("bezig") leg toont bovenaan ook de uitvergrote `RunnerFigure`. Checkpoints
   (`cp_nummer` niet leeg) krijgen een badge en een groter bolletje.
   Bijzonderheden krijgen een opvallende "Let op"-waarschuwingsbox, niet
   weggemoffeld. Onder 768px breedte is het side-menu geen vaste
@@ -100,7 +123,12 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   zoom 12, alleen het nummer tussen 10–11, helemaal verborgen (hover-only)
   daaronder. Coïnciderende markers — met name start/finish bij Leeuwarden —
   worden per coördinaat gegroepeerd en waaieren om en om links/rechts uit
-  zodat hun labels nooit stapelen.
+  zodat hun labels nooit stapelen. De actieve loper krijgt een eigen marker
+  (`RunnerFigure` als Leaflet `divIcon`, geroteerd naar `bearingDeg`); een klik
+  erop toont de uitvergrote detailweergave in een popup. Zolang de tocht nog
+  niet begonnen is (`daysUntilStart` in `status.ts`), staat deze marker alvast
+  op het startpunt (leg 1) met de bounce-animatie aan maar de benen stil
+  (`running={false}`) — aan het opwarmen, nog niet aan het lopen.
 - `src/app/schema/page.tsx` — losstaande, printbare lijstweergave van alle
   stops (server component, geen kaart, geen interactieve elementen): nr, CP,
   plaats, tijd, afstand, cumulatief, buddy, adres, bijzonderheden in een platte
@@ -182,23 +210,33 @@ duidelijke Supabase-foutmelding in het formulier (geen silent failure), en is
 
 ## Debug mode
 
-`?debugTime=<ISO-datum>` op elke URL (bijv. `/?debugTime=2026-08-29T13:30:00Z`)
-vervangt "nu" overal in de app door die vaste waarde — geen live klok meer
-zolang de parameter aanwezig is. Daarmee test je statuskleuren, voortgang en
-de pre-start countdown zonder op de echte racedag te wachten:
+`src/lib/useSimulatedNow.ts` laat "nu" via de querystring overschrijven, zodat
+alles wat op de klok reageert (statuskleuren, voortgang, de pre-start
+countdown, de bewegende/roterende loper op de kaart) getest kan worden zonder
+op de echte racedag te wachten:
 
-- Vóór leg 1's `geplande_tijd`: `/?debugTime=2026-08-25T07:00:00Z` → countdown
-  in de topbar ("Nog 4 dagen tot de start").
-- Tijdens: `/?debugTime=2026-08-29T13:30:00Z` → normale voortgangsbalk en
-  status­kleuren (grijs/blauw/wit) per leg, precies zoals op de dag zelf.
-- Na afloop: een datum ruim na de laatste `geplande_tijd` → voortgang richting
-  100%.
+- `?debugTime=<ISO-datum>` (bijv. `/?debugTime=2026-08-29T13:30:00Z`) bevriest
+  "nu" op die vaste waarde — geen live klok meer zolang de parameter aanwezig
+  is. Handig om een exact moment deterministisch te bekijken.
+- `?debug=<snelheid>` (optioneel samen met `debugTime`) laat de klok juist
+  doortikken vanaf dat moment (of vanaf de echte tijd, zonder `debugTime`) op
+  `<snelheid>`x reële snelheid, standaard 60x — zo is de bewegende/roterende
+  loper op de kaart ook echt in beweging te zien, niet alleen een los
+  momentopname. Bijv. `?debug=600` voor 10 minuten schema per seconde.
 
-`useSimulatedNow` (`src/lib/useSimulatedNow.ts`) is de plek die dit
-implementeert. **Let op voor een toekomstige samenvoeging met de
-RunnerFigure-PR**: die zal vermoedelijk een eigen tijd-simulatiemechanisme
-willen; dit bestand is bewust de plek waar dat samenkomt — een merge-conflict
-hier is te verwachten, niet iets om te vermijden.
+Drie stadia om zo te bekijken:
+
+- **Vóór de start** (vóór leg 1's `geplande_tijd`, `daysUntilStart` in
+  `status.ts`): bijv. `/?debugTime=2026-08-25T07:00:00Z` of
+  `/?debug=1&debugTime=2026-08-01T00:00:00` → countdown in de topbar ("Nog 4
+  dagen tot de start") en de loper (bounce, stilstaande benen) op het
+  startpunt.
+- **Tijdens**: bijv. `/?debugTime=2026-08-29T13:30:00Z` (bevroren) of
+  `/?debug=600&debugTime=2026-08-29T07:00:00` (doortikkend) → normale
+  voortgangsbalk en statuskleuren (grijs/blauw/wit) per leg, en de loper
+  beweegt/roteert langs de actieve leg.
+- **Na afloop**: een datum ruim na de laatste `geplande_tijd` → voortgang
+  richting 100%.
 
 ## Supabase
 
@@ -228,7 +266,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Zie "Debug mode"
+hierboven om de simulatieklok te gebruiken, bijv.
+`http://localhost:3000/?debug=600&debugTime=2026-08-29T07:00:00`.
 
 ## Route vervangen
 

@@ -2,6 +2,7 @@ import type { Leg } from "@/lib/legs";
 import type { LegTiming } from "@/lib/actualProgress";
 import { formatGeplandeTijd, formatClockTime, formatPaceKmh, googleMapsUrl } from "@/lib/format";
 import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
+import RunnerFigure from "./RunnerFigure";
 import BuddyBadge from "./BuddyBadge";
 import styles from "./LegCard.module.css";
 
@@ -49,6 +50,12 @@ export default function LegCard({ leg, status, expanded, timing, onToggle }: Leg
             <span className={styles.statusLabel}>{STATUS_LABELS[status]}</span>
           )}
         </div>
+
+        {expanded && status === "bezig" && (
+          <div className={styles.runner}>
+            <RunnerFigure size={112} color={STATUS_COLORS.bezig} />
+          </div>
+        )}
 
         {!compact && (
           <>

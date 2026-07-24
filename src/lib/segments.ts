@@ -1,5 +1,6 @@
 import { simplifyRoute, type LatLng } from "./gpx";
 import type { Leg } from "./legs";
+import { haversineMeters } from "./geo";
 
 export interface LegSegment {
   leg: Leg;
@@ -11,17 +12,6 @@ export interface LegSegment {
 // overview is actually viewed at — it just drops points redundant with
 // their neighbors.
 const SIMPLIFY_TOLERANCE_METERS = 10;
-
-function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
 
 // Finds the GPX track point closest to (lat, lon), searching forward from
 // fromIdx only. The route re-visits the same area more than once (e.g.

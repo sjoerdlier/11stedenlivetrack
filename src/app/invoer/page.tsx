@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { unstable_cache } from "next/cache";
 import { CHECKIN_COOKIE, isAuthorized } from "@/lib/checkinAuth";
 import { loadLegs, type Leg } from "@/lib/legs";
+import { parseRouteSlug, routeConfig } from "@/lib/routes";
 import InvoerClient from "./InvoerClient";
 
 // The page itself can't be ISR-cached: it reads the PIN-session cookie to
@@ -13,13 +15,20 @@ import InvoerClient from "./InvoerClient";
 // route as a whole stays dynamic.
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Invoer — 11Stedentocht",
-};
+interface InvoerPageProps {
+  searchParams: Promise<{ route?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: InvoerPageProps): Promise<Metadata> {
+  const { route } = await searchParams;
+  return { title: `Invoer — ${routeConfig(parseRouteSlug(route)).pageTitle}` };
+}
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 
-export default async function InvoerPage() {
+export default async function InvoerPage({ searchParams }: InvoerPageProps) {
+  const { route } = await searchParams;
+  const activeRoute = parseRouteSlug(route);
   const cookieStore = await cookies();
   const authorized = isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
 
@@ -28,10 +37,17 @@ export default async function InvoerPage() {
   let legs: Leg[] = [];
   let legsError: string | null = null;
   try {
-    legs = await getCachedLegs();
+    legs = await getCachedLegs(activeRoute);
   } catch (err) {
     legsError = err instanceof Error ? err.message : "Kon legs niet laden.";
   }
 
-  return <InvoerClient initialAuthorized={authorized} legs={legs} legsError={legsError} />;
+  return (
+    <InvoerClient
+      activeRoute={activeRoute}
+      initialAuthorized={authorized}
+      legs={legs}
+      legsError={legsError}
+    />
+  );
 }

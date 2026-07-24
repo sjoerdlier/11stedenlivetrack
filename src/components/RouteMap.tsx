@@ -17,8 +17,9 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd } from "@/lib/format";
-import { STATUS_COLORS, type LegStatus } from "@/lib/status";
+import { STATUS_COLORS, totalRouteKm, type LegStatus } from "@/lib/status";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
+import { routeConfig, type RouteSlug } from "@/lib/routes";
 import BuddyBadge from "./BuddyBadge";
 import LegSchedule from "./LegSchedule";
 import styles from "./RouteMap.module.css";
@@ -47,6 +48,7 @@ const startFinishIcon = L.icon({
 });
 
 interface RouteMapProps {
+  activeRoute: RouteSlug;
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
@@ -75,13 +77,15 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
-export default function RouteMap({ start, legSegments, statuses, checkinTimes }: RouteMapProps) {
+export default function RouteMap({ activeRoute, start, legSegments, statuses, checkinTimes }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const labelMode = labelModeForZoom(zoom);
   const cpDirections = useMemo(() => assignCpTooltipDirections(legs), [legs]);
+  const config = routeConfig(activeRoute);
+  const totalKm = useMemo(() => totalRouteKm(legs), [legs]);
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -101,6 +105,7 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
   return (
     <div className={styles.layout}>
       <LegSchedule
+        activeRoute={activeRoute}
         legs={legs}
         statuses={statuses}
         checkinTimes={checkinTimes}
@@ -199,9 +204,9 @@ export default function RouteMap({ start, legSegments, statuses, checkinTimes }:
 
           <Marker position={start} icon={startFinishIcon}>
             <Popup>
-              Start / Finish — Leeuwarden
+              Start / Finish — {config.startFinishPlaats}
               <br />
-              11Stedentocht wandelroute (204 km)
+              {config.routeDescription} ({totalKm} km)
             </Popup>
           </Marker>
         </MapContainer>

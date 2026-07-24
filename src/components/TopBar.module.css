@@ -106,6 +106,21 @@
   flex: none;
 }
 
+.routeSwitch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+  margin-right: 2px;
+  border-right: 1px solid #e1e0d9;
+}
+
+@media (prefers-color-scheme: dark) {
+  .routeSwitch {
+    border-right-color: #2c2c2a;
+  }
+}
+
 .action {
   display: flex;
   align-items: center;

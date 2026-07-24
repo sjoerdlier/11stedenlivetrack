@@ -1,6 +1,6 @@
 import type { Leg } from "./legs";
 import type { Checkin } from "./checkins";
-import { TOTAL_ROUTE_KM, type Progress } from "./status";
+import { totalRouteKm, type Progress } from "./status";
 
 // Earliest recorded check-in timestamp (ms) per leg_nr — the moment a leg
 // was first reached. A later duplicate check-in for the same leg (a
@@ -30,7 +30,7 @@ export function computeActualProgress(legs: Leg[], checkinTimes: Map<number, num
     }
   }
   km = Math.round(km * 10) / 10;
-  const percent = Math.min(100, Math.max(0, (km / TOTAL_ROUTE_KM) * 100));
+  const percent = Math.min(100, Math.max(0, (km / totalRouteKm(legs)) * 100));
   return { km, percent };
 }
 
@@ -144,8 +144,9 @@ export interface EstimatedArrival {
 
 // Projected arrival: now + remaining km at whichever pace we trust. With
 // fewer than 2 check-ins there isn't enough real data for a pace yet, so
-// this falls back to the official planned pace (202 km / total scheduled
-// duration), reported with basis "gepland" so callers can label it clearly.
+// this falls back to the official planned pace (total route km / total
+// scheduled duration), reported with basis "gepland" so callers can label
+// it clearly.
 export function estimateArrival(
   now: number,
   remainingKm: number,

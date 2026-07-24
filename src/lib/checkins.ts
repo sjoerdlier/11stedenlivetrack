@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import type { RouteSlug } from "./routes";
 
 export interface NewCheckin {
+  route: RouteSlug;
   tijdstip: string;
   leg_nr: number;
   lat: number | null;
@@ -9,7 +11,7 @@ export interface NewCheckin {
   invoerder: string;
 }
 
-export type Checkin = NewCheckin;
+export type Checkin = Omit<NewCheckin, "route">;
 
 export async function insertCheckin(checkin: NewCheckin): Promise<void> {
   const url = process.env.SUPABASE_URL;
@@ -31,7 +33,7 @@ export async function insertCheckin(checkin: NewCheckin): Promise<void> {
 // force-dynamic) so the top bar and sidebar can derive real progress/pace
 // from actual check-ins instead of the schedule. Empty before race day —
 // that's the expected starting state, not an error.
-export async function loadCheckins(): Promise<Checkin[]> {
+export async function loadCheckins(route: RouteSlug): Promise<Checkin[]> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
 
@@ -43,6 +45,7 @@ export async function loadCheckins(): Promise<Checkin[]> {
   const { data, error } = await supabase
     .from("checkins")
     .select("tijdstip, leg_nr, lat, lon, notitie, invoerder")
+    .eq("route", route)
     .order("tijdstip", { ascending: true });
 
   if (error) {

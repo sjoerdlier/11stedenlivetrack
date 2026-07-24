@@ -14,12 +14,14 @@ import {
   computeProgress,
   daysUntilStart,
   totalPlannedPaceKmh,
-  TOTAL_ROUTE_KM,
+  totalRouteKm,
   type LegStatus,
 } from "@/lib/status";
+import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
+  activeRoute: RouteSlug;
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   now: number;
@@ -32,6 +34,7 @@ interface TopBarProps {
 const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 
 export default function TopBar({
+  activeRoute,
   legs,
   statuses,
   now,
@@ -40,6 +43,8 @@ export default function TopBar({
   liveTrackOpen,
   onToggleLiveTrack,
 }: TopBarProps) {
+  const config = routeConfig(activeRoute);
+  const totalKm = useMemo(() => totalRouteKm(legs), [legs]);
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
   const countdownDays = useMemo(() => daysUntilStart(legs, now), [legs, now]);
   const plannedPaceKmh = useMemo(() => totalPlannedPaceKmh(legs), [legs]);
@@ -53,14 +58,14 @@ export default function TopBar({
   const actual = useMemo(() => {
     if (checkins.length === 0) return null;
     const progress = computeActualProgress(legs, checkinTimes);
-    const remainingKm = Math.max(0, TOTAL_ROUTE_KM - progress.km);
+    const remainingKm = Math.max(0, totalKm - progress.km);
     const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
     const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, checkins.length);
     return { progress, remainingKm, paceKmh, arrival };
-  }, [checkins.length, legs, checkinTimes, now, plannedPaceKmh]);
+  }, [checkins.length, legs, checkinTimes, now, plannedPaceKmh, totalKm]);
 
   async function handleShare() {
-    const shareData = { title: "Lowie — 11Stedentocht", url: window.location.href };
+    const shareData = { title: config.pageTitle, url: window.location.href };
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -82,7 +87,7 @@ export default function TopBar({
         <div className={styles.progress}>
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
-              {actual.progress.km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
+              {actual.progress.km.toLocaleString("nl-NL")} van {totalKm} km ·{" "}
             </span>
             {Math.round(actual.progress.percent)}%
           </span>
@@ -114,7 +119,7 @@ export default function TopBar({
         <div className={styles.progress}>
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
-              {km.toLocaleString("nl-NL")} van {TOTAL_ROUTE_KM} km ·{" "}
+              {km.toLocaleString("nl-NL")} van {totalKm} km ·{" "}
             </span>
             {Math.round(percent)}%
           </span>
@@ -128,6 +133,20 @@ export default function TopBar({
       )}
 
       <nav className={styles.actions}>
+        <div className={styles.routeSwitch} role="group" aria-label="Route">
+          {ROUTES.map((r) => (
+            <Link
+              key={r.slug}
+              href={`/?route=${r.slug}`}
+              className={`${styles.action} ${r.slug === activeRoute ? styles.actionActive : ""}`}
+              title={r.pageTitle}
+              aria-current={r.slug === activeRoute}
+            >
+              {r.navLabel}
+            </Link>
+          ))}
+        </div>
+
         <button
           type="button"
           onClick={onToggleLiveTrack}
@@ -139,7 +158,12 @@ export default function TopBar({
           <span className={styles.actionLabel}>Live</span>
         </button>
 
-        <Link href="/schema" target="_blank" className={styles.action} title="Printbaar schema">
+        <Link
+          href={`/schema?route=${activeRoute}`}
+          target="_blank"
+          className={styles.action}
+          title="Printbaar schema"
+        >
           <span aria-hidden>🖨</span>
           <span className={styles.actionLabel}>Schema</span>
         </Link>

@@ -24,10 +24,8 @@ interface ParsedGpx {
   };
 }
 
-const GPX_PATH = join(process.cwd(), "data", "route.gpx");
-
-export function loadRoute(): RouteData {
-  const xml = readFileSync(GPX_PATH, "utf-8");
+export function loadRoute(gpxFile: string): RouteData {
+  const xml = readFileSync(join(process.cwd(), "data", gpxFile), "utf-8");
   const parser = new XMLParser({ ignoreAttributes: false });
   const parsed = parser.parse(xml) as ParsedGpx;
 
@@ -44,7 +42,7 @@ export function loadRoute(): RouteData {
   ]);
 
   if (points.length === 0) {
-    throw new Error(`Geen trackpoints gevonden in ${GPX_PATH}`);
+    throw new Error(`Geen trackpoints gevonden in data/${gpxFile}`);
   }
 
   return { points, start: points[0] };

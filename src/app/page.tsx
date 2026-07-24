@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import AppShell from "@/components/AppShell";
 import { loadRoute } from "@/lib/gpx";
 import { loadLegs } from "@/lib/legs";
 import { loadCheckins } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
+import { parseRouteSlug, routeConfig } from "@/lib/routes";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
 // first but rejected: without force-dynamic, Next tries to prerender this
@@ -25,10 +27,32 @@ export const dynamic = "force-dynamic";
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 
-export default async function Home() {
-  const { points, start } = loadRoute();
-  const [legs, checkins] = await Promise.all([getCachedLegs(), getCachedCheckins()]);
+interface HomeProps {
+  searchParams: Promise<{ route?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
+  const { route } = await searchParams;
+  const config = routeConfig(parseRouteSlug(route));
+  return {
+    title: config.pageTitle,
+    description: `Kaart van de ${config.routeDescription}`,
+  };
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  const { route } = await searchParams;
+  const activeRoute = parseRouteSlug(route);
+  const config = routeConfig(activeRoute);
+
+  const { points, start } = loadRoute(config.gpxFile);
+  const [legs, checkins] = await Promise.all([
+    getCachedLegs(activeRoute),
+    getCachedCheckins(activeRoute),
+  ]);
   const legSegments = buildLegSegments(points, legs);
 
-  return <AppShell start={start} legSegments={legSegments} checkins={checkins} />;
+  return (
+    <AppShell activeRoute={activeRoute} start={start} legSegments={legSegments} checkins={checkins} />
+  );
 }

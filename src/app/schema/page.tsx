@@ -1,16 +1,26 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { loadLegs } from "@/lib/legs";
 import { formatGeplandeTijd } from "@/lib/format";
+import { parseRouteSlug, routeConfig } from "@/lib/routes";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Schema — 11Stedentocht",
-};
+interface SchemaPageProps {
+  searchParams: Promise<{ route?: string }>;
+}
 
-export default async function SchemaPage() {
-  const legs = await loadLegs();
+export async function generateMetadata({ searchParams }: SchemaPageProps): Promise<Metadata> {
+  const { route } = await searchParams;
+  return { title: `Schema — ${routeConfig(parseRouteSlug(route)).pageTitle}` };
+}
+
+export default async function SchemaPage({ searchParams }: SchemaPageProps) {
+  const { route } = await searchParams;
+  const activeRoute = parseRouteSlug(route);
+  const config = routeConfig(activeRoute);
+  const legs = await loadLegs(activeRoute);
   const generatedAt = new Intl.DateTimeFormat("nl-NL", {
     weekday: "short",
     day: "numeric",
@@ -23,11 +33,11 @@ export default async function SchemaPage() {
   return (
     <main className={styles.page}>
       <div className={`${styles.nav} ${styles.noprint}`}>
-        <Link href="/">← Terug naar kaart</Link>
+        <Link href={`/?route=${activeRoute}`}>← Terug naar kaart</Link>
       </div>
 
       <header className={styles.header}>
-        <h1>Lowie — 11Stedentocht</h1>
+        <h1>{config.pageTitle}</h1>
         <p className={styles.subtitle}>Volledig schema · gegenereerd {generatedAt}</p>
       </header>
 

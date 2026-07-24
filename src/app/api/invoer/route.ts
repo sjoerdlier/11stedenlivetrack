@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { CHECKIN_COOKIE, isAuthorized } from "@/lib/checkinAuth";
 import { insertCheckin } from "@/lib/checkins";
+import { parseRouteSlug } from "@/lib/routes";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
 
   try {
     await insertCheckin({
+      route: parseRouteSlug(body?.route),
       tijdstip,
       leg_nr: legNr,
       lat,

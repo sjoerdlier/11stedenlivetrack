@@ -1,10 +1,12 @@
 import type { Leg } from "@/lib/legs";
 import { computeLegTiming } from "@/lib/actualProgress";
-import type { LegStatus } from "@/lib/status";
+import { totalRouteKm, type LegStatus } from "@/lib/status";
+import { routeConfig, type RouteSlug } from "@/lib/routes";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
 
 interface LegScheduleProps {
+  activeRoute: RouteSlug;
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
@@ -15,6 +17,7 @@ interface LegScheduleProps {
 }
 
 export default function LegSchedule({
+  activeRoute,
   legs,
   statuses,
   checkinTimes,
@@ -23,6 +26,7 @@ export default function LegSchedule({
   mobileExpanded,
   onToggleMobileExpanded,
 }: LegScheduleProps) {
+  const config = routeConfig(activeRoute);
   return (
     <div className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}>
       <div className={styles.handle} aria-hidden />
@@ -37,8 +41,8 @@ export default function LegSchedule({
         }}
       >
         <div>
-          <div className={styles.title}>Lowie — 11Stedentocht</div>
-          <div className={styles.hint}>204 km, {legs.length} stops</div>
+          <div className={styles.title}>{config.pageTitle}</div>
+          <div className={styles.hint}>{totalRouteKm(legs)} km, {legs.length} stops</div>
         </div>
         <span className={styles.chevron} aria-hidden>
           ▲

@@ -38,11 +38,18 @@ export function computeLegStatuses(legs: Leg[], now: number): Map<number, LegSta
   return map;
 }
 
-export const TOTAL_ROUTE_KM = 202;
+// The finish leg is always last and carries the route's full distance as its
+// cumulatief_start_km (it has no afstand_km of its own, being an endpoint
+// rather than a walkable stage) — so the total route distance is just that
+// value, read straight from whichever route's legs were loaded rather than
+// hardcoded per route.
+export function totalRouteKm(legs: Leg[]): number {
+  const last = legs[legs.length - 1];
+  return last ? Number(last.cumulatief_start_km) : 0;
+}
 
 // Total planned average pace over the whole route: the fixed route distance
-// over the scheduled duration from the first leg's time to the last, a
-// constant until live tracking data (fase 4b) replaces it.
+// over the scheduled duration from the first leg's time to the last.
 export function totalPlannedPaceKmh(legs: Leg[]): number | null {
   const first = legs[0];
   const last = legs[legs.length - 1];
@@ -53,7 +60,7 @@ export function totalPlannedPaceKmh(legs: Leg[]): number | null {
   if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
 
   const hours = (end - start) / (1000 * 60 * 60);
-  return TOTAL_ROUTE_KM / hours;
+  return totalRouteKm(legs) / hours;
 }
 
 export interface Progress {
@@ -70,7 +77,7 @@ export function computeProgress(legs: Leg[], statuses: Map<number, LegStatus>): 
       km = leg.cumulatief_start_km;
     }
   }
-  const percent = Math.min(100, Math.max(0, (km / TOTAL_ROUTE_KM) * 100));
+  const percent = Math.min(100, Math.max(0, (km / totalRouteKm(legs)) * 100));
   return { km, percent };
 }
 

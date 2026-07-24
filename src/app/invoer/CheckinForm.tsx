@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import type { Leg } from "@/lib/legs";
+import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
 import styles from "./invoer.module.css";
 
 interface CheckinFormProps {
+  activeRoute: RouteSlug;
   legs: Leg[];
   legsError: string | null;
   onUnauthorized: () => void;
@@ -27,7 +30,8 @@ function emptyForm() {
   };
 }
 
-export default function CheckinForm({ legs, legsError, onUnauthorized }: CheckinFormProps) {
+export default function CheckinForm({ activeRoute, legs, legsError, onUnauthorized }: CheckinFormProps) {
+  const config = routeConfig(activeRoute);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +52,7 @@ export default function CheckinForm({ legs, legsError, onUnauthorized }: Checkin
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          route: activeRoute,
           tijdstip: new Date(form.tijdstip).toISOString(),
           leg_nr: Number(form.legNr),
           lat: form.lat.trim() ? Number(form.lat) : null,
@@ -80,8 +85,17 @@ export default function CheckinForm({ legs, legsError, onUnauthorized }: Checkin
   return (
     <div className={styles.formWrap}>
       <div className={styles.formHeader}>
-        <div className={styles.formTitle}>Check-in invoeren</div>
+        <div className={styles.formTitle}>Check-in invoeren — {config.navLabel}</div>
         <p className={styles.formHint}>Fallback voor als de Garmin LiveTrack uitvalt.</p>
+        <p className={styles.formHint}>
+          Andere route:{" "}
+          {ROUTES.filter((r) => r.slug !== activeRoute)
+            .map((r) => (
+              <Link key={r.slug} href={`/invoer?route=${r.slug}`}>
+                {r.navLabel}
+              </Link>
+            ))}
+        </p>
       </div>
 
       {confirmed && <div className={styles.confirmation}>✓ Check-in opgeslagen.</div>}

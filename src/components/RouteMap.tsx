@@ -17,7 +17,7 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
-import { formatGeplandeTijd, formatKm } from "@/lib/format";
+import { formatClockTime, formatGeplandeTijd, formatKm } from "@/lib/format";
 import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
 import { actualAveragePaceKmh, computeActualProgress } from "@/lib/actualProgress";
 import { estimateLivePosition } from "@/lib/liveMarker";
@@ -69,6 +69,7 @@ interface RouteMapProps {
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
   checkinsByLeg: Map<number, Checkin>;
+  checkins: Checkin[];
   now: number;
 }
 
@@ -114,6 +115,7 @@ export default function RouteMap({
   statuses,
   checkinTimes,
   checkinsByLeg,
+  checkins,
   now,
 }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
@@ -142,6 +144,16 @@ export default function RouteMap({
     return estimateLivePosition(legs, legSegments, checkinTimes, now, paceKmh);
   }, [legs, legSegments, checkinTimes, now]);
   const liveLeg = livePosition ? legs.find((l) => l.nr === livePosition.legNr) : undefined;
+
+  // Check-ins carry an *optional* GPS position distinct from the leg's own
+  // planned coordinates — a photo stop, a detour, wherever the phone
+  // actually was when someone hit "opslaan" in /invoer. Plotting those
+  // separately from the leg markers is the only way that ever becomes
+  // visible instead of silently unused.
+  const checkinPins = useMemo(
+    () => checkins.filter((c) => c.lat !== null && c.lon !== null),
+    [checkins],
+  );
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -256,6 +268,32 @@ export default function RouteMap({
                     </span>
                   </Tooltip>
                 )}
+              </CircleMarker>
+            );
+          })}
+
+          {checkinPins.map((checkin, i) => {
+            const leg = legs.find((l) => l.nr === checkin.leg_nr);
+            const tijd = formatClockTime(new Date(checkin.tijdstip).getTime());
+            return (
+              <CircleMarker
+                key={`checkin-${checkin.leg_nr}-${i}`}
+                center={[checkin.lat as number, checkin.lon as number]}
+                radius={5}
+                pathOptions={{
+                  color: "#ffffff",
+                  weight: 1.5,
+                  fillColor: "#4a3aa7",
+                  fillOpacity: 0.9,
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -6]}>
+                  <span className={styles.tooltipRow}>
+                    📍 {leg?.start_plaats ?? `Leg ${checkin.leg_nr}`}
+                    {tijd ? ` · ${tijd}` : ""}
+                    {checkin.notitie ? ` · “${checkin.notitie}”` : ""}
+                  </span>
+                </Tooltip>
               </CircleMarker>
             );
           })}

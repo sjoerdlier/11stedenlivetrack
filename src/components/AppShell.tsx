@@ -53,6 +53,7 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
             statuses={statuses}
             checkinTimes={checkinTimes}
             checkinsByLeg={checkinsByLeg}
+            checkins={checkins}
             now={now}
           />
         </div>

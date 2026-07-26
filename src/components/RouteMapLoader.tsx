@@ -20,6 +20,7 @@ interface RouteMapLoaderProps {
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
   checkinsByLeg: Map<number, Checkin>;
+  checkins: Checkin[];
   now: number;
 }
 
@@ -30,6 +31,7 @@ export default function RouteMapLoader({
   statuses,
   checkinTimes,
   checkinsByLeg,
+  checkins,
   now,
 }: RouteMapLoaderProps) {
   return (
@@ -40,6 +42,7 @@ export default function RouteMapLoader({
       statuses={statuses}
       checkinTimes={checkinTimes}
       checkinsByLeg={checkinsByLeg}
+      checkins={checkins}
       now={now}
     />
   );

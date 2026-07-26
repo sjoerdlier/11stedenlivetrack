@@ -2,14 +2,13 @@
 
 import styles from "./LiveTrackPanel.module.css";
 
-const GARMIN_URL = process.env.NEXT_PUBLIC_GARMIN_LIVETRACK_URL;
-
 interface LiveTrackPanelProps {
   open: boolean;
   onClose: () => void;
+  garminUrl: string | null;
 }
 
-export default function LiveTrackPanel({ open, onClose }: LiveTrackPanelProps) {
+export default function LiveTrackPanel({ open, onClose, garminUrl }: LiveTrackPanelProps) {
   return (
     <div className={`${styles.panel} ${open ? styles.open : ""}`} aria-hidden={!open}>
       <div className={styles.inner}>
@@ -21,11 +20,11 @@ export default function LiveTrackPanel({ open, onClose }: LiveTrackPanelProps) {
         </div>
 
         <div className={styles.content}>
-          {GARMIN_URL ? (
+          {garminUrl ? (
             <iframe
-              src={GARMIN_URL}
+              src={garminUrl}
               className={styles.iframe}
-              title="Garmin LiveTrack — Lowie"
+              title="Garmin LiveTrack"
               loading="lazy"
               allow="geolocation"
             />
@@ -34,10 +33,8 @@ export default function LiveTrackPanel({ open, onClose }: LiveTrackPanelProps) {
               <span className={styles.placeholderIcon} aria-hidden>
                 📡
               </span>
-              <p className={styles.placeholderText}>Live locatie beschikbaar vanaf 29 augustus.</p>
-              <p className={styles.placeholderHint}>
-                Lowie deelt zijn Garmin LiveTrack-link op de dag zelf — deze komt hier dan automatisch te staan.
-              </p>
+              <p className={styles.placeholderText}>Nog geen Garmin LiveTrack-link ingesteld.</p>
+              <p className={styles.placeholderHint}>Zie /beheer om er een toe te voegen.</p>
             </div>
           )}
         </div>

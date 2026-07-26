@@ -1,4 +1,4 @@
-import type { RouteSlug } from "./routes";
+import { ROUTES, type RouteSlug } from "./routes";
 
 export interface PartyConfig {
   slug: string;
@@ -34,4 +34,17 @@ export function parsePartySlug(route: RouteSlug, value: string | string[] | unde
   const v = Array.isArray(value) ? value[0] : value;
   const parties = PARTIES_BY_ROUTE[route];
   return parties.some((p) => p.slug === v) ? (v as string) : parties[0].slug;
+}
+
+// The settings.ts key a party's Garmin LiveTrack link is stored under —
+// derived rather than a separate config field, so a new party in
+// PARTIES_BY_ROUTE gets a working /beheer field with no other changes.
+export function garminUrlSettingKey(route: RouteSlug, partySlug: string): string {
+  return `garmin_url__${route}__${partySlug}`;
+}
+
+// Every (route, party) pair that exists — the set /beheer's Garmin-link
+// form renders one field for, and page.tsx looks a link up from.
+export function allRouteParties(): { route: RouteSlug; party: PartyConfig }[] {
+  return ROUTES.flatMap((r) => partiesForRoute(r.slug).map((party) => ({ route: r.slug, party })));
 }

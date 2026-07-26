@@ -102,6 +102,11 @@ export default function CheckinForm({ activeRoute, legs, legsError, onUnauthoriz
             </span>
           ))}
         </p>
+        <p className={styles.formHint}>
+          <Link href="/beheer" className={styles.routeLink}>
+            ⚙ Instellingen (Garmin-links, PIN)
+          </Link>
+        </p>
       </div>
 
       {confirmed && <div className={styles.confirmation}>✓ Check-in opgeslagen.</div>}

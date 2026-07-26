@@ -5,9 +5,10 @@ import styles from "./invoer.module.css";
 
 interface PinScreenProps {
   onSuccess: () => void;
+  title?: string;
 }
 
-export default function PinScreen({ onSuccess }: PinScreenProps) {
+export default function PinScreen({ onSuccess, title = "Basiscamp invoer" }: PinScreenProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +43,7 @@ export default function PinScreen({ onSuccess }: PinScreenProps) {
   return (
     <div className={styles.pinWrap}>
       <form className={styles.pinCard} onSubmit={handleSubmit}>
-        <div className={styles.pinTitle}>Basiscamp invoer</div>
+        <div className={styles.pinTitle}>{title}</div>
         <p className={styles.pinHint}>Voer de 4-cijferige PIN in om door te gaan.</p>
         <input
           type="password"

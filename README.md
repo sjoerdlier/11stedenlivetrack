@@ -135,9 +135,11 @@ Steden-dag zelf.
   erbij kwam. De "Plaats"-kolom blijft `position: sticky` links staan zodat
   duidelijk blijft welke stop je bekijkt tijdens het scrollen.
 - `src/components/LiveTrackPanel.tsx` — uit-/inklapbaar paneel naast de kaart
-  met de Garmin LiveTrack-iframe (`NEXT_PUBLIC_GARMIN_LIVETRACK_URL`). Zonder
-  die env var toont het paneel een placeholder in plaats van een kapotte
-  iframe. Standaard dichtgeklapt (breedte 0, geen ruimte), togglebaar via de
+  met de Garmin LiveTrack-iframe. De link komt niet uit een env var maar uit
+  Supabase (`settings`-tabel, één per `(route, party)`), instelbaar via
+  `/beheer` — zie verderop. Zonder ingestelde link toont het paneel een
+  placeholder in plaats van een kapotte iframe. Standaard dichtgeklapt
+  (breedte 0, geen ruimte), togglebaar via de
   "Live"-knop in de topbar — die state leeft in `AppShell`. `RouteMap.tsx`
   bevat een kleine `MapResizeHandler` (ResizeObserver + `map.invalidateSize()`)
   omdat Leaflet zelf niet doorheeft dat zijn container breder/smaller wordt
@@ -179,14 +181,16 @@ Steden-dag zelf.
 Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
 4-cijferige PIN:
 
-- `src/lib/checkinAuth.ts` — de PIN zelf (`CHECKIN_PIN`, server-only) verlaat
-  de server nooit. `/api/invoer/verify` vergelijkt de ingevoerde PIN
-  server-side en zet bij een match een **httpOnly** cookie met een
-  SHA-256-hash van de PIN (12u geldig) — nooit de PIN zelf, en niet vergelijkbaar
-  vanuit client-JS. `/api/invoer` (de check-in-insert) herberekent diezelfde
-  hash server-side uit `CHECKIN_PIN` en vergelijkt met de cookie op **elke**
-  submit, dus een directe POST zonder geldige PIN-sessie geeft altijd 401 —
-  geverifieerd met curl.
+- `src/lib/checkinAuth.ts` — de PIN zelf verlaat de server nooit. De actuele
+  PIN-hash komt uit de Supabase `settings`-tabel (ingesteld via `/beheer`,
+  zie verderop), met de `CHECKIN_PIN`-env var als bootstrap-fallback zolang
+  niemand via `/beheer` een PIN heeft gezet. `/api/invoer/verify` vergelijkt
+  de ingevoerde PIN server-side en zet bij een match een **httpOnly** cookie
+  met een SHA-256-hash van de PIN (12u geldig) — nooit de PIN zelf, en niet
+  vergelijkbaar vanuit client-JS. `/api/invoer` (de check-in-insert)
+  herberekent diezelfde hash server-side en vergelijkt met de cookie op
+  **elke** submit, dus een directe POST zonder geldige PIN-sessie geeft altijd
+  401 — geverifieerd met curl.
 - `src/app/invoer/page.tsx` — server component, leest de cookie zodat een
   al-geautoriseerde sessie na een reload niet opnieuw hoeft in te loggen.
   Haalt legs op voor de dropdown; als Supabase daarbij faalt, blokkeert dat
@@ -202,9 +206,27 @@ Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
   `AppShell` → `TopBar` + `LegSchedule`/`LegCard` (zie `actualProgress.ts`
   hierboven). Een lege tabel (vóór de racedag) is de normale staat, geen fout.
 
+## /beheer — Garmin-links en PIN zelf beheren
+
+PIN-gated instellingenscherm (zelfde PIN/cookie als `/invoer`) zodat een
+organisator zonder Vercel-toegang of redeploy twee dingen kan bijwerken:
+
+- **Garmin LiveTrack-links** — één veld per `(route, party)`-combinatie,
+  automatisch gegenereerd uit `ROUTES` × `PARTIES_BY_ROUTE`
+  (`allRouteParties()` in `src/lib/parties.ts`) — een nieuwe party krijgt dus
+  vanzelf een werkend veld hier, zonder verdere code.
+- **De check-in-PIN** — laat het veld leeg om de huidige PIN te behouden.
+  Bij een wijziging wordt ook meteen de sessie-cookie van de invoerder zelf
+  ververst, zodat die niet per ongeluk wordt uitgelogd door zijn eigen
+  wijziging.
+
+Beide worden opgeslagen in de Supabase `settings`-tabel (`key`/`value`,
+`src/lib/settings.ts`) en zijn direct van kracht — geen redeploy nodig.
+`/invoer` linkt er met een klein "⚙ Instellingen"-linkje naar door.
+
 ### Dit testen zonder op de racedag te wachten
 
-Voeg testrijen toe aan `checkins` — via `/invoer` (PIN uit `CHECKIN_PIN`) of
+Voeg testrijen toe aan `checkins` — via `/invoer` of
 rechtstreeks in de Supabase table editor — en herlaad `/`:
 
 - **1 check-in** (bijv. leg 1, tijdstip nu): topbar schakelt over naar de

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { CHECKIN_COOKIE, CHECKIN_COOKIE_MAX_AGE, tokenForPin, verifyPin } from "@/lib/checkinAuth";
+import { CHECKIN_COOKIE, CHECKIN_COOKIE_MAX_AGE, currentPinHash, tokenForPin, verifyPin } from "@/lib/checkinAuth";
 
 export async function POST(request: Request) {
-  if (!process.env.CHECKIN_PIN) {
+  if (!(await currentPinHash())) {
     return NextResponse.json(
-      { ok: false, error: "CHECKIN_PIN is niet ingesteld op de server." },
+      { ok: false, error: "Er is nog geen PIN ingesteld. Zie /beheer." },
       { status: 500 },
     );
   }
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const pin = typeof body?.pin === "string" ? body.pin : "";
 
-  if (!verifyPin(pin)) {
+  if (!(await verifyPin(pin))) {
     return NextResponse.json({ ok: false, error: "Onjuiste PIN." }, { status: 401 });
   }
 

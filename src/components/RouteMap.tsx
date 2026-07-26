@@ -16,7 +16,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
-import { formatGeplandeTijd } from "@/lib/format";
+import { formatGeplandeTijd, formatKm } from "@/lib/format";
 import { STATUS_COLORS, totalRouteKm, type LegStatus } from "@/lib/status";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
@@ -224,7 +224,7 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
             <Popup>
               Start / Finish — {config.startFinishPlaats}
               <br />
-              {config.routeDescription} ({totalKm} km)
+              {config.routeDescription} ({formatKm(totalKm)})
             </Popup>
           </Marker>
         </MapContainer>

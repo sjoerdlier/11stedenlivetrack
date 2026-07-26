@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import { formatClockTime, formatPaceKmh } from "@/lib/format";
+import { formatClockTime, formatKm, formatPaceKmh } from "@/lib/format";
 import {
   actualAveragePaceKmh,
   computeActualProgress,
@@ -87,7 +87,7 @@ export default function TopBar({
         <div className={styles.progress}>
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
-              {actual.progress.km.toLocaleString("nl-NL")} van {totalKm} km ·{" "}
+              {formatKm(actual.progress.km)} van {formatKm(totalKm)} ·{" "}
             </span>
             {Math.round(actual.progress.percent)}%
           </span>
@@ -95,7 +95,7 @@ export default function TopBar({
             <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
           </span>
           <span className={styles.pace}>
-            Te gaan: {actual.remainingKm.toLocaleString("nl-NL")} km
+            Te gaan: {formatKm(actual.remainingKm)}
             {actual.paceKmh !== null && <> · Tempo: {formatPaceKmh(actual.paceKmh)}</>}
             {actual.arrival && (
               <>
@@ -119,7 +119,7 @@ export default function TopBar({
         <div className={styles.progress}>
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
-              {km.toLocaleString("nl-NL")} van {totalKm} km ·{" "}
+              {formatKm(km)} van {formatKm(totalKm)} ·{" "}
             </span>
             {Math.round(percent)}%
           </span>

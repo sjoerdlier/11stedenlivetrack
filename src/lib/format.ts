@@ -36,3 +36,15 @@ export function formatPaceKmh(value: number | null): string | null {
   if (value === null || !Number.isFinite(value)) return null;
   return `${paceFormatter.format(value)} km/u`;
 }
+
+const kmFormatter = new Intl.NumberFormat("nl-NL", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+// Formats a distance as "6,7 km", always one decimal — Postgres numeric
+// trims trailing zeros (afstand_km can come back as 9 next to 6.7 in the
+// same table), which read as inconsistent side by side without this.
+export function formatKm(value: number): string {
+  return `${kmFormatter.format(value)} km`;
+}

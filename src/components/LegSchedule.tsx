@@ -1,5 +1,6 @@
 import type { Leg } from "@/lib/legs";
 import { computeLegTiming } from "@/lib/actualProgress";
+import { formatKm } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
 import LegCard from "./LegCard";
@@ -42,7 +43,7 @@ export default function LegSchedule({
       >
         <div>
           <div className={styles.title}>{config.pageTitle}</div>
-          <div className={styles.hint}>{totalRouteKm(legs)} km, {legs.length} stops</div>
+          <div className={styles.hint}>{formatKm(totalRouteKm(legs))}, {legs.length} stops</div>
         </div>
         <span className={styles.chevron} aria-hidden>
           ▲

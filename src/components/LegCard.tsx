@@ -1,6 +1,6 @@
 import type { Leg } from "@/lib/legs";
 import type { LegTiming } from "@/lib/actualProgress";
-import { formatGeplandeTijd, formatClockTime, formatPaceKmh, googleMapsUrl } from "@/lib/format";
+import { formatGeplandeTijd, formatClockTime, formatKm, formatPaceKmh, googleMapsUrl } from "@/lib/format";
 import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
 import BuddyBadge from "./BuddyBadge";
 import styles from "./LegCard.module.css";
@@ -55,11 +55,11 @@ export default function LegCard({ leg, status, expanded, timing, onToggle }: Leg
             <div className={styles.metaRow}>
               {leg.afstand_km !== null && (
                 <>
-                  <span>{leg.afstand_km} km</span>
+                  <span>{formatKm(leg.afstand_km)}</span>
                   <span aria-hidden>·</span>
                 </>
               )}
-              <span>{leg.cumulatief_start_km} km totaal</span>
+              <span>{formatKm(leg.cumulatief_start_km)} totaal</span>
             </div>
 
             <table className={styles.timingTable}>

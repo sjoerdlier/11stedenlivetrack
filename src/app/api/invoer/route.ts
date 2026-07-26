@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { CHECKIN_COOKIE, isAuthorized } from "@/lib/checkinAuth";
 import { insertCheckin } from "@/lib/checkins";
 import { parseRouteSlug } from "@/lib/routes";
+import { parsePartySlug } from "@/lib/parties";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
@@ -32,9 +33,12 @@ export async function POST(request: Request) {
   const lon = typeof body?.lon === "number" && !Number.isNaN(body.lon) ? body.lon : null;
   const notitieRaw = typeof body?.notitie === "string" ? body.notitie.trim() : "";
 
+  const route = parseRouteSlug(body?.route);
+
   try {
     await insertCheckin({
-      route: parseRouteSlug(body?.route),
+      route,
+      party: parsePartySlug(route, body?.party),
       tijdstip,
       leg_nr: legNr,
       lat,

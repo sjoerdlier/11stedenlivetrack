@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
 import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
+import { partiesForRoute } from "@/lib/parties";
 import styles from "./invoer.module.css";
 
 interface CheckinFormProps {
@@ -19,8 +20,9 @@ function nowForInput(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function emptyForm() {
+function emptyForm(defaultParty: string) {
   return {
+    party: defaultParty,
     tijdstip: nowForInput(),
     legNr: "",
     lat: "",
@@ -32,7 +34,8 @@ function emptyForm() {
 
 export default function CheckinForm({ activeRoute, legs, legsError, onUnauthorized }: CheckinFormProps) {
   const config = routeConfig(activeRoute);
-  const [form, setForm] = useState(emptyForm);
+  const parties = partiesForRoute(activeRoute);
+  const [form, setForm] = useState(() => emptyForm(parties[0].slug));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -53,6 +56,7 @@ export default function CheckinForm({ activeRoute, legs, legsError, onUnauthoriz
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           route: activeRoute,
+          party: form.party,
           tijdstip: new Date(form.tijdstip).toISOString(),
           leg_nr: Number(form.legNr),
           lat: form.lat.trim() ? Number(form.lat) : null,
@@ -72,7 +76,7 @@ export default function CheckinForm({ activeRoute, legs, legsError, onUnauthoriz
         throw new Error(data.error ?? "Opslaan mislukt.");
       }
 
-      setForm(emptyForm());
+      setForm(emptyForm(form.party));
       setConfirmed(true);
       setTimeout(() => setConfirmed(false), 4000);
     } catch (err) {
@@ -109,6 +113,19 @@ export default function CheckinForm({ activeRoute, legs, legsError, onUnauthoriz
       )}
 
       <form className={styles.form} onSubmit={handleSubmit}>
+        {parties.length > 1 && (
+          <label className={styles.field}>
+            <span>Voor wie</span>
+            <select value={form.party} onChange={(e) => update("party", e.target.value)}>
+              {parties.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <label className={styles.field}>
           <span>Tijdstip</span>
           <input

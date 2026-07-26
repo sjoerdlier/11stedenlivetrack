@@ -8,6 +8,7 @@ import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
 import { buildElevationProfile } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
+import { parsePartySlug, partiesForRoute, partyConfig } from "@/lib/parties";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
 // first but rejected: without force-dynamic, Next tries to prerender this
@@ -29,18 +30,27 @@ const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 
 interface HomeProps {
-  searchParams: Promise<{ route?: string }>;
+  searchParams: Promise<{ route?: string; party?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
-  const { route } = await searchParams;
-  const config = routeConfig(parseRouteSlug(route));
-  return socialMetadata(config.pageTitle, `Kaart van de ${config.routeDescription}`);
+  const { route, party } = await searchParams;
+  const activeRoute = parseRouteSlug(route);
+  const config = routeConfig(activeRoute);
+  const parties = partiesForRoute(activeRoute);
+  // Only worth naming the party in the title once there's more than one to
+  // disambiguate between — for every other route this is a no-op.
+  const title =
+    parties.length > 1
+      ? `${partyConfig(activeRoute, parsePartySlug(activeRoute, party)).label} — ${config.pageTitle}`
+      : config.pageTitle;
+  return socialMetadata(title, `Kaart van de ${config.routeDescription}`);
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const { route } = await searchParams;
+  const { route, party } = await searchParams;
   const activeRoute = parseRouteSlug(route);
+  const activeParty = parsePartySlug(activeRoute, party);
   const config = routeConfig(activeRoute);
 
   let legs: Leg[], checkins: Checkin[];
@@ -61,6 +71,7 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <AppShell
       activeRoute={activeRoute}
+      activeParty={activeParty}
       start={start}
       legSegments={legSegments}
       checkins={checkins}

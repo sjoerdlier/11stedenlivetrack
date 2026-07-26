@@ -24,7 +24,10 @@ export const ROUTES: RouteConfig[] = [
   {
     slug: "kat100",
     navLabel: "KAT100",
-    pageTitle: "Sjoerd & Lowie — KAT100",
+    // No names here on purpose — two independent parties (see parties.ts)
+    // run this route, so a single name in the route-level title would be
+    // wrong for whichever one isn't it.
+    pageTitle: "KAT100 Marathon Trail",
     gpxFile: "kat100.gpx",
     startFinishPlaats: "Fieberbrunn",
     routeDescription: "KAT100 Marathon Trail",

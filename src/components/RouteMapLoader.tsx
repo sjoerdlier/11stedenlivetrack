@@ -16,6 +16,7 @@ const RouteMap = dynamic(() => import("./RouteMap"), {
 
 interface RouteMapLoaderProps {
   activeRoute: RouteSlug;
+  activeParty: string;
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
@@ -29,6 +30,7 @@ interface RouteMapLoaderProps {
 
 export default function RouteMapLoader({
   activeRoute,
+  activeParty,
   start,
   legSegments,
   statuses,
@@ -42,6 +44,7 @@ export default function RouteMapLoader({
   return (
     <RouteMap
       activeRoute={activeRoute}
+      activeParty={activeParty}
       start={start}
       legSegments={legSegments}
       statuses={statuses}

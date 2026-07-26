@@ -5,6 +5,7 @@ import type { Leg } from "./legs";
 
 function makeCheckin(overrides: Partial<Checkin>): Checkin {
   return {
+    party: "team",
     tijdstip: "2026-08-08T07:00:00Z",
     leg_nr: 1,
     lat: null,

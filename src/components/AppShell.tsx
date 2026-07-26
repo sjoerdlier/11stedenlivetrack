@@ -40,15 +40,22 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
   const checkinsByLeg = useMemo(() => firstCheckinByLeg(checkins), [checkins]);
   const [liveTrackOpen, setLiveTrackOpen] = useState(false);
   const [newArrival, setNewArrival] = useState<Leg | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
+  // Same lazy-initializer pattern useSimulatedNow uses for ?debugTime= —
+  // computed once, SSR-safe (window is guarded, not read during the render
+  // body directly).
+  const [isDebugMode] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugTime"),
+  );
 
   // Viewers were left to reload the page by hand to see new check-ins.
   // Skipped under ?debugTime= so a debug session stays reproducible instead
   // of silently picking up real live data mid-test.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("debugTime")) return;
+    if (isDebugMode) return;
     const id = setInterval(() => router.refresh(), DATA_POLL_MS);
     return () => clearInterval(id);
-  }, [router]);
+  }, [router, isDebugMode]);
 
   // Detects a newly-arrived leg by diffing checkinsByLeg's keys against the
   // previous render — skipped on the very first render (nothing to diff
@@ -70,6 +77,16 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
     const t = setTimeout(() => setNewArrival(null), TOAST_MS);
     return () => clearTimeout(t);
   }, [checkinsByLeg, legs]);
+
+  // Records when fresh data actually landed (mount, or a completed poll) —
+  // left null under ?debugTime=, since lastRefreshedAt would use the real
+  // wall clock while `now` is frozen on an arbitrary simulated instant,
+  // making "X geleden" meaningless relative to it.
+  useEffect(() => {
+    if (isDebugMode) return;
+    const id = requestAnimationFrame(() => setLastRefreshedAt(Date.now()));
+    return () => cancelAnimationFrame(id);
+  }, [checkins, isDebugMode]);
 
   return (
     <div className={styles.shell}>
@@ -95,6 +112,7 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
             checkinsByLeg={checkinsByLeg}
             checkins={checkins}
             now={now}
+            lastRefreshedAt={lastRefreshedAt}
           />
         </div>
         <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} />

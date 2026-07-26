@@ -48,3 +48,14 @@ const kmFormatter = new Intl.NumberFormat("nl-NL", {
 export function formatKm(value: number): string {
   return `${kmFormatter.format(value)} km`;
 }
+
+// Formats how long ago `sinceMs` was, relative to `now`, as "zojuist" /
+// "12s geleden" / "3 minuten geleden" — for a "laatst bijgewerkt" freshness
+// indicator, not a precise duration, so it stays coarse on purpose.
+export function formatRelativeTime(sinceMs: number, now: number): string {
+  const seconds = Math.max(0, Math.round((now - sinceMs) / 1000));
+  if (seconds < 10) return "zojuist";
+  if (seconds < 60) return `${seconds}s geleden`;
+  const minutes = Math.round(seconds / 60);
+  return `${minutes} ${minutes === 1 ? "minuut" : "minuten"} geleden`;
+}

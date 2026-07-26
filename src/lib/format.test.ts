@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatGeplandeTijd, formatPaceKmh } from "./format";
+import { formatGeplandeTijd, formatPaceKmh, formatRelativeTime } from "./format";
 
 describe("formatGeplandeTijd", () => {
   // Regression guard for the timezone bug found in the quality audit: a
@@ -34,5 +34,25 @@ describe("formatPaceKmh", () => {
   it("returns null for null/non-finite input", () => {
     expect(formatPaceKmh(null)).toBeNull();
     expect(formatPaceKmh(Infinity)).toBeNull();
+  });
+});
+
+describe("formatRelativeTime", () => {
+  it("reads as 'zojuist' under 10 seconds", () => {
+    expect(formatRelativeTime(1000, 1000)).toBe("zojuist");
+    expect(formatRelativeTime(1000, 9500)).toBe("zojuist");
+  });
+
+  it("counts in seconds under a minute", () => {
+    expect(formatRelativeTime(0, 45_000)).toBe("45s geleden");
+  });
+
+  it("switches to minutes, correctly pluralized", () => {
+    expect(formatRelativeTime(0, 60_000)).toBe("1 minuut geleden");
+    expect(formatRelativeTime(0, 3 * 60_000)).toBe("3 minuten geleden");
+  });
+
+  it("never goes negative for a clock that ticked before the reference", () => {
+    expect(formatRelativeTime(5000, 1000)).toBe("zojuist");
   });
 });

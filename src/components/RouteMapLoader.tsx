@@ -22,6 +22,7 @@ interface RouteMapLoaderProps {
   checkinsByLeg: Map<number, Checkin>;
   checkins: Checkin[];
   now: number;
+  lastRefreshedAt: number | null;
 }
 
 export default function RouteMapLoader({
@@ -33,6 +34,7 @@ export default function RouteMapLoader({
   checkinsByLeg,
   checkins,
   now,
+  lastRefreshedAt,
 }: RouteMapLoaderProps) {
   return (
     <RouteMap
@@ -44,6 +46,7 @@ export default function RouteMapLoader({
       checkinsByLeg={checkinsByLeg}
       checkins={checkins}
       now={now}
+      lastRefreshedAt={lastRefreshedAt}
     />
   );
 }

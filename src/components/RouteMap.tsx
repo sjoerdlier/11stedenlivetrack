@@ -71,6 +71,7 @@ interface RouteMapProps {
   checkinsByLeg: Map<number, Checkin>;
   checkins: Checkin[];
   now: number;
+  lastRefreshedAt: number | null;
 }
 
 // The map's container width changes when sibling panels (e.g. LiveTrack)
@@ -117,6 +118,7 @@ export default function RouteMap({
   checkinsByLeg,
   checkins,
   now,
+  lastRefreshedAt,
 }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
@@ -182,6 +184,8 @@ export default function RouteMap({
         onSelect={setSelectedNr}
         mobileExpanded={mobileExpanded}
         onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
+        now={now}
+        lastRefreshedAt={lastRefreshedAt}
       />
 
       <div className={styles.mapArea}>

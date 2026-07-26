@@ -1,7 +1,7 @@
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import { computeLegTiming } from "@/lib/actualProgress";
-import { formatKm } from "@/lib/format";
+import { formatKm, formatRelativeTime } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
 import LegCard from "./LegCard";
@@ -17,6 +17,8 @@ interface LegScheduleProps {
   onSelect: (nr: number | null) => void;
   mobileExpanded: boolean;
   onToggleMobileExpanded: () => void;
+  now: number;
+  lastRefreshedAt: number | null;
 }
 
 export default function LegSchedule({
@@ -29,6 +31,8 @@ export default function LegSchedule({
   onSelect,
   mobileExpanded,
   onToggleMobileExpanded,
+  now,
+  lastRefreshedAt,
 }: LegScheduleProps) {
   const config = routeConfig(activeRoute);
   return (
@@ -46,7 +50,10 @@ export default function LegSchedule({
       >
         <div>
           <div className={styles.title}>{config.pageTitle}</div>
-          <div className={styles.hint}>{formatKm(totalRouteKm(legs))}, {legs.length} stops</div>
+          <div className={styles.hint}>
+            {formatKm(totalRouteKm(legs))}, {legs.length} stops
+            {lastRefreshedAt !== null && ` · bijgewerkt ${formatRelativeTime(lastRefreshedAt, now)}`}
+          </div>
         </div>
         <span className={styles.chevron} aria-hidden>
           ▲

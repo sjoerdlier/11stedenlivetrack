@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import AppShell from "@/components/AppShell";
+import LoadError from "@/components/LoadError";
 import { loadRoute } from "@/lib/gpx";
-import { loadLegs } from "@/lib/legs";
-import { loadCheckins } from "@/lib/checkins";
+import { loadLegs, type Leg } from "@/lib/legs";
+import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
 import { parseRouteSlug, routeConfig } from "@/lib/routes";
 
@@ -45,11 +46,18 @@ export default async function Home({ searchParams }: HomeProps) {
   const activeRoute = parseRouteSlug(route);
   const config = routeConfig(activeRoute);
 
+  let legs: Leg[], checkins: Checkin[];
+  try {
+    [legs, checkins] = await Promise.all([
+      getCachedLegs(activeRoute),
+      getCachedCheckins(activeRoute),
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    return <LoadError message={message} retryHref={`/?route=${activeRoute}`} />;
+  }
+
   const { points, start } = loadRoute(config.gpxFile);
-  const [legs, checkins] = await Promise.all([
-    getCachedLegs(activeRoute),
-    getCachedCheckins(activeRoute),
-  ]);
   const legSegments = buildLegSegments(points, legs);
 
   return (

@@ -1,20 +1,34 @@
 # 11Stedentocht Live Track
 
-Next.js (App Router) app die de 11Stedentocht wandelroute (204 km, komoot-export)
-toont op een Leaflet-kaart. Lowie is het onderwerp: een breed side-menu (~33vw)
-toont het volledige schema als kaart-achtige blokken per etappe — tijd, afstand,
-cumulatief, buddy, adres (met Google Maps-link) en bijzonderheden — de kaart
-toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
+Next.js (App Router) app die een wandelroute toont op een Leaflet-kaart, met een
+breed side-menu (~33vw) dat het volledige schema als kaart-achtige blokken per
+etappe toont — tijd, afstand, cumulatief, buddy, adres (met Google Maps-link) en
+bijzonderheden — de kaart toont dezelfde status in kleur.
+
+De app ondersteunt twee routes naast elkaar, omgeschakeld met een knop bovenin
+(zie "Meerdere routes" hieronder): de **11Stedentocht** (204 km, komoot-export,
+29–30 augustus, Lowie als onderwerp) en de **KAT100 Marathon Trail** (49 km,
+Fieberbrunn, 8 augustus, Sjoerd & Lowie) — die laatste dient onder meer als
+generale repetitie om te testen of de livetrack-flow werkt vóór de 11
+Steden-dag zelf.
 
 ## Hoe het werkt
 
-- `data/route.gpx` — de GPX-track (komoot-export, één track, geen waypoints).
+- `src/lib/routes.ts` — de configuratie voor beide routes (`11steden` /
+  `kat100`): welk GPX-bestand, welke titel/labels, start-/finishplaats. Elke
+  server component die route-afhankelijke data nodig heeft (kaart, schema,
+  invoer) leest de actieve route uit de `?route=`-query-param
+  (`parseRouteSlug`) en valt terug op `11steden` als die ontbreekt of onbekend
+  is.
+- `data/route.gpx` / `data/kat100.gpx` — de GPX-tracks (komoot- resp. Trace de
+  Trail-export, één track, geen waypoints).
 - `src/lib/gpx.ts` — leest en parsed de GPX server-side (`fast-xml-parser`) tot
-  een lijst van `[lat, lon]`-punten.
+  een lijst van `[lat, lon]`-punten. `loadRoute(gpxFile)` neemt de bestandsnaam
+  uit `routes.ts` mee.
 - `src/lib/legs.ts` — haalt alle legs (start_plaats, afstand_km, loper,
   geplande_tijd, cp_nummer, adres, bijzonderheden, start_lat/lon) server-side
-  op uit de Supabase-tabel `legs`. `afstand_km`/`loper` zijn nullable (de
-  finish-rij is geen te lopen etappe).
+  op uit de Supabase-tabel `legs`, gefilterd op de actieve `route`.
+  `afstand_km`/`loper` zijn nullable (de finish-rij is geen te lopen etappe).
 - `src/lib/segments.ts` — knipt de GPX-track in stukken per leg: zoekt voor elk
   leg-startpunt het dichtstbijzijnde trackpoint (voorwaarts vanaf het vorige leg,
   zodat plekken die de route twee keer passeert — zoals Bartlehiem — niet door
@@ -28,7 +42,9 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   labels — dezelfde module voedt zowel het side-menu als de kaart. Herberekent
   elke 30s (client-side klok).
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
-  live uit Supabase) die route + legs combineert en doorgeeft aan `AppShell`.
+  live uit Supabase) die de actieve route uit `?route=` haalt, de bijbehorende
+  GPX + legs + checkins combineert en doorgeeft aan `AppShell`.
+  `generateMetadata` stelt hier ook de `<title>`/`description` per route in.
 - `src/lib/useSimulatedNow.ts` — client-clock hook (tick elke N ms), met
   `?debugTime=<ISO-datum>`-override (zie "Debug mode" hieronder).
 - `src/components/AppShell.tsx` — client component die once de statusklok +
@@ -44,15 +60,20 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   gelabeld ("schatting o.b.v. gepland tempo"). Zolang `checkins` leeg is (vóór
   de racedag, de normale staat) blijft het oude, schema-gebaseerde gedrag
   staan: voortgang (`computeProgress` in `status.ts`, cumulatief_start_km van
-  de laatst voltooide leg / 202 km) + gepland gemiddeld tempo, of — zolang leg
-  1 nog niet gestart is — een countdown ("Nog X dagen tot de start", via
-  `daysUntilStart`). Al deze berekeningen zitten in `src/lib/actualProgress.ts`
-  (echt) resp. `src/lib/status.ts` (gepland/schema). Verder een link naar
-  `/schema`, een deel-knop (Web Share API met clipboard-fallback +
-  "Gekopieerd!"-bevestiging), en een donatieknop uit `NEXT_PUBLIC_DONATION_URL`
-  — zonder die env var toont de knop een zichtbare TODO-placeholder in plaats
-  van een hardcoded url. Op mobiel compact (alleen percentage/countdown +
-  iconen), op desktop volledig uitgeschreven.
+  de laatst voltooide leg / de totale routelengte) + gepland gemiddeld tempo,
+  of — zolang leg 1 nog niet gestart is — een countdown ("Nog X dagen tot de
+  start", via `daysUntilStart`). De totale routelengte (`totalRouteKm`) is
+  géén hardcoded constante maar de `cumulatief_start_km` van de laatste
+  (finish-)leg, zodat elke route zijn eigen correcte afstand toont. Al deze
+  berekeningen zitten in `src/lib/actualProgress.ts` (echt) resp.
+  `src/lib/status.ts` (gepland/schema). Verder de routeswitcher (zie
+  "Meerdere routes"), een link naar `/schema`, een deel-knop (Web Share API
+  met clipboard-fallback + "Gekopieerd!"-bevestiging), en een donatieknop uit
+  `NEXT_PUBLIC_DONATION_URL` — zonder die env var toont de knop een zichtbare
+  TODO-placeholder in plaats van een hardcoded url. Op mobiel compact (alleen
+  percentage/countdown + iconen), op desktop volledig uitgeschreven; de
+  actie-rij zelf is een eigen horizontale scroll-container zodat op een smalle
+  telefoon niets buiten beeld valt.
 - `src/lib/actualProgress.ts` — alle berekeningen op basis van **echte**
   check-ins in plaats van het schema: `firstCheckinTimesByLeg` (eerste
   check-in per `leg_nr`), `computeActualProgress` (afgelegde km/%),
@@ -126,6 +147,33 @@ toont dezelfde status in kleur. Basis voor een latere fase met live locatie.
   omhoog schuift (`transform: translateY`), met een duidelijke 44×44px
   sluitknop rechtsboven.
 
+## Meerdere routes (11 Steden + KAT100)
+
+- `src/lib/routes.ts` — de enige plek die routes definieert: `slug`,
+  `navLabel` (routeswitcher-knop), `pageTitle`, `gpxFile`,
+  `startFinishPlaats` en `routeDescription` (kaart-popup/metadata-tekst).
+  Nieuwe route toevoegen = een entry aan `ROUTES` plus een GPX-bestand in
+  `data/` plus rijen in Supabase — verder hoeft nergens een route
+  hardcoded te worden, alle componenten lezen deze config.
+- De actieve route zit in de `?route=`-query-param (`11steden` is de
+  default/fallback). `TopBar` rendert per route in `ROUTES` een knop die
+  linkt naar `/?route=<slug>`; die knop draagt de route ook door naar
+  `/schema` en `/invoer` zodat je niet per pagina opnieuw hoeft te
+  wisselen.
+- **Supabase**: `legs` en `checkins` hebben een `route`-kolom (`text`,
+  `'11steden'` of `'kat100'`). `legs`' primary key is samengesteld —
+  `(route, nr)`, niet alleen `nr` — en `checkins.leg_nr` verwijst via een
+  samengestelde foreign key `(route, leg_nr) → legs(route, nr)`. Zonder
+  die samenstelling zouden "leg 1" van beide routes tegen dezelfde rij
+  botsen. Elke query (`loadLegs`, `loadCheckins`, `insertCheckin`) filtert
+  expliciet op `route` — er is geen impliciete aanname dat er maar één
+  actieve route is.
+- Een route met een checkpoint dat de track twee keer passeert (zoals de
+  KAT100's Lärchfilzhochalm) werkt zonder extra code: `segments.ts`
+  zoekt toch al voorwaarts vanaf de vorige leg (zie de Bartlehiem-uitleg
+  hierboven), dus de tweede passage snapt gewoon naar het juiste,
+  latere stuk track.
+
 ## /invoer — fallback check-in met PIN
 
 Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
@@ -173,12 +221,12 @@ rechtstreeks in de Supabase table editor — en herlaad `/`:
 - Voeg een `tijdstip` in het verleden toe (i.p.v. "nu") om een realistisch
   verstreken-tijd/tempo te simuleren zonder echt te hoeven wachten.
 
-**Aanname over het `checkins`-schema** (geen SQL meegestuurd dit keer): kolommen
-`tijdstip` (timestamptz), `leg_nr` (int, verwijst naar `legs.nr`), `lat`/`lon`
-(numeric, nullable), `notitie` (text, nullable), `invoerder` (text). Check dit
-tegen je eigen tabel — als de kolomnamen afwijken, geeft de insert een
-duidelijke Supabase-foutmelding in het formulier (geen silent failure), en is
-`src/lib/checkins.ts` de enige plek die moet worden aangepast.
+**`checkins`-schema**: `route` (text, `'11steden'`/`'kat100'`), `tijdstip`
+(timestamptz), `leg_nr` (int, verwijst samen met `route` naar `legs`), `lat`/`lon`
+(numeric, nullable), `notitie` (text, nullable), `invoerder` (text). Wijkt je
+eigen tabel af, dan geeft de insert een duidelijke Supabase-foutmelding in het
+formulier (geen silent failure), en is `src/lib/checkins.ts` de enige plek die
+moet worden aangepast.
 
 ## Debug mode
 
@@ -214,6 +262,12 @@ Zie `.env.example`. Voor een Vercel-deploy zet je dezelfde twee variabelen in
 de project settings (Environment Variables) — zonder deze faalt de pagina met
 een duidelijke foutmelding.
 
+**Row Level Security**: `checkins` heeft zowel een insert- als een
+select-policy voor `anon`: insert voor `/api/invoer`, select zodat de
+kaart/sidebar het net ingevoerde check-in ook weer kan tonen — zonder die
+select-policy slaagt de insert wel, maar blijft de kaart 'm nooit tonen
+(stille failure, geen foutmelding).
+
 ## Donatieknop
 
 `NEXT_PUBLIC_DONATION_URL` (in `.env.local` en in Vercel's Environment
@@ -230,7 +284,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Route vervangen
+## Route vervangen of toevoegen
 
-Vervang `data/route.gpx` door een andere GPX-export (zelfde structuur: `<gpx><trk><trkseg><trkpt lat="…" lon="…">`)
-om een andere route te tonen. Het startpunt wordt automatisch het eerste trackpoint.
+Een bestaande route vervangen: zet een andere GPX-export (zelfde structuur:
+`<gpx><trk><trkseg><trkpt lat="…" lon="…">`) op het pad dat `routes.ts` voor
+die route noemt. Het startpunt wordt automatisch het eerste trackpoint.
+
+Een derde route toevoegen:
+
+1. GPX-bestand in `data/` zetten.
+2. Entry toevoegen aan `ROUTES` in `src/lib/routes.ts` (slug, labels,
+   `gpxFile`, start/finish-tekst).
+3. Rijen voor die `route`-slug toevoegen aan de Supabase-tabel `legs` (zie
+   "Meerdere routes" hierboven voor de samengestelde primary key).
+
+De routeswitcher in de topbar rendert automatisch een knop per entry in
+`ROUTES` — daar hoeft niets voor aangepast te worden.

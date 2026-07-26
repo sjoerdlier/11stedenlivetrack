@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLegSegments } from "./segments";
-import type { LatLng } from "./gpx";
+import type { LatLng } from "./geo";
 import type { Leg } from "./legs";
 
 function makeLeg(overrides: Partial<Leg>): Leg {

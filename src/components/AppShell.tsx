@@ -49,6 +49,7 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
             legSegments={legSegments}
             statuses={statuses}
             checkinTimes={checkinTimes}
+            now={now}
           />
         </div>
         <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} />

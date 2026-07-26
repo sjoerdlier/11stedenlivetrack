@@ -17,7 +17,9 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import { formatGeplandeTijd, formatKm } from "@/lib/format";
-import { STATUS_COLORS, totalRouteKm, type LegStatus } from "@/lib/status";
+import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
+import { actualAveragePaceKmh, computeActualProgress } from "@/lib/actualProgress";
+import { estimateLivePosition } from "@/lib/liveMarker";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
 import BuddyBadge from "./BuddyBadge";
@@ -47,12 +49,25 @@ const startFinishIcon = L.icon({
   popupAnchor: [0, -38],
 });
 
+// A small pulsing dot for the estimated live position — deliberately not a
+// Leaflet CircleMarker, since those can't carry a CSS animation. The pulse
+// ring and animation live in RouteMap.module.css (with a
+// prefers-reduced-motion override); this just wires up the two layered
+// spans divIcon expects as an HTML string.
+const liveIcon = L.divIcon({
+  className: styles.liveIconWrap,
+  html: `<span class="${styles.livePulse}"></span><span class="${styles.liveDot}"></span>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
 interface RouteMapProps {
   activeRoute: RouteSlug;
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
+  now: number;
 }
 
 // The map's container width changes when sibling panels (e.g. LiveTrack)
@@ -90,7 +105,14 @@ function MapViewController({ bounds }: { bounds: L.LatLngBounds | null }) {
   return null;
 }
 
-export default function RouteMap({ activeRoute, start, legSegments, statuses, checkinTimes }: RouteMapProps) {
+export default function RouteMap({
+  activeRoute,
+  start,
+  legSegments,
+  statuses,
+  checkinTimes,
+  now,
+}: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -103,6 +125,20 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
     const allPoints = legSegments.flatMap((s) => s.positions);
     return allPoints.length > 0 ? L.latLngBounds(allPoints) : null;
   }, [legSegments]);
+
+  // Same actual-pace-with-planned-fallback rule TopBar uses for its ETA, so
+  // the live marker moves at whichever pace the rest of the app already
+  // trusts, rather than inventing a second notion of "current speed".
+  const livePosition = useMemo(() => {
+    const progress = computeActualProgress(legs, checkinTimes);
+    const actualPaceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+    const paceKmh =
+      checkinTimes.size >= 2 && actualPaceKmh !== null && actualPaceKmh > 0
+        ? actualPaceKmh
+        : totalPlannedPaceKmh(legs);
+    return estimateLivePosition(legs, legSegments, checkinTimes, now, paceKmh);
+  }, [legs, legSegments, checkinTimes, now]);
+  const liveLeg = livePosition ? legs.find((l) => l.nr === livePosition.legNr) : undefined;
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -219,6 +255,17 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
               </CircleMarker>
             );
           })}
+
+          {livePosition && (
+            <Marker position={livePosition.position} icon={liveIcon} zIndexOffset={1000}>
+              <Tooltip direction="top" offset={[0, -10]}>
+                <span className={styles.tooltipRow}>
+                  Live positie
+                  {liveLeg?.loper && <BuddyBadge name={liveLeg.loper} />}
+                </span>
+              </Tooltip>
+            </Marker>
+          )}
 
           <Marker position={start} icon={startFinishIcon}>
             <Popup>

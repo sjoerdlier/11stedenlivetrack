@@ -5,12 +5,14 @@ import { computeLegTiming, estimateLegArrivals } from "@/lib/actualProgress";
 import { formatKm, formatRelativeTime } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
+import { partiesForRoute, partyConfig } from "@/lib/parties";
 import ElevationProfile from "./ElevationProfile";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
 
 interface LegScheduleProps {
   activeRoute: RouteSlug;
+  activeParty: string;
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
@@ -26,6 +28,7 @@ interface LegScheduleProps {
 
 export default function LegSchedule({
   activeRoute,
+  activeParty,
   legs,
   statuses,
   checkinTimes,
@@ -40,6 +43,12 @@ export default function LegSchedule({
 }: LegScheduleProps) {
   const config = routeConfig(activeRoute);
   const legArrivals = estimateLegArrivals(legs, checkinTimes, now);
+  // Only worth naming the party once there's more than one sharing this
+  // route to disambiguate between — a single-party route keeps the plain
+  // route title it always had.
+  const parties = partiesForRoute(activeRoute);
+  const title =
+    parties.length > 1 ? `${partyConfig(activeRoute, activeParty).label} — ${config.pageTitle}` : config.pageTitle;
   return (
     <div className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}>
       <div className={styles.handle} aria-hidden />
@@ -54,7 +63,7 @@ export default function LegSchedule({
         }}
       >
         <div>
-          <div className={styles.title}>{config.pageTitle}</div>
+          <div className={styles.title}>{title}</div>
           <div className={styles.hint}>
             {formatKm(totalRouteKm(legs))}, {legs.length} stops
             {lastRefreshedAt !== null && ` · bijgewerkt ${formatRelativeTime(lastRefreshedAt, now)}`}

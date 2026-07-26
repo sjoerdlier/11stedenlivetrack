@@ -3,6 +3,10 @@ import type { RouteSlug } from "./routes";
 
 export interface NewCheckin {
   route: RouteSlug;
+  // Which independent tracked group this check-in belongs to (see
+  // parties.ts) — for routes with only one implicit party this is always
+  // that party's slug, invisible in the UI.
+  party: string;
   tijdstip: string;
   leg_nr: number;
   lat: number | null;
@@ -44,7 +48,7 @@ export async function loadCheckins(route: RouteSlug): Promise<Checkin[]> {
   const supabase = createClient(url, key);
   const { data, error } = await supabase
     .from("checkins")
-    .select("tijdstip, leg_nr, lat, lon, notitie, invoerder")
+    .select("party, tijdstip, leg_nr, lat, lon, notitie, invoerder")
     .eq("route", route)
     .order("tijdstip", { ascending: true });
 

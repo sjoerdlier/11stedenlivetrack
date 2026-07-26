@@ -30,6 +30,15 @@
   gap: 6px;
 }
 
+.partyDot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(11, 11, 11, 0.3);
+}
+
 .liveIconWrap {
   position: relative;
   background: transparent;

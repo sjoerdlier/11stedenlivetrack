@@ -18,10 +18,12 @@ import {
   type LegStatus,
 } from "@/lib/status";
 import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
+import { partiesForRoute } from "@/lib/parties";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
   activeRoute: RouteSlug;
+  activeParty: string;
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   now: number;
@@ -35,6 +37,7 @@ const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 
 export default function TopBar({
   activeRoute,
+  activeParty,
   legs,
   statuses,
   now,
@@ -44,6 +47,7 @@ export default function TopBar({
   onToggleLiveTrack,
 }: TopBarProps) {
   const config = routeConfig(activeRoute);
+  const parties = partiesForRoute(activeRoute);
   const totalKm = useMemo(() => totalRouteKm(legs), [legs]);
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
   const countdownDays = useMemo(() => daysUntilStart(legs, now), [legs, now]);
@@ -160,6 +164,23 @@ export default function TopBar({
             </Link>
           ))}
         </div>
+
+        {parties.length > 1 && (
+          <div className={styles.routeSwitch} role="group" aria-label="Loper(s)">
+            {parties.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/?route=${activeRoute}&party=${p.slug}`}
+                className={`${styles.action} ${p.slug === activeParty ? styles.actionActive : ""}`}
+                title={p.label}
+                aria-current={p.slug === activeParty}
+              >
+                <span className={styles.partySwitchDot} style={{ background: p.color }} aria-hidden />
+                {p.label}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"

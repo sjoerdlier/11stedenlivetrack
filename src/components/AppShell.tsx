@@ -25,6 +25,7 @@ const TOAST_MS = 6_000;
 
 interface AppShellProps {
   activeRoute: RouteSlug;
+  activeParty: string;
   start: LatLng;
   legSegments: LegSegment[];
   checkins: Checkin[];
@@ -33,6 +34,7 @@ interface AppShellProps {
 
 export default function AppShell({
   activeRoute,
+  activeParty,
   start,
   legSegments,
   checkins,
@@ -42,10 +44,17 @@ export default function AppShell({
   const router = useRouter();
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
-  const checkinTimes = useMemo(() => firstCheckinTimesByLeg(checkins), [checkins]);
+  // TopBar/sidebar are scoped to whichever party the switcher has selected
+  // (its own progress, pace, notes) — `checkins` itself stays unfiltered and
+  // goes to the map, which shows every party's live position at once.
+  const partyCheckins = useMemo(
+    () => checkins.filter((c) => c.party === activeParty),
+    [checkins, activeParty],
+  );
+  const checkinTimes = useMemo(() => firstCheckinTimesByLeg(partyCheckins), [partyCheckins]);
   // Same "earliest check-in per leg" pick as checkinTimes, but keeping the
   // whole record — LegCard reads .notitie/.invoerder off of it.
-  const checkinsByLeg = useMemo(() => firstCheckinByLeg(checkins), [checkins]);
+  const checkinsByLeg = useMemo(() => firstCheckinByLeg(partyCheckins), [partyCheckins]);
   const [liveTrackOpen, setLiveTrackOpen] = useState(false);
   const [newArrival, setNewArrival] = useState<Leg | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
@@ -65,10 +74,10 @@ export default function AppShell({
     return () => clearInterval(id);
   }, [router, isDebugMode]);
 
-  // Detects a newly-arrived leg by diffing checkinsByLeg's keys against the
-  // previous render — skipped on the very first render (nothing to diff
-  // against yet) so mounting with existing check-ins doesn't toast for all
-  // of them at once.
+  // Detects a newly-arrived leg (for the active party) by diffing
+  // checkinsByLeg's keys against the previous render — skipped on the very
+  // first render (nothing to diff against yet) so mounting with existing
+  // check-ins doesn't toast for all of them at once.
   const prevLegNrsRef = useRef<Set<number> | null>(null);
   useEffect(() => {
     const currentKeys = new Set(checkinsByLeg.keys());
@@ -89,7 +98,9 @@ export default function AppShell({
   // Records when fresh data actually landed (mount, or a completed poll) —
   // left null under ?debugTime=, since lastRefreshedAt would use the real
   // wall clock while `now` is frozen on an arbitrary simulated instant,
-  // making "X geleden" meaningless relative to it.
+  // making "X geleden" meaningless relative to it. Watches the full,
+  // unfiltered checkins (any party's new data proves the poll is working),
+  // not just the active party's.
   useEffect(() => {
     if (isDebugMode) return;
     const id = requestAnimationFrame(() => setLastRefreshedAt(Date.now()));
@@ -100,10 +111,11 @@ export default function AppShell({
     <div className={styles.shell}>
       <TopBar
         activeRoute={activeRoute}
+        activeParty={activeParty}
         legs={legs}
         statuses={statuses}
         now={now}
-        checkins={checkins}
+        checkins={partyCheckins}
         checkinTimes={checkinTimes}
         liveTrackOpen={liveTrackOpen}
         onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
@@ -113,6 +125,7 @@ export default function AppShell({
           {newArrival && <NewCheckinToast plaats={newArrival.start_plaats} />}
           <RouteMapLoader
             activeRoute={activeRoute}
+            activeParty={activeParty}
             start={start}
             legSegments={legSegments}
             statuses={statuses}

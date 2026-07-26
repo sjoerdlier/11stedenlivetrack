@@ -20,11 +20,15 @@ import type { Checkin } from "@/lib/checkins";
 import type { ElevationPoint } from "@/lib/elevation";
 import { formatClockTime, formatGeplandeTijd, formatKm } from "@/lib/format";
 import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
-import { actualAveragePaceKmh, computeActualProgress } from "@/lib/actualProgress";
-import { estimateLivePosition } from "@/lib/liveMarker";
+import {
+  actualAveragePaceKmh,
+  computeActualProgress,
+  firstCheckinTimesByLeg,
+} from "@/lib/actualProgress";
+import { estimateLivePosition, type LivePosition } from "@/lib/liveMarker";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
-import BuddyBadge from "./BuddyBadge";
+import { partiesForRoute, partyConfig, type PartyConfig } from "@/lib/parties";
 import LegSchedule from "./LegSchedule";
 import styles from "./RouteMap.module.css";
 
@@ -51,20 +55,24 @@ const startFinishIcon = L.icon({
   popupAnchor: [0, -38],
 });
 
-// A small pulsing dot for the estimated live position — deliberately not a
-// Leaflet CircleMarker, since those can't carry a CSS animation. The pulse
-// ring and animation live in RouteMap.module.css (with a
+// A small pulsing dot for a party's estimated live position — deliberately
+// not a Leaflet CircleMarker, since those can't carry a CSS animation. The
+// pulse ring and animation live in RouteMap.module.css (with a
 // prefers-reduced-motion override); this just wires up the two layered
-// spans divIcon expects as an HTML string.
-const liveIcon = L.divIcon({
-  className: styles.liveIconWrap,
-  html: `<span class="${styles.livePulse}"></span><span class="${styles.liveDot}"></span>`,
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
+// spans divIcon expects as an HTML string, tinted to that party's color so
+// two simultaneous parties stay visually distinct.
+function liveIconFor(color: string) {
+  return L.divIcon({
+    className: styles.liveIconWrap,
+    html: `<span class="${styles.livePulse}" style="background:${color}"></span><span class="${styles.liveDot}" style="background:${color}"></span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+}
 
 interface RouteMapProps {
   activeRoute: RouteSlug;
+  activeParty: string;
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
@@ -113,6 +121,7 @@ function MapViewController({ bounds }: { bounds: L.LatLngBounds | null }) {
 
 export default function RouteMap({
   activeRoute,
+  activeParty,
   start,
   legSegments,
   statuses,
@@ -136,25 +145,34 @@ export default function RouteMap({
     return allPoints.length > 0 ? L.latLngBounds(allPoints) : null;
   }, [legSegments]);
 
-  // Same actual-pace-with-planned-fallback rule TopBar uses for its ETA, so
-  // the live marker moves at whichever pace the rest of the app already
-  // trusts, rather than inventing a second notion of "current speed".
-  const livePosition = useMemo(() => {
-    const progress = computeActualProgress(legs, checkinTimes);
-    const actualPaceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
-    const paceKmh =
-      checkinTimes.size >= 2 && actualPaceKmh !== null && actualPaceKmh > 0
-        ? actualPaceKmh
-        : totalPlannedPaceKmh(legs);
-    return estimateLivePosition(legs, legSegments, checkinTimes, now, paceKmh);
-  }, [legs, legSegments, checkinTimes, now]);
-  const liveLeg = livePosition ? legs.find((l) => l.nr === livePosition.legNr) : undefined;
+  // One live marker per party sharing this route — for a single-party route
+  // (11 Steden) this is exactly the one marker it always was; KAT100 gets
+  // one per independent group (Sjoerd & Lowie, Björn & Sander), each on its
+  // own check-in stream and its own actual/planned pace, same rule TopBar's
+  // ETA uses.
+  const liveMarkers = useMemo(() => {
+    return partiesForRoute(activeRoute)
+      .map((party) => {
+        const partyCheckins = checkins.filter((c) => c.party === party.slug);
+        const partyCheckinTimes = firstCheckinTimesByLeg(partyCheckins);
+        const progress = computeActualProgress(legs, partyCheckinTimes);
+        const actualPaceKmh = actualAveragePaceKmh(partyCheckinTimes, progress.km, now);
+        const paceKmh =
+          partyCheckinTimes.size >= 2 && actualPaceKmh !== null && actualPaceKmh > 0
+            ? actualPaceKmh
+            : totalPlannedPaceKmh(legs);
+        const position = estimateLivePosition(legs, legSegments, partyCheckinTimes, now, paceKmh);
+        return position ? { party, position } : null;
+      })
+      .filter((m): m is { party: PartyConfig; position: LivePosition } => m !== null);
+  }, [activeRoute, checkins, legs, legSegments, now]);
 
   // Check-ins carry an *optional* GPS position distinct from the leg's own
   // planned coordinates — a photo stop, a detour, wherever the phone
   // actually was when someone hit "opslaan" in /invoer. Plotting those
   // separately from the leg markers is the only way that ever becomes
-  // visible instead of silently unused.
+  // visible instead of silently unused. Colored per party so two groups'
+  // pins stay distinguishable on the same map.
   const checkinPins = useMemo(
     () => checkins.filter((c) => c.lat !== null && c.lon !== null),
     [checkins],
@@ -179,6 +197,7 @@ export default function RouteMap({
     <div className={styles.layout}>
       <LegSchedule
         activeRoute={activeRoute}
+        activeParty={activeParty}
         legs={legs}
         statuses={statuses}
         checkinTimes={checkinTimes}
@@ -272,7 +291,6 @@ export default function RouteMap({
                     <span className={styles.tooltipRow}>
                       {leg.start_plaats}
                       {tijd ? ` · ${tijd}` : ""}
-                      {leg.loper && <BuddyBadge name={leg.loper} />}
                     </span>
                   </Tooltip>
                 )}
@@ -283,15 +301,16 @@ export default function RouteMap({
           {checkinPins.map((checkin, i) => {
             const leg = legs.find((l) => l.nr === checkin.leg_nr);
             const tijd = formatClockTime(new Date(checkin.tijdstip).getTime());
+            const color = partyConfig(activeRoute, checkin.party).color;
             return (
               <CircleMarker
-                key={`checkin-${checkin.leg_nr}-${i}`}
+                key={`checkin-${checkin.party}-${checkin.leg_nr}-${i}`}
                 center={[checkin.lat as number, checkin.lon as number]}
                 radius={5}
                 pathOptions={{
                   color: "#ffffff",
                   weight: 1.5,
-                  fillColor: "#4a3aa7",
+                  fillColor: color,
                   fillOpacity: 0.9,
                 }}
               >
@@ -306,16 +325,25 @@ export default function RouteMap({
             );
           })}
 
-          {livePosition && (
-            <Marker position={livePosition.position} icon={liveIcon} zIndexOffset={1000}>
+          {liveMarkers.map(({ party, position }) => (
+            <Marker
+              key={`live-${party.slug}`}
+              position={position.position}
+              icon={liveIconFor(party.color)}
+              zIndexOffset={1000}
+            >
               <Tooltip direction="top" offset={[0, -10]}>
                 <span className={styles.tooltipRow}>
-                  Live positie
-                  {liveLeg?.loper && <BuddyBadge name={liveLeg.loper} />}
+                  <span
+                    className={styles.partyDot}
+                    style={{ background: party.color }}
+                    aria-hidden
+                  />
+                  {party.label}
                 </span>
               </Tooltip>
             </Marker>
-          )}
+          ))}
 
           <Marker position={start} icon={startFinishIcon}>
             <Popup>

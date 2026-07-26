@@ -2,19 +2,27 @@ import type { Leg } from "./legs";
 import type { Checkin } from "./checkins";
 import { totalRouteKm, type Progress } from "./status";
 
-// Earliest recorded check-in timestamp (ms) per leg_nr — the moment a leg
-// was first reached. A later duplicate check-in for the same leg (a
-// correction, an accidental re-submit) never moves the arrival time.
-export function firstCheckinTimesByLeg(checkins: Checkin[]): Map<number, number> {
-  const map = new Map<number, number>();
+// Earliest recorded check-in per leg_nr — the moment a leg was first
+// reached. A later duplicate check-in for the same leg (a correction, an
+// accidental re-submit) never moves the arrival time or overrides the note.
+export function firstCheckinByLeg(checkins: Checkin[]): Map<number, Checkin> {
+  const map = new Map<number, Checkin>();
   for (const checkin of checkins) {
     const time = new Date(checkin.tijdstip).getTime();
     if (Number.isNaN(time)) continue;
     const existing = map.get(checkin.leg_nr);
-    if (existing === undefined || time < existing) {
-      map.set(checkin.leg_nr, time);
+    if (existing === undefined || time < new Date(existing.tijdstip).getTime()) {
+      map.set(checkin.leg_nr, checkin);
     }
   }
+  return map;
+}
+
+export function firstCheckinTimesByLeg(checkins: Checkin[]): Map<number, number> {
+  const map = new Map<number, number>();
+  firstCheckinByLeg(checkins).forEach((checkin, legNr) => {
+    map.set(legNr, new Date(checkin.tijdstip).getTime());
+  });
   return map;
 }
 

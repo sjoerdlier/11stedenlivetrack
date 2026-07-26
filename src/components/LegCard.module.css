@@ -270,6 +270,35 @@
   }
 }
 
+.note {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 0 19px;
+  background: #2a78d61a;
+  border-left: 3px solid #2a78d6;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.noteIcon {
+  flex: none;
+  font-size: 14px;
+}
+
+.noteMeta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .noteMeta {
+    color: #c3c2b7;
+  }
+}
+
 .warning {
   display: flex;
   gap: 8px;

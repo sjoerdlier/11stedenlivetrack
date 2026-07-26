@@ -5,7 +5,7 @@ import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
 import type { RouteSlug } from "@/lib/routes";
-import { firstCheckinTimesByLeg } from "@/lib/actualProgress";
+import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import { computeLegStatuses } from "@/lib/status";
 import { useSimulatedNow } from "@/lib/useSimulatedNow";
 import TopBar from "./TopBar";
@@ -27,6 +27,9 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
   const checkinTimes = useMemo(() => firstCheckinTimesByLeg(checkins), [checkins]);
+  // Same "earliest check-in per leg" pick as checkinTimes, but keeping the
+  // whole record — LegCard reads .notitie/.invoerder off of it.
+  const checkinsByLeg = useMemo(() => firstCheckinByLeg(checkins), [checkins]);
   const [liveTrackOpen, setLiveTrackOpen] = useState(false);
 
   return (
@@ -49,6 +52,7 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
             legSegments={legSegments}
             statuses={statuses}
             checkinTimes={checkinTimes}
+            checkinsByLeg={checkinsByLeg}
             now={now}
           />
         </div>

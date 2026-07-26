@@ -16,6 +16,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
+import type { Checkin } from "@/lib/checkins";
 import { formatGeplandeTijd, formatKm } from "@/lib/format";
 import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
 import { actualAveragePaceKmh, computeActualProgress } from "@/lib/actualProgress";
@@ -67,6 +68,7 @@ interface RouteMapProps {
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
+  checkinsByLeg: Map<number, Checkin>;
   now: number;
 }
 
@@ -111,6 +113,7 @@ export default function RouteMap({
   legSegments,
   statuses,
   checkinTimes,
+  checkinsByLeg,
   now,
 }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
@@ -162,6 +165,7 @@ export default function RouteMap({
         legs={legs}
         statuses={statuses}
         checkinTimes={checkinTimes}
+        checkinsByLeg={checkinsByLeg}
         selectedNr={selectedNr}
         onSelect={setSelectedNr}
         mobileExpanded={mobileExpanded}

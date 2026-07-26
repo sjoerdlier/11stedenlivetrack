@@ -1,4 +1,5 @@
 import type { Leg } from "@/lib/legs";
+import type { Checkin } from "@/lib/checkins";
 import { computeLegTiming } from "@/lib/actualProgress";
 import { formatKm } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
@@ -11,6 +12,7 @@ interface LegScheduleProps {
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
+  checkinsByLeg: Map<number, Checkin>;
   selectedNr: number | null;
   onSelect: (nr: number | null) => void;
   mobileExpanded: boolean;
@@ -22,6 +24,7 @@ export default function LegSchedule({
   legs,
   statuses,
   checkinTimes,
+  checkinsByLeg,
   selectedNr,
   onSelect,
   mobileExpanded,
@@ -66,6 +69,7 @@ export default function LegSchedule({
               status={status}
               expanded={expanded}
               timing={timing}
+              checkin={checkinsByLeg.get(leg.nr) ?? null}
               onToggle={() => onSelect(isSelected ? null : leg.nr)}
             />
           );

@@ -5,6 +5,7 @@ import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import type { LegStatus } from "@/lib/status";
 import type { RouteSlug } from "@/lib/routes";
+import type { Checkin } from "@/lib/checkins";
 import styles from "./RouteMapLoader.module.css";
 
 const RouteMap = dynamic(() => import("./RouteMap"), {
@@ -18,6 +19,7 @@ interface RouteMapLoaderProps {
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
+  checkinsByLeg: Map<number, Checkin>;
   now: number;
 }
 
@@ -27,6 +29,7 @@ export default function RouteMapLoader({
   legSegments,
   statuses,
   checkinTimes,
+  checkinsByLeg,
   now,
 }: RouteMapLoaderProps) {
   return (
@@ -36,6 +39,7 @@ export default function RouteMapLoader({
       legSegments={legSegments}
       statuses={statuses}
       checkinTimes={checkinTimes}
+      checkinsByLeg={checkinsByLeg}
       now={now}
     />
   );

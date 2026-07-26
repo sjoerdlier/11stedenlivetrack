@@ -172,3 +172,30 @@ export function estimateArrival(
     basis: canUseActual ? "actueel" : "gepland",
   };
 }
+
+// Projects an arrival time for every leg not yet reached, at the current
+// actual pace — "when will they get to *my* stop", not just the overall
+// finish ETA TopBar already shows. Empty until there are enough check-ins
+// for a trustworthy actual pace (the same >=2 threshold estimateArrival
+// uses): before that, a projection would just repeat the Gepland column's
+// planned-pace value under a different label.
+export function estimateLegArrivals(
+  legs: Leg[],
+  checkinTimes: Map<number, number>,
+  now: number,
+): Map<number, number> {
+  const result = new Map<number, number>();
+  if (checkinTimes.size < 2) return result;
+
+  const progress = computeActualProgress(legs, checkinTimes);
+  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  if (paceKmh === null || paceKmh <= 0) return result;
+
+  for (const leg of legs) {
+    if (checkinTimes.has(leg.nr)) continue;
+    const remainingKm = leg.cumulatief_start_km - progress.km;
+    if (remainingKm <= 0) continue;
+    result.set(leg.nr, now + (remainingKm / paceKmh) * 60 * 60 * 1000);
+  }
+  return result;
+}

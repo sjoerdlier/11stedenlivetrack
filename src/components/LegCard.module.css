@@ -216,6 +216,33 @@
   font-weight: 400;
 }
 
+.expectedLine {
+  margin: 8px 0 0 19px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #2a78d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .expectedLine {
+    color: #3987e5;
+  }
+}
+
+.expectedBasis {
+  margin-left: 5px;
+  font-weight: 400;
+  font-variant-numeric: normal;
+  color: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .expectedBasis {
+    color: #c3c2b7;
+  }
+}
+
 .stopLine {
   margin: 8px 0 0 19px;
   font-size: 12px;

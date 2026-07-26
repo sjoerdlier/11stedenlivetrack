@@ -12,12 +12,21 @@ interface LegCardProps {
   expanded: boolean;
   timing: LegTiming;
   checkin: Checkin | null;
+  expectedArrival: number | null;
   onToggle: () => void;
 }
 
 const DASH = "–";
 
-export default function LegCard({ leg, status, expanded, timing, checkin, onToggle }: LegCardProps) {
+export default function LegCard({
+  leg,
+  status,
+  expanded,
+  timing,
+  checkin,
+  expectedArrival,
+  onToggle,
+}: LegCardProps) {
   const isCp = leg.cp_nummer !== null;
   const compact = status === "voltooid" && !expanded;
   const noteTijd = checkin ? formatClockTime(new Date(checkin.tijdstip).getTime()) : null;
@@ -105,6 +114,13 @@ export default function LegCard({ leg, status, expanded, timing, checkin, onTogg
                 </tr>
               </tbody>
             </table>
+
+            {expectedArrival !== null && (
+              <div className={styles.expectedLine}>
+                Verwacht hier: ± {formatClockTime(expectedArrival)}
+                <span className={styles.expectedBasis}>o.b.v. actueel tempo</span>
+              </div>
+            )}
 
             {timing.stopMinutes > 0 && (
               <div className={styles.stopLine}>Stop: {timing.stopMinutes} min (CP)</div>

@@ -1,7 +1,7 @@
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import type { ElevationPoint } from "@/lib/elevation";
-import { computeLegTiming } from "@/lib/actualProgress";
+import { computeLegTiming, estimateLegArrivals } from "@/lib/actualProgress";
 import { formatKm, formatRelativeTime } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
@@ -39,6 +39,7 @@ export default function LegSchedule({
   elevationProfile,
 }: LegScheduleProps) {
   const config = routeConfig(activeRoute);
+  const legArrivals = estimateLegArrivals(legs, checkinTimes, now);
   return (
     <div className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}>
       <div className={styles.handle} aria-hidden />
@@ -85,6 +86,7 @@ export default function LegSchedule({
               expanded={expanded}
               timing={timing}
               checkin={checkinsByLeg.get(leg.nr) ?? null}
+              expectedArrival={legArrivals.get(leg.nr) ?? null}
               onToggle={() => onSelect(isSelected ? null : leg.nr)}
             />
           );

@@ -139,6 +139,29 @@
   color: #898781;
 }
 
+/* globals.css resets all links to color: inherit + no underline, which
+   would make this indistinguishable from the surrounding hint text —
+   needs its own visible affordance to read as clickable. */
+.routeLink {
+  color: #2a78d6;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.routeLink:hover {
+  color: #2568bd;
+}
+
+@media (prefers-color-scheme: dark) {
+  .routeLink {
+    color: #3987e5;
+  }
+
+  .routeLink:hover {
+    color: #5b9ce8;
+  }
+}
+
 .confirmation {
   background: #0ca30c26;
   border-left: 3px solid #0ca30c;

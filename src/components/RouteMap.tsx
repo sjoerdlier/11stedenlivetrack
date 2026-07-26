@@ -16,8 +16,12 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
-import { formatGeplandeTijd } from "@/lib/format";
-import { STATUS_COLORS, totalRouteKm, type LegStatus } from "@/lib/status";
+import type { Checkin } from "@/lib/checkins";
+import type { ElevationPoint } from "@/lib/elevation";
+import { formatClockTime, formatGeplandeTijd, formatKm } from "@/lib/format";
+import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
+import { actualAveragePaceKmh, computeActualProgress } from "@/lib/actualProgress";
+import { estimateLivePosition } from "@/lib/liveMarker";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
 import BuddyBadge from "./BuddyBadge";
@@ -47,12 +51,29 @@ const startFinishIcon = L.icon({
   popupAnchor: [0, -38],
 });
 
+// A small pulsing dot for the estimated live position — deliberately not a
+// Leaflet CircleMarker, since those can't carry a CSS animation. The pulse
+// ring and animation live in RouteMap.module.css (with a
+// prefers-reduced-motion override); this just wires up the two layered
+// spans divIcon expects as an HTML string.
+const liveIcon = L.divIcon({
+  className: styles.liveIconWrap,
+  html: `<span class="${styles.livePulse}"></span><span class="${styles.liveDot}"></span>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
 interface RouteMapProps {
   activeRoute: RouteSlug;
   start: LatLng;
   legSegments: LegSegment[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
+  checkinsByLeg: Map<number, Checkin>;
+  checkins: Checkin[];
+  now: number;
+  lastRefreshedAt: number | null;
+  elevationProfile: ElevationPoint[];
 }
 
 // The map's container width changes when sibling panels (e.g. LiveTrack)
@@ -90,7 +111,18 @@ function MapViewController({ bounds }: { bounds: L.LatLngBounds | null }) {
   return null;
 }
 
-export default function RouteMap({ activeRoute, start, legSegments, statuses, checkinTimes }: RouteMapProps) {
+export default function RouteMap({
+  activeRoute,
+  start,
+  legSegments,
+  statuses,
+  checkinTimes,
+  checkinsByLeg,
+  checkins,
+  now,
+  lastRefreshedAt,
+  elevationProfile,
+}: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -103,6 +135,30 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
     const allPoints = legSegments.flatMap((s) => s.positions);
     return allPoints.length > 0 ? L.latLngBounds(allPoints) : null;
   }, [legSegments]);
+
+  // Same actual-pace-with-planned-fallback rule TopBar uses for its ETA, so
+  // the live marker moves at whichever pace the rest of the app already
+  // trusts, rather than inventing a second notion of "current speed".
+  const livePosition = useMemo(() => {
+    const progress = computeActualProgress(legs, checkinTimes);
+    const actualPaceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+    const paceKmh =
+      checkinTimes.size >= 2 && actualPaceKmh !== null && actualPaceKmh > 0
+        ? actualPaceKmh
+        : totalPlannedPaceKmh(legs);
+    return estimateLivePosition(legs, legSegments, checkinTimes, now, paceKmh);
+  }, [legs, legSegments, checkinTimes, now]);
+  const liveLeg = livePosition ? legs.find((l) => l.nr === livePosition.legNr) : undefined;
+
+  // Check-ins carry an *optional* GPS position distinct from the leg's own
+  // planned coordinates — a photo stop, a detour, wherever the phone
+  // actually was when someone hit "opslaan" in /invoer. Plotting those
+  // separately from the leg markers is the only way that ever becomes
+  // visible instead of silently unused.
+  const checkinPins = useMemo(
+    () => checkins.filter((c) => c.lat !== null && c.lon !== null),
+    [checkins],
+  );
 
   useEffect(() => {
     if (selectedNr === null) return;
@@ -126,10 +182,14 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
         legs={legs}
         statuses={statuses}
         checkinTimes={checkinTimes}
+        checkinsByLeg={checkinsByLeg}
         selectedNr={selectedNr}
         onSelect={setSelectedNr}
         mobileExpanded={mobileExpanded}
         onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
+        now={now}
+        lastRefreshedAt={lastRefreshedAt}
+        elevationProfile={elevationProfile}
       />
 
       <div className={styles.mapArea}>
@@ -220,11 +280,48 @@ export default function RouteMap({ activeRoute, start, legSegments, statuses, ch
             );
           })}
 
+          {checkinPins.map((checkin, i) => {
+            const leg = legs.find((l) => l.nr === checkin.leg_nr);
+            const tijd = formatClockTime(new Date(checkin.tijdstip).getTime());
+            return (
+              <CircleMarker
+                key={`checkin-${checkin.leg_nr}-${i}`}
+                center={[checkin.lat as number, checkin.lon as number]}
+                radius={5}
+                pathOptions={{
+                  color: "#ffffff",
+                  weight: 1.5,
+                  fillColor: "#4a3aa7",
+                  fillOpacity: 0.9,
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -6]}>
+                  <span className={styles.tooltipRow}>
+                    📍 {leg?.start_plaats ?? `Leg ${checkin.leg_nr}`}
+                    {tijd ? ` · ${tijd}` : ""}
+                    {checkin.notitie ? ` · “${checkin.notitie}”` : ""}
+                  </span>
+                </Tooltip>
+              </CircleMarker>
+            );
+          })}
+
+          {livePosition && (
+            <Marker position={livePosition.position} icon={liveIcon} zIndexOffset={1000}>
+              <Tooltip direction="top" offset={[0, -10]}>
+                <span className={styles.tooltipRow}>
+                  Live positie
+                  {liveLeg?.loper && <BuddyBadge name={liveLeg.loper} />}
+                </span>
+              </Tooltip>
+            </Marker>
+          )}
+
           <Marker position={start} icon={startFinishIcon}>
             <Popup>
               Start / Finish — {config.startFinishPlaats}
               <br />
-              {config.routeDescription} ({totalKm} km)
+              {config.routeDescription} ({formatKm(totalKm)})
             </Popup>
           </Marker>
         </MapContainer>

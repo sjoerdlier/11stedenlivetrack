@@ -89,12 +89,14 @@ export default function CheckinForm({ activeRoute, legs, legsError, onUnauthoriz
         <p className={styles.formHint}>Fallback voor als de Garmin LiveTrack uitvalt.</p>
         <p className={styles.formHint}>
           Andere route:{" "}
-          {ROUTES.filter((r) => r.slug !== activeRoute)
-            .map((r) => (
-              <Link key={r.slug} href={`/invoer?route=${r.slug}`}>
+          {ROUTES.filter((r) => r.slug !== activeRoute).map((r, i, arr) => (
+            <span key={r.slug}>
+              <Link href={`/invoer?route=${r.slug}`} className={styles.routeLink}>
                 {r.navLabel}
               </Link>
-            ))}
+              {i < arr.length - 1 ? ", " : ""}
+            </span>
+          ))}
         </p>
       </div>
 

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import AppShell from "@/components/AppShell";
+import LoadError from "@/components/LoadError";
 import { loadRoute } from "@/lib/gpx";
-import { loadLegs } from "@/lib/legs";
-import { loadCheckins } from "@/lib/checkins";
+import { loadLegs, type Leg } from "@/lib/legs";
+import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
-import { parseRouteSlug, routeConfig } from "@/lib/routes";
+import { buildElevationProfile } from "@/lib/elevation";
+import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
 // first but rejected: without force-dynamic, Next tries to prerender this
@@ -19,9 +21,8 @@ import { parseRouteSlug, routeConfig } from "@/lib/routes";
 // independently of the route's rendering mode, so the route keeps
 // rendering per-request (safe, same reliability as before) while repeat
 // requests within the window share one Supabase read instead of each
-// paying for their own. There's also no client-side polling today — a
-// viewer only sees new check-ins by reloading — so a 20s cache window
-// costs nothing perceptible against that baseline.
+// paying for their own. AppShell's auto-refresh polls on this same 20s
+// cadence, so a poll never pays for its own uncached Supabase round-trip.
 export const dynamic = "force-dynamic";
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
@@ -34,10 +35,7 @@ interface HomeProps {
 export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
   const { route } = await searchParams;
   const config = routeConfig(parseRouteSlug(route));
-  return {
-    title: config.pageTitle,
-    description: `Kaart van de ${config.routeDescription}`,
-  };
+  return socialMetadata(config.pageTitle, `Kaart van de ${config.routeDescription}`);
 }
 
 export default async function Home({ searchParams }: HomeProps) {
@@ -45,14 +43,28 @@ export default async function Home({ searchParams }: HomeProps) {
   const activeRoute = parseRouteSlug(route);
   const config = routeConfig(activeRoute);
 
-  const { points, start } = loadRoute(config.gpxFile);
-  const [legs, checkins] = await Promise.all([
-    getCachedLegs(activeRoute),
-    getCachedCheckins(activeRoute),
-  ]);
+  let legs: Leg[], checkins: Checkin[];
+  try {
+    [legs, checkins] = await Promise.all([
+      getCachedLegs(activeRoute),
+      getCachedCheckins(activeRoute),
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    return <LoadError message={message} retryHref={`/?route=${activeRoute}`} />;
+  }
+
+  const { points, elevations, start } = loadRoute(config.gpxFile);
   const legSegments = buildLegSegments(points, legs);
+  const elevationProfile = buildElevationProfile(points, elevations);
 
   return (
-    <AppShell activeRoute={activeRoute} start={start} legSegments={legSegments} checkins={checkins} />
+    <AppShell
+      activeRoute={activeRoute}
+      start={start}
+      legSegments={legSegments}
+      checkins={checkins}
+      elevationProfile={elevationProfile}
+    />
   );
 }

@@ -1,7 +1,11 @@
 import type { Leg } from "@/lib/legs";
-import { computeLegTiming } from "@/lib/actualProgress";
+import type { Checkin } from "@/lib/checkins";
+import type { ElevationPoint } from "@/lib/elevation";
+import { computeLegTiming, estimateLegArrivals } from "@/lib/actualProgress";
+import { formatKm, formatRelativeTime } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
+import ElevationProfile from "./ElevationProfile";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
 
@@ -10,10 +14,14 @@ interface LegScheduleProps {
   legs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
+  checkinsByLeg: Map<number, Checkin>;
   selectedNr: number | null;
   onSelect: (nr: number | null) => void;
   mobileExpanded: boolean;
   onToggleMobileExpanded: () => void;
+  now: number;
+  lastRefreshedAt: number | null;
+  elevationProfile: ElevationPoint[];
 }
 
 export default function LegSchedule({
@@ -21,12 +29,17 @@ export default function LegSchedule({
   legs,
   statuses,
   checkinTimes,
+  checkinsByLeg,
   selectedNr,
   onSelect,
   mobileExpanded,
   onToggleMobileExpanded,
+  now,
+  lastRefreshedAt,
+  elevationProfile,
 }: LegScheduleProps) {
   const config = routeConfig(activeRoute);
+  const legArrivals = estimateLegArrivals(legs, checkinTimes, now);
   return (
     <div className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}>
       <div className={styles.handle} aria-hidden />
@@ -42,11 +55,18 @@ export default function LegSchedule({
       >
         <div>
           <div className={styles.title}>{config.pageTitle}</div>
-          <div className={styles.hint}>{totalRouteKm(legs)} km, {legs.length} stops</div>
+          <div className={styles.hint}>
+            {formatKm(totalRouteKm(legs))}, {legs.length} stops
+            {lastRefreshedAt !== null && ` · bijgewerkt ${formatRelativeTime(lastRefreshedAt, now)}`}
+          </div>
         </div>
         <span className={styles.chevron} aria-hidden>
           ▲
         </span>
+      </div>
+
+      <div className={styles.elevationWrap}>
+        <ElevationProfile profile={elevationProfile} />
       </div>
 
       <ol className={styles.list}>
@@ -65,6 +85,8 @@ export default function LegSchedule({
               status={status}
               expanded={expanded}
               timing={timing}
+              checkin={checkinsByLeg.get(leg.nr) ?? null}
+              expectedArrival={legArrivals.get(leg.nr) ?? null}
               onToggle={() => onSelect(isSelected ? null : leg.nr)}
             />
           );

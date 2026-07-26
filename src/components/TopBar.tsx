@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import { formatClockTime, formatPaceKmh } from "@/lib/format";
+import { formatClockTime, formatKm, formatPaceKmh } from "@/lib/format";
 import {
   actualAveragePaceKmh,
   computeActualProgress,
@@ -50,6 +50,7 @@ export default function TopBar({
   const plannedPaceKmh = useMemo(() => totalPlannedPaceKmh(legs), [legs]);
   const paceLabel = useMemo(() => formatPaceKmh(plannedPaceKmh), [plannedPaceKmh]);
   const [copied, setCopied] = useState(false);
+  const [shareError, setShareError] = useState(false);
 
   // Once at least one check-in exists, the real status bar (built from
   // actual arrivals) takes over from the schedule-based one entirely —
@@ -75,10 +76,20 @@ export default function TopBar({
       return;
     }
     if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareData.url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch {
+        // falls through to the shared "kon niet delen" message below
+      }
     }
+    // Neither the Web Share API nor Clipboard API is available (old
+    // browser, non-secure context), or the clipboard write itself was
+    // denied — surface that instead of the button silently doing nothing.
+    setShareError(true);
+    setTimeout(() => setShareError(false), 2000);
   }
 
   return (
@@ -87,15 +98,18 @@ export default function TopBar({
         <div className={styles.progress}>
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
-              {actual.progress.km.toLocaleString("nl-NL")} van {totalKm} km ·{" "}
+              {formatKm(actual.progress.km)} van {formatKm(totalKm)} ·{" "}
             </span>
             {Math.round(actual.progress.percent)}%
+            {actual.progress.percent >= 50 && (
+              <span className={styles.milestone}>🎉 Halverwege</span>
+            )}
           </span>
           <span className={styles.progressTrack}>
             <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
           </span>
           <span className={styles.pace}>
-            Te gaan: {actual.remainingKm.toLocaleString("nl-NL")} km
+            Te gaan: {formatKm(actual.remainingKm)}
             {actual.paceKmh !== null && <> · Tempo: {formatPaceKmh(actual.paceKmh)}</>}
             {actual.arrival && (
               <>
@@ -119,7 +133,7 @@ export default function TopBar({
         <div className={styles.progress}>
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
-              {km.toLocaleString("nl-NL")} van {totalKm} km ·{" "}
+              {formatKm(km)} van {formatKm(totalKm)} ·{" "}
             </span>
             {Math.round(percent)}%
           </span>
@@ -170,7 +184,9 @@ export default function TopBar({
 
         <button type="button" onClick={handleShare} className={styles.action} title="Delen">
           <span aria-hidden>🔗</span>
-          <span className={styles.actionLabel}>{copied ? "Gekopieerd!" : "Delen"}</span>
+          <span className={styles.actionLabel}>
+            {copied ? "Gekopieerd!" : shareError ? "Kon niet delen" : "Delen"}
+          </span>
         </button>
 
         {donationUrl ? (

@@ -2,19 +2,27 @@ import type { Leg } from "./legs";
 import type { Checkin } from "./checkins";
 import { totalRouteKm, type Progress } from "./status";
 
-// Earliest recorded check-in timestamp (ms) per leg_nr — the moment a leg
-// was first reached. A later duplicate check-in for the same leg (a
-// correction, an accidental re-submit) never moves the arrival time.
-export function firstCheckinTimesByLeg(checkins: Checkin[]): Map<number, number> {
-  const map = new Map<number, number>();
+// Earliest recorded check-in per leg_nr — the moment a leg was first
+// reached. A later duplicate check-in for the same leg (a correction, an
+// accidental re-submit) never moves the arrival time or overrides the note.
+export function firstCheckinByLeg(checkins: Checkin[]): Map<number, Checkin> {
+  const map = new Map<number, Checkin>();
   for (const checkin of checkins) {
     const time = new Date(checkin.tijdstip).getTime();
     if (Number.isNaN(time)) continue;
     const existing = map.get(checkin.leg_nr);
-    if (existing === undefined || time < existing) {
-      map.set(checkin.leg_nr, time);
+    if (existing === undefined || time < new Date(existing.tijdstip).getTime()) {
+      map.set(checkin.leg_nr, checkin);
     }
   }
+  return map;
+}
+
+export function firstCheckinTimesByLeg(checkins: Checkin[]): Map<number, number> {
+  const map = new Map<number, number>();
+  firstCheckinByLeg(checkins).forEach((checkin, legNr) => {
+    map.set(legNr, new Date(checkin.tijdstip).getTime());
+  });
   return map;
 }
 
@@ -163,4 +171,31 @@ export function estimateArrival(
     time: now + hours * 60 * 60 * 1000,
     basis: canUseActual ? "actueel" : "gepland",
   };
+}
+
+// Projects an arrival time for every leg not yet reached, at the current
+// actual pace — "when will they get to *my* stop", not just the overall
+// finish ETA TopBar already shows. Empty until there are enough check-ins
+// for a trustworthy actual pace (the same >=2 threshold estimateArrival
+// uses): before that, a projection would just repeat the Gepland column's
+// planned-pace value under a different label.
+export function estimateLegArrivals(
+  legs: Leg[],
+  checkinTimes: Map<number, number>,
+  now: number,
+): Map<number, number> {
+  const result = new Map<number, number>();
+  if (checkinTimes.size < 2) return result;
+
+  const progress = computeActualProgress(legs, checkinTimes);
+  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  if (paceKmh === null || paceKmh <= 0) return result;
+
+  for (const leg of legs) {
+    if (checkinTimes.has(leg.nr)) continue;
+    const remainingKm = leg.cumulatief_start_km - progress.km;
+    if (remainingKm <= 0) continue;
+    result.set(leg.nr, now + (remainingKm / paceKmh) * 60 * 60 * 1000);
+  }
+  return result;
 }

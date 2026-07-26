@@ -1,6 +1,7 @@
 import type { Leg } from "@/lib/legs";
+import type { Checkin } from "@/lib/checkins";
 import type { LegTiming } from "@/lib/actualProgress";
-import { formatGeplandeTijd, formatClockTime, formatPaceKmh, googleMapsUrl } from "@/lib/format";
+import { formatGeplandeTijd, formatClockTime, formatKm, formatPaceKmh, googleMapsUrl } from "@/lib/format";
 import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
 import BuddyBadge from "./BuddyBadge";
 import styles from "./LegCard.module.css";
@@ -10,14 +11,25 @@ interface LegCardProps {
   status: LegStatus;
   expanded: boolean;
   timing: LegTiming;
+  checkin: Checkin | null;
+  expectedArrival: number | null;
   onToggle: () => void;
 }
 
 const DASH = "–";
 
-export default function LegCard({ leg, status, expanded, timing, onToggle }: LegCardProps) {
+export default function LegCard({
+  leg,
+  status,
+  expanded,
+  timing,
+  checkin,
+  expectedArrival,
+  onToggle,
+}: LegCardProps) {
   const isCp = leg.cp_nummer !== null;
   const compact = status === "voltooid" && !expanded;
+  const noteTijd = checkin ? formatClockTime(new Date(checkin.tijdstip).getTime()) : null;
 
   return (
     <li>
@@ -55,11 +67,11 @@ export default function LegCard({ leg, status, expanded, timing, onToggle }: Leg
             <div className={styles.metaRow}>
               {leg.afstand_km !== null && (
                 <>
-                  <span>{leg.afstand_km} km</span>
+                  <span>{formatKm(leg.afstand_km)}</span>
                   <span aria-hidden>·</span>
                 </>
               )}
-              <span>{leg.cumulatief_start_km} km totaal</span>
+              <span>{formatKm(leg.cumulatief_start_km)} totaal</span>
             </div>
 
             <table className={styles.timingTable}>
@@ -103,6 +115,13 @@ export default function LegCard({ leg, status, expanded, timing, onToggle }: Leg
               </tbody>
             </table>
 
+            {expectedArrival !== null && (
+              <div className={styles.expectedLine}>
+                Verwacht hier: ± {formatClockTime(expectedArrival)}
+                <span className={styles.expectedBasis}>o.b.v. actueel tempo</span>
+              </div>
+            )}
+
             {timing.stopMinutes > 0 && (
               <div className={styles.stopLine}>Stop: {timing.stopMinutes} min (CP)</div>
             )}
@@ -124,6 +143,21 @@ export default function LegCard({ leg, status, expanded, timing, onToggle }: Leg
               >
                 📍 {leg.adres}
               </a>
+            )}
+
+            {checkin?.notitie && (
+              <div className={styles.note}>
+                <span className={styles.noteIcon} aria-hidden>
+                  💬
+                </span>
+                <div>
+                  <div>{checkin.notitie}</div>
+                  <div className={styles.noteMeta}>
+                    {checkin.invoerder}
+                    {noteTijd && ` · ${noteTijd}`}
+                  </div>
+                </div>
+              </div>
             )}
 
             {leg.bijzonderheden && (

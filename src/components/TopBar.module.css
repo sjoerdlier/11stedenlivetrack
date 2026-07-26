@@ -34,6 +34,20 @@
   white-space: nowrap;
 }
 
+.milestone {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #eb6834;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .milestone {
+    display: none;
+  }
+}
+
 .progressFull {
   font-weight: 400;
   color: #52514e;
@@ -99,11 +113,25 @@
   }
 }
 
+/* flex: 1 1 auto + min-width: 0 lets this row actually shrink below its
+   content's natural width on narrow screens (route switcher + 4 icon
+   buttons + donate can outgrow a small phone) — without min-width: 0 a
+   flex item never shrinks past its content, so overflow-x here would
+   never engage and the rightmost button (Doneer) would just get clipped
+   by body's overflow-x: hidden instead of staying reachable. */
 .actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.actions::-webkit-scrollbar {
+  display: none;
 }
 
 .routeSwitch {

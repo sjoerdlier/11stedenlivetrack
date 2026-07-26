@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { loadLegs } from "@/lib/legs";
-import { formatGeplandeTijd } from "@/lib/format";
-import { parseRouteSlug, routeConfig } from "@/lib/routes";
+import { formatGeplandeTijd, formatKm } from "@/lib/format";
+import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,11 @@ interface SchemaPageProps {
 
 export async function generateMetadata({ searchParams }: SchemaPageProps): Promise<Metadata> {
   const { route } = await searchParams;
-  return { title: `Schema — ${routeConfig(parseRouteSlug(route)).pageTitle}` };
+  const config = routeConfig(parseRouteSlug(route));
+  return socialMetadata(
+    `Schema — ${config.pageTitle}`,
+    `Volledig schema van de ${config.routeDescription}`,
+  );
 }
 
 export default async function SchemaPage({ searchParams }: SchemaPageProps) {
@@ -63,8 +67,8 @@ export default async function SchemaPage({ searchParams }: SchemaPageProps) {
                 <td>{leg.cp_nummer ?? ""}</td>
                 <td className={styles.plaats}>{leg.start_plaats}</td>
                 <td>{formatGeplandeTijd(leg.geplande_tijd) ?? ""}</td>
-                <td>{leg.afstand_km !== null ? `${leg.afstand_km} km` : ""}</td>
-                <td>{leg.cumulatief_start_km} km</td>
+                <td>{leg.afstand_km !== null ? formatKm(leg.afstand_km) : ""}</td>
+                <td>{formatKm(leg.cumulatief_start_km)}</td>
                 <td>{leg.loper ?? ""}</td>
                 <td>{leg.adres ?? ""}</td>
                 <td className={styles.bijzonderheden}>{leg.bijzonderheden ?? ""}</td>

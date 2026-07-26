@@ -101,6 +101,9 @@ export default function TopBar({
               {formatKm(actual.progress.km)} van {formatKm(totalKm)} ·{" "}
             </span>
             {Math.round(actual.progress.percent)}%
+            {actual.progress.percent >= 50 && (
+              <span className={styles.milestone}>🎉 Halverwege</span>
+            )}
           </span>
           <span className={styles.progressTrack}>
             <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />

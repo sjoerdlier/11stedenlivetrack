@@ -12,12 +12,17 @@ export { haversineMeters, simplifyRoute } from "./geo";
 
 export interface RouteData {
   points: LatLng[];
+  // Parallel to `points`; null for a track point with no <ele> (or a GPX
+  // export that omits elevation entirely — buildElevationProfile treats an
+  // all-null array as "no elevation data" and returns nothing to chart).
+  elevations: (number | null)[];
   start: LatLng;
 }
 
 interface TrkPt {
   "@_lat": string;
   "@_lon": string;
+  ele?: number;
 }
 
 interface ParsedGpx {
@@ -46,10 +51,13 @@ export function loadRoute(gpxFile: string): RouteData {
     parseFloat(pt["@_lat"]),
     parseFloat(pt["@_lon"]),
   ]);
+  const elevations: (number | null)[] = trkpts.map((pt) =>
+    typeof pt.ele === "number" ? pt.ele : null,
+  );
 
   if (points.length === 0) {
     throw new Error(`Geen trackpoints gevonden in data/${gpxFile}`);
   }
 
-  return { points, start: points[0] };
+  return { points, elevations, start: points[0] };
 }

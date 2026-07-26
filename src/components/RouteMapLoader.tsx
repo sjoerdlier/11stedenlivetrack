@@ -6,6 +6,7 @@ import type { LegSegment } from "@/lib/segments";
 import type { LegStatus } from "@/lib/status";
 import type { RouteSlug } from "@/lib/routes";
 import type { Checkin } from "@/lib/checkins";
+import type { ElevationPoint } from "@/lib/elevation";
 import styles from "./RouteMapLoader.module.css";
 
 const RouteMap = dynamic(() => import("./RouteMap"), {
@@ -23,6 +24,7 @@ interface RouteMapLoaderProps {
   checkins: Checkin[];
   now: number;
   lastRefreshedAt: number | null;
+  elevationProfile: ElevationPoint[];
 }
 
 export default function RouteMapLoader({
@@ -35,6 +37,7 @@ export default function RouteMapLoader({
   checkins,
   now,
   lastRefreshedAt,
+  elevationProfile,
 }: RouteMapLoaderProps) {
   return (
     <RouteMap
@@ -47,6 +50,7 @@ export default function RouteMapLoader({
       checkins={checkins}
       now={now}
       lastRefreshedAt={lastRefreshedAt}
+      elevationProfile={elevationProfile}
     />
   );
 }

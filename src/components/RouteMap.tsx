@@ -17,6 +17,7 @@ import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
+import type { ElevationPoint } from "@/lib/elevation";
 import { formatClockTime, formatGeplandeTijd, formatKm } from "@/lib/format";
 import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
 import { actualAveragePaceKmh, computeActualProgress } from "@/lib/actualProgress";
@@ -72,6 +73,7 @@ interface RouteMapProps {
   checkins: Checkin[];
   now: number;
   lastRefreshedAt: number | null;
+  elevationProfile: ElevationPoint[];
 }
 
 // The map's container width changes when sibling panels (e.g. LiveTrack)
@@ -119,6 +121,7 @@ export default function RouteMap({
   checkins,
   now,
   lastRefreshedAt,
+  elevationProfile,
 }: RouteMapProps) {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
@@ -186,6 +189,7 @@ export default function RouteMap({
         onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
         now={now}
         lastRefreshedAt={lastRefreshedAt}
+        elevationProfile={elevationProfile}
       />
 
       <div className={styles.mapArea}>

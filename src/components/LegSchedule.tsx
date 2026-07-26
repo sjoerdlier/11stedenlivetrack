@@ -1,9 +1,11 @@
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
+import type { ElevationPoint } from "@/lib/elevation";
 import { computeLegTiming } from "@/lib/actualProgress";
 import { formatKm, formatRelativeTime } from "@/lib/format";
 import { totalRouteKm, type LegStatus } from "@/lib/status";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
+import ElevationProfile from "./ElevationProfile";
 import LegCard from "./LegCard";
 import styles from "./LegSchedule.module.css";
 
@@ -19,6 +21,7 @@ interface LegScheduleProps {
   onToggleMobileExpanded: () => void;
   now: number;
   lastRefreshedAt: number | null;
+  elevationProfile: ElevationPoint[];
 }
 
 export default function LegSchedule({
@@ -33,6 +36,7 @@ export default function LegSchedule({
   onToggleMobileExpanded,
   now,
   lastRefreshedAt,
+  elevationProfile,
 }: LegScheduleProps) {
   const config = routeConfig(activeRoute);
   return (
@@ -58,6 +62,10 @@ export default function LegSchedule({
         <span className={styles.chevron} aria-hidden>
           ▲
         </span>
+      </div>
+
+      <div className={styles.elevationWrap}>
+        <ElevationProfile profile={elevationProfile} />
       </div>
 
       <ol className={styles.list}>

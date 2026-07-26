@@ -6,6 +6,7 @@ import { loadRoute } from "@/lib/gpx";
 import { loadLegs, type Leg } from "@/lib/legs";
 import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
+import { buildElevationProfile } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
@@ -20,9 +21,8 @@ import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 // independently of the route's rendering mode, so the route keeps
 // rendering per-request (safe, same reliability as before) while repeat
 // requests within the window share one Supabase read instead of each
-// paying for their own. There's also no client-side polling today — a
-// viewer only sees new check-ins by reloading — so a 20s cache window
-// costs nothing perceptible against that baseline.
+// paying for their own. AppShell's auto-refresh polls on this same 20s
+// cadence, so a poll never pays for its own uncached Supabase round-trip.
 export const dynamic = "force-dynamic";
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
@@ -54,10 +54,17 @@ export default async function Home({ searchParams }: HomeProps) {
     return <LoadError message={message} retryHref={`/?route=${activeRoute}`} />;
   }
 
-  const { points, start } = loadRoute(config.gpxFile);
+  const { points, elevations, start } = loadRoute(config.gpxFile);
   const legSegments = buildLegSegments(points, legs);
+  const elevationProfile = buildElevationProfile(points, elevations);
 
   return (
-    <AppShell activeRoute={activeRoute} start={start} legSegments={legSegments} checkins={checkins} />
+    <AppShell
+      activeRoute={activeRoute}
+      start={start}
+      legSegments={legSegments}
+      checkins={checkins}
+      elevationProfile={elevationProfile}
+    />
   );
 }

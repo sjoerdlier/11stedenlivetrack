@@ -53,6 +53,11 @@
   }
 }
 
+.elevationWrap {
+  padding: 0 30px;
+  margin: -6px 0 8px;
+}
+
 .list {
   list-style: none;
   margin: 0;

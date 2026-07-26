@@ -6,6 +6,7 @@ import type { LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import type { LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
+import type { ElevationPoint } from "@/lib/elevation";
 import type { RouteSlug } from "@/lib/routes";
 import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import { computeLegStatuses } from "@/lib/status";
@@ -27,9 +28,16 @@ interface AppShellProps {
   start: LatLng;
   legSegments: LegSegment[];
   checkins: Checkin[];
+  elevationProfile: ElevationPoint[];
 }
 
-export default function AppShell({ activeRoute, start, legSegments, checkins }: AppShellProps) {
+export default function AppShell({
+  activeRoute,
+  start,
+  legSegments,
+  checkins,
+  elevationProfile,
+}: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const router = useRouter();
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
@@ -113,6 +121,7 @@ export default function AppShell({ activeRoute, start, legSegments, checkins }: 
             checkins={checkins}
             now={now}
             lastRefreshedAt={lastRefreshedAt}
+            elevationProfile={elevationProfile}
           />
         </div>
         <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} />

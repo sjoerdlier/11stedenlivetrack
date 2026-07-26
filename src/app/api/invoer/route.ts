@@ -7,7 +7,7 @@ import { parsePartySlug } from "@/lib/parties";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const authorized = isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
+  const authorized = await isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
 
   if (!authorized) {
     return NextResponse.json({ ok: false, error: "Niet geautoriseerd." }, { status: 401 });

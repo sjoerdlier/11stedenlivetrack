@@ -34,7 +34,7 @@ export default async function InvoerPage({ searchParams }: InvoerPageProps) {
   const { route } = await searchParams;
   const activeRoute = parseRouteSlug(route);
   const cookieStore = await cookies();
-  const authorized = isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
+  const authorized = await isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
 
   // The PIN gate itself doesn't need legs data — if Supabase hiccups, the
   // fallback tool should still let someone in rather than crash on load.

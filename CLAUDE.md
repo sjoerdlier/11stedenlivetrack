@@ -22,9 +22,10 @@ regressions.
 Requires `.env.local` (see `.env.example`) with `SUPABASE_URL` and `SUPABASE_ANON_KEY` at
 minimum — both `src/lib/legs.ts` and `src/lib/checkins.ts` throw immediately without them,
 so the app won't run at all locally without a Supabase project. Optional env vars
-(`NEXT_PUBLIC_DONATION_URL`, `NEXT_PUBLIC_GARMIN_LIVETRACK_URL`, `CHECKIN_PIN`) each
-degrade to a visible placeholder/disabled state when unset rather than crashing — that's
-intentional, not a bug to fix.
+(`NEXT_PUBLIC_DONATION_URL`, `CHECKIN_PIN`) each degrade to a visible placeholder/disabled
+state when unset rather than crashing — that's intentional, not a bug to fix. `CHECKIN_PIN`
+is only a bootstrap fallback (see `/beheer` below) — once a PIN is set through the app it
+lives in Supabase and takes priority.
 
 ## Architecture
 
@@ -64,9 +65,17 @@ render server-side, so it's loaded through `RouteMapLoader` via `next/dynamic` w
 `ssr: false`.
 
 `/invoer` is a PIN-gated fallback for manually logging check-ins if the Garmin LiveTrack
-feed fails. The PIN (`CHECKIN_PIN`) never reaches the client: `/api/invoer/verify` sets an
-httpOnly cookie containing a SHA-256 hash of it, and `/api/invoer` (the actual check-in
-insert) recomputes and compares that hash server-side on every submit.
+feed fails. The PIN never reaches the client: `/api/invoer/verify` sets an httpOnly cookie
+containing a SHA-256 hash of it, and `/api/invoer` (the actual check-in insert) recomputes
+and compares that hash server-side on every submit — `src/lib/checkinAuth.ts` holds this
+logic and reads the current PIN hash via `src/lib/settings.ts` (falling back to the
+`CHECKIN_PIN` env var if nothing's been set through the app yet).
+
+`/beheer` is the PIN-gated (same PIN, same cookie) settings screen for things an organizer
+needs to change without touching Vercel — currently each party's Garmin LiveTrack link
+(one per `(route, party)` pair, see `garminUrlSettingKey` in `src/lib/parties.ts`) and the
+check-in PIN itself. Both are stored as rows in the Supabase `settings` key/value table
+(`src/lib/settings.ts`) and take effect immediately, no redeploy needed.
 
 Debug mode: `?debugTime=<ISO date>` on any URL freezes "now" for the whole app via
 `src/lib/useSimulatedNow.ts` — the single hook behind every time-based computation

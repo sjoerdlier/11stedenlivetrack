@@ -30,6 +30,7 @@ interface AppShellProps {
   legSegments: LegSegment[];
   checkins: Checkin[];
   elevationProfile: ElevationPoint[];
+  garminUrl: string | null;
 }
 
 export default function AppShell({
@@ -39,6 +40,7 @@ export default function AppShell({
   legSegments,
   checkins,
   elevationProfile,
+  garminUrl,
 }: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const router = useRouter();
@@ -137,7 +139,7 @@ export default function AppShell({
             elevationProfile={elevationProfile}
           />
         </div>
-        <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} />
+        <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} garminUrl={garminUrl} />
       </div>
     </div>
   );

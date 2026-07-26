@@ -8,7 +8,8 @@ import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
 import { buildElevationProfile } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
-import { parsePartySlug, partiesForRoute, partyConfig } from "@/lib/parties";
+import { parsePartySlug, partiesForRoute, partyConfig, garminUrlSettingKey } from "@/lib/parties";
+import { loadSetting } from "@/lib/settings";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
 // first but rejected: without force-dynamic, Next tries to prerender this
@@ -28,6 +29,7 @@ export const dynamic = "force-dynamic";
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
+const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
 
 interface HomeProps {
   searchParams: Promise<{ route?: string; party?: string }>;
@@ -68,6 +70,16 @@ export default async function Home({ searchParams }: HomeProps) {
   const legSegments = buildLegSegments(points, legs);
   const elevationProfile = buildElevationProfile(points, elevations);
 
+  // A missing Garmin link is a normal pre-race state (LiveTrackPanel shows a
+  // placeholder), not something that should take the whole page down — only
+  // the legs/checkins load above is critical enough to error out on.
+  let garminUrl: string | null = null;
+  try {
+    garminUrl = await getCachedSetting(garminUrlSettingKey(activeRoute, activeParty));
+  } catch {
+    garminUrl = null;
+  }
+
   return (
     <AppShell
       activeRoute={activeRoute}
@@ -76,6 +88,7 @@ export default async function Home({ searchParams }: HomeProps) {
       legSegments={legSegments}
       checkins={checkins}
       elevationProfile={elevationProfile}
+      garminUrl={garminUrl}
     />
   );
 }

@@ -6,7 +6,7 @@ import { loadRoute } from "@/lib/gpx";
 import { loadLegs, type Leg } from "@/lib/legs";
 import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { buildLegSegments } from "@/lib/segments";
-import { parseRouteSlug, routeConfig } from "@/lib/routes";
+import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
 // first but rejected: without force-dynamic, Next tries to prerender this
@@ -35,10 +35,7 @@ interface HomeProps {
 export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
   const { route } = await searchParams;
   const config = routeConfig(parseRouteSlug(route));
-  return {
-    title: config.pageTitle,
-    description: `Kaart van de ${config.routeDescription}`,
-  };
+  return socialMetadata(config.pageTitle, `Kaart van de ${config.routeDescription}`);
 }
 
 export default async function Home({ searchParams }: HomeProps) {

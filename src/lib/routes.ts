@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 export type RouteSlug = "11steden" | "kat100";
 
 export interface RouteConfig {
@@ -40,4 +42,21 @@ export function routeConfig(slug: RouteSlug): RouteConfig {
 export function parseRouteSlug(value: string | string[] | undefined): RouteSlug {
   const v = Array.isArray(value) ? value[0] : value;
   return v === "kat100" ? "kat100" : DEFAULT_ROUTE_SLUG;
+}
+
+// Shared title + description + Open Graph shape for generateMetadata, so a
+// shared link (the topbar's "Delen" button, or the donation ask) gets a real
+// preview card on WhatsApp/Twitter/Facebook instead of a bare link — none of
+// the three pages had openGraph fields before this.
+export function socialMetadata(title: string, description: string): Metadata {
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      locale: "nl_NL",
+      type: "website",
+    },
+  };
 }

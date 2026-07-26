@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { unstable_cache } from "next/cache";
 import { CHECKIN_COOKIE, isAuthorized } from "@/lib/checkinAuth";
 import { loadLegs, type Leg } from "@/lib/legs";
-import { parseRouteSlug, routeConfig } from "@/lib/routes";
+import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 import InvoerClient from "./InvoerClient";
 
 // The page itself can't be ISR-cached: it reads the PIN-session cookie to
@@ -22,10 +22,10 @@ interface InvoerPageProps {
 export async function generateMetadata({ searchParams }: InvoerPageProps): Promise<Metadata> {
   const { route } = await searchParams;
   const config = routeConfig(parseRouteSlug(route));
-  return {
-    title: `Invoer — ${config.pageTitle}`,
-    description: `Check-in invoeren voor de ${config.routeDescription}`,
-  };
+  return socialMetadata(
+    `Invoer — ${config.pageTitle}`,
+    `Check-in invoeren voor de ${config.routeDescription}`,
+  );
 }
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });

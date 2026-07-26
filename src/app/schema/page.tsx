@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { loadLegs } from "@/lib/legs";
 import { formatGeplandeTijd } from "@/lib/format";
-import { parseRouteSlug, routeConfig } from "@/lib/routes";
+import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +14,10 @@ interface SchemaPageProps {
 export async function generateMetadata({ searchParams }: SchemaPageProps): Promise<Metadata> {
   const { route } = await searchParams;
   const config = routeConfig(parseRouteSlug(route));
-  return {
-    title: `Schema — ${config.pageTitle}`,
-    description: `Volledig schema van de ${config.routeDescription}`,
-  };
+  return socialMetadata(
+    `Schema — ${config.pageTitle}`,
+    `Volledig schema van de ${config.routeDescription}`,
+  );
 }
 
 export default async function SchemaPage({ searchParams }: SchemaPageProps) {

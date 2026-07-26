@@ -5,10 +5,11 @@ import type { LatLng } from "@/lib/gpx";
 import type { LegSegment } from "@/lib/segments";
 import type { LegStatus } from "@/lib/status";
 import type { RouteSlug } from "@/lib/routes";
+import styles from "./RouteMapLoader.module.css";
 
 const RouteMap = dynamic(() => import("./RouteMap"), {
   ssr: false,
-  loading: () => <div style={{ height: "100%", width: "100%" }}>Kaart laden…</div>,
+  loading: () => <div className={styles.loading}>Kaart laden…</div>,
 });
 
 interface RouteMapLoaderProps {

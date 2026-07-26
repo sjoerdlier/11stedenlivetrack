@@ -13,7 +13,11 @@ interface SchemaPageProps {
 
 export async function generateMetadata({ searchParams }: SchemaPageProps): Promise<Metadata> {
   const { route } = await searchParams;
-  return { title: `Schema — ${routeConfig(parseRouteSlug(route)).pageTitle}` };
+  const config = routeConfig(parseRouteSlug(route));
+  return {
+    title: `Schema — ${config.pageTitle}`,
+    description: `Volledig schema van de ${config.routeDescription}`,
+  };
 }
 
 export default async function SchemaPage({ searchParams }: SchemaPageProps) {

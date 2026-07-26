@@ -21,7 +21,11 @@ interface InvoerPageProps {
 
 export async function generateMetadata({ searchParams }: InvoerPageProps): Promise<Metadata> {
   const { route } = await searchParams;
-  return { title: `Invoer — ${routeConfig(parseRouteSlug(route)).pageTitle}` };
+  const config = routeConfig(parseRouteSlug(route));
+  return {
+    title: `Invoer — ${config.pageTitle}`,
+    description: `Check-in invoeren voor de ${config.routeDescription}`,
+  };
 }
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });

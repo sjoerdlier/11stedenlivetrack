@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export type RouteSlug = "11steden" | "kat100";
+export type RouteSlug = "11steden" | "kat100" | "kat100-endurance";
 
 export interface RouteConfig {
   slug: RouteSlug;
@@ -32,6 +32,21 @@ export const ROUTES: RouteConfig[] = [
     startFinishPlaats: "Fieberbrunn",
     routeDescription: "KAT100 Marathon Trail",
   },
+  {
+    slug: "kat100-endurance",
+    navLabel: "KAT100 Endurance",
+    // Same weekend, same event, longer distance category — point-to-point:
+    // starts from a different (unnamed to us) trailhead than the Marathon
+    // Trail, finishes at the same Fieberbrunn line. The map's single
+    // start/finish marker sits at the GPX's first point, i.e. the *start*
+    // here — startFinishPlaats describes that marker, so it names the start,
+    // not the finish. Run by Martijn & Jeffrey, each tracked separately (see
+    // parties.ts).
+    pageTitle: "KAT100 Endurance Trail",
+    gpxFile: "kat100-endurance.gpx",
+    startFinishPlaats: "onbekend startpunt bij Fieberbrunn",
+    routeDescription: "KAT100 Endurance Trail",
+  },
 ];
 
 export const DEFAULT_ROUTE_SLUG: RouteSlug = "11steden";
@@ -44,7 +59,7 @@ export function routeConfig(slug: RouteSlug): RouteConfig {
 // a known route slug quietly falls back to the default rather than 404ing.
 export function parseRouteSlug(value: string | string[] | undefined): RouteSlug {
   const v = Array.isArray(value) ? value[0] : value;
-  return v === "kat100" ? "kat100" : DEFAULT_ROUTE_SLUG;
+  return ROUTES.some((r) => r.slug === v) ? (v as RouteSlug) : DEFAULT_ROUTE_SLUG;
 }
 
 // Shared title + description + Open Graph shape for generateMetadata, so a

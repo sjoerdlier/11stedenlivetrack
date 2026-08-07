@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { LatLng } from "@/lib/gpx";
+import type { Leg } from "@/lib/legs";
 import type { LegSegment } from "@/lib/segments";
 import type { LegStatus } from "@/lib/status";
 import type { RouteSlug } from "@/lib/routes";
@@ -19,6 +20,7 @@ interface RouteMapLoaderProps {
   activeParty: string;
   start: LatLng;
   legSegments: LegSegment[];
+  effortLegs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
   checkinsByLeg: Map<number, Checkin>;
@@ -33,6 +35,7 @@ export default function RouteMapLoader({
   activeParty,
   start,
   legSegments,
+  effortLegs,
   statuses,
   checkinTimes,
   checkinsByLeg,
@@ -47,6 +50,7 @@ export default function RouteMapLoader({
       activeParty={activeParty}
       start={start}
       legSegments={legSegments}
+      effortLegs={effortLegs}
       statuses={statuses}
       checkinTimes={checkinTimes}
       checkinsByLeg={checkinsByLeg}

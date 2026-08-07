@@ -14,6 +14,7 @@ interface LegScheduleProps {
   activeRoute: RouteSlug;
   activeParty: string;
   legs: Leg[];
+  effortLegs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
   checkinsByLeg: Map<number, Checkin>;
@@ -30,6 +31,7 @@ export default function LegSchedule({
   activeRoute,
   activeParty,
   legs,
+  effortLegs,
   statuses,
   checkinTimes,
   checkinsByLeg,
@@ -42,7 +44,9 @@ export default function LegSchedule({
   elevationProfile,
 }: LegScheduleProps) {
   const config = routeConfig(activeRoute);
-  const legArrivals = estimateLegArrivals(legs, checkinTimes, now);
+  // effortLegs (grade-adjusted) drives arrival projections so a climb ahead
+  // pushes an ETA back — legs (real km) is what's shown on screen.
+  const legArrivals = estimateLegArrivals(effortLegs, checkinTimes, now);
   // Only worth naming the party once there's more than one sharing this
   // route to disambiguate between — a single-party route keeps the plain
   // route title it always had.
@@ -85,7 +89,7 @@ export default function LegSchedule({
           // The active leg auto-expands when nothing else is picked; a click
           // always wins so any card (past or upcoming) can be inspected.
           const expanded = isSelected || (selectedNr === null && status === "bezig");
-          const timing = computeLegTiming(legs, checkinTimes, index);
+          const timing = computeLegTiming(effortLegs, checkinTimes, index);
 
           return (
             <LegCard

@@ -91,6 +91,42 @@ Steden-dag zelf.
   `tempoWerkelijk` — dat laatste is `actualLegPaceKmh` op de vólgende
   leg-index, zodat het dezelfde etappe meet als `tempoGepland` (this→next),
   niet de etappe die net gelopen is om hier aan te komen (prev→this).
+
+## Hoogtegecorrigeerd tempo (Grade Adjusted Pace)
+
+Elk tempo-cijfer dat je ziet (topbar, leg-kaart, het live bolletje op de kaart) is
+hoogtegecorrigeerd, geen platte km/u — een klimstuk laat het tempo dus niet gewoon
+"langzaam" lijken zoals de ruwe afstand/tijd dat zou doen.
+
+- `src/lib/geo.ts` — `gradeAdjustedKm(points, elevations)` loopt punt voor punt door een
+  GPX-track en kost elke kleine stap op basis van zíjn eigen hellingspercentage, via het
+  metabole-kostenmodel van Minetti et al. (2002) — hetzelfde model dat de meeste "Grade
+  Adjusted Pace"-tools gebruiken. Punt-voor-punt in plaats van op basis van het netto
+  hoogteverschil van een hele leg, want een leg die evenveel klimt als daalt heeft netto
+  ~0m hoogtewinst maar is wél degelijk zwaarder dan vlak. Ontbrekende hoogtedata voor een
+  puntenpaar valt terug op de ruwe afstand (factor 1) in plaats van dat stukje te laten
+  vallen.
+- `src/lib/segments.ts` — `buildLegSegments` roept dit nu per leg aan (op de ruwe,
+  ongesimplificeerde puntenreeks, vóór de Douglas-Peucker-simplificatie die alleen de
+  getekende lijn raakt) en zet het resultaat op `LegSegment.effortKm`. `buildEffortLegs`
+  bouwt daaruit een tweede `Leg[]` — identiek aan de originele legs, behalve dat
+  `afstand_km`/`cumulatief_start_km` vervangen zijn door de hoogtegecorrigeerde
+  equivalenten (cumulatief opnieuw opgebouwd; de finish-leg's `afstand_km` blijft `null`,
+  dezelfde conventie als altijd).
+- Elke tempo/ETA-functie in `actualProgress.ts`, `status.ts` en `liveMarker.ts` leest al
+  generiek `leg.afstand_km`/`cumulatief_start_km` — dus die functies zelf zijn **niet**
+  aangepast. `src/components/AppShell.tsx` bouwt `effortLegs` één keer via `useMemo`
+  (naast `legs`, hetzelfde patroon als `statuses`/`checkinTimes`) en geeft 'm door aan
+  `TopBar` en de kaart/sidebar-boom. Overal waar die functies worden aangeroepen voor een
+  tempo- of ETA-cijfer gaat `effortLegs` erin; overal waar een kilometer wordt **getoond**
+  (voortgangsbalk, "X km totaal", de route-popup) blijft het de echte `legs` — die twee
+  nooit door elkaar halen. `TopBar.tsx` en `LegCard.tsx` hebben een `title`-tooltip op elk
+  "Tempo"-label ("Hoogtegecorrigeerd tempo — houdt rekening met klimmen en dalen.") zodat
+  dit ontdekbaar is zonder de tekst zelf langer te maken (belangrijk op mobiel, waar de
+  topbar al krap staat).
+- Tests voor `gradeAdjustedKm` en `buildEffortLegs` zitten in `src/lib/segments.test.ts`,
+  naast de bestaande `buildLegSegments`-tests (geen apart `geo.test.ts`).
+
 - `src/components/RouteMapLoader.tsx` — laadt de kaart client-side (`next/dynamic`,
   `ssr: false`), omdat Leaflet niet server-side kan renderen.
 - `src/components/LegSchedule.tsx` + `LegCard.tsx` — het side-menu: elke etappe

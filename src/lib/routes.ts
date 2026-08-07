@@ -35,16 +35,17 @@ export const ROUTES: RouteConfig[] = [
   {
     slug: "kat100-endurance",
     navLabel: "KAT100 Endurance",
-    // Same weekend, same event, longer distance category — point-to-point:
-    // starts from a different (unnamed to us) trailhead than the Marathon
-    // Trail, finishes at the same Fieberbrunn line. The map's single
-    // start/finish marker sits at the GPX's first point, i.e. the *start*
-    // here — startFinishPlaats describes that marker, so it names the start,
-    // not the finish. Run by Martijn & Jeffrey, each tracked separately (see
+    // Same weekend, same event, longer distance category (per the official
+    // KAT 2026 Runner Guide) — point-to-point: starts at the Kitzbühel
+    // football stadium (23:59), finishes at the same Fieberbrunn line as
+    // the Marathon Trail, 74.7km / ~4100m+. The map's single start/finish
+    // marker sits at the GPX's first point, i.e. the *start* here —
+    // startFinishPlaats describes that marker, so it names the start, not
+    // the finish. Run by Martijn & Jeffrey, each tracked separately (see
     // parties.ts).
     pageTitle: "KAT100 Endurance Trail",
     gpxFile: "kat100-endurance.gpx",
-    startFinishPlaats: "onbekend startpunt bij Fieberbrunn",
+    startFinishPlaats: "Kitzbühel",
     routeDescription: "KAT100 Endurance Trail",
   },
 ];

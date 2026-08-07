@@ -9,6 +9,10 @@ describe("partiesForRoute", () => {
   it("has two independent parties for kat100", () => {
     expect(partiesForRoute("kat100").map((p) => p.slug)).toEqual(["sjoerd-lowie", "bjorn-sander"]);
   });
+
+  it("has two independent parties for kat100-endurance", () => {
+    expect(partiesForRoute("kat100-endurance").map((p) => p.slug)).toEqual(["martijn", "jeffrey"]);
+  });
 });
 
 describe("parsePartySlug", () => {

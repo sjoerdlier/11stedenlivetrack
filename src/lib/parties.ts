@@ -16,6 +16,12 @@ export const PARTIES_BY_ROUTE: Record<RouteSlug, PartyConfig[]> = {
     { slug: "sjoerd-lowie", label: "Sjoerd & Lowie", color: "#2a78d6" },
     { slug: "bjorn-sander", label: "Björn & Sander", color: "#1baf7a" },
   ],
+  // Martijn & Jeffrey each run this one solo, tracked independently rather
+  // than as a pair — separate check-in streams, separate shareable links.
+  "kat100-endurance": [
+    { slug: "martijn", label: "Martijn", color: "#d6572a" },
+    { slug: "jeffrey", label: "Jeffrey", color: "#7a3aa7" },
+  ],
 };
 
 export function partiesForRoute(route: RouteSlug): PartyConfig[] {

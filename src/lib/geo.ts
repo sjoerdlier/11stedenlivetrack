@@ -40,6 +40,41 @@ function perpendicularDistanceMeters(
   return Math.abs(dy * px - dx * py + bx * ay - by * ax) / Math.sqrt(lenSq);
 }
 
+// Metabolic cost of running/walking a gradient, relative to flat ground —
+// Minetti et al. (2002), the same physiological model most "grade adjusted
+// pace" (GAP) tools use. `gradient` is rise/run (0.1 = 10% grade); clamped
+// to ±45%, the range the original study validated, since GPS/barometric
+// noise over a short point-to-point stretch can otherwise produce
+// nonsensical spikes. Below ~-20% the polynomial rises again (steep
+// descents cost more than gentle ones, due to braking) — that's the model
+// working as intended, not a bug.
+function minettiCostFactor(gradient: number): number {
+  const i = Math.max(-0.45, Math.min(0.45, gradient));
+  const cost = 155.4 * i ** 5 - 30.4 * i ** 4 - 43.3 * i ** 3 + 46.3 * i ** 2 + 19.5 * i + 3.6;
+  const FLAT_COST = 3.6; // cost at i = 0
+  return cost / FLAT_COST;
+}
+
+// Converts a GPX stretch into its flat-ground *effort* equivalent: walks
+// consecutive points, costing each small hop by its own gradient rather
+// than the stretch's net elevation change — a leg with equal climbing and
+// descending nets to ~0m gain but is still real effort, which only
+// point-by-point costing captures. A point pair with missing elevation
+// contributes its raw (unadjusted) distance rather than being dropped, so
+// a GPX with partial elevation data degrades gracefully instead of
+// under-counting distance.
+export function gradeAdjustedKm(points: LatLng[], elevations: (number | null)[]): number {
+  let km = 0;
+  for (let i = 1; i < points.length; i++) {
+    const distM = haversineMeters(points[i - 1], points[i]);
+    const eleA = elevations[i - 1];
+    const eleB = elevations[i];
+    const factor = distM > 0 && eleA !== null && eleB !== null ? minettiCostFactor((eleB - eleA) / distM) : 1;
+    km += (distM * factor) / 1000;
+  }
+  return km;
+}
+
 // Ramer-Douglas-Peucker line simplification. Drops points that sit within
 // `toleranceMeters` of the straight line between their neighbors, keeping
 // the route's shape intact while cutting point count substantially — a

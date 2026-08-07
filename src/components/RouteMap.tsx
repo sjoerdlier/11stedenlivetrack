@@ -15,6 +15,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLng } from "@/lib/gpx";
+import type { Leg } from "@/lib/legs";
 import type { LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
 import type { ElevationPoint } from "@/lib/elevation";
@@ -75,6 +76,7 @@ interface RouteMapProps {
   activeParty: string;
   start: LatLng;
   legSegments: LegSegment[];
+  effortLegs: Leg[];
   statuses: Map<number, LegStatus>;
   checkinTimes: Map<number, number>;
   checkinsByLeg: Map<number, Checkin>;
@@ -124,6 +126,7 @@ export default function RouteMap({
   activeParty,
   start,
   legSegments,
+  effortLegs,
   statuses,
   checkinTimes,
   checkinsByLeg,
@@ -149,23 +152,25 @@ export default function RouteMap({
   // (11 Steden) this is exactly the one marker it always was; KAT100 gets
   // one per independent group (Sjoerd & Lowie, Björn & Sander), each on its
   // own check-in stream and its own actual/planned pace, same rule TopBar's
-  // ETA uses.
+  // ETA uses. Pace and the within-leg fraction both come from effortLegs
+  // (grade-adjusted) rather than legs, so a climb slows the marker's
+  // progress along that stretch instead of assuming a flat, uniform pace.
   const liveMarkers = useMemo(() => {
     return partiesForRoute(activeRoute)
       .map((party) => {
         const partyCheckins = checkins.filter((c) => c.party === party.slug);
         const partyCheckinTimes = firstCheckinTimesByLeg(partyCheckins);
-        const progress = computeActualProgress(legs, partyCheckinTimes);
+        const progress = computeActualProgress(effortLegs, partyCheckinTimes);
         const actualPaceKmh = actualAveragePaceKmh(partyCheckinTimes, progress.km, now);
         const paceKmh =
           partyCheckinTimes.size >= 2 && actualPaceKmh !== null && actualPaceKmh > 0
             ? actualPaceKmh
-            : totalPlannedPaceKmh(legs);
-        const position = estimateLivePosition(legs, legSegments, partyCheckinTimes, now, paceKmh);
+            : totalPlannedPaceKmh(effortLegs);
+        const position = estimateLivePosition(effortLegs, legSegments, partyCheckinTimes, now, paceKmh);
         return position ? { party, position } : null;
       })
       .filter((m): m is { party: PartyConfig; position: LivePosition } => m !== null);
-  }, [activeRoute, checkins, legs, legSegments, now]);
+  }, [activeRoute, checkins, effortLegs, legSegments, now]);
 
   // Check-ins carry an *optional* GPS position distinct from the leg's own
   // planned coordinates — a photo stop, a detour, wherever the phone
@@ -199,6 +204,7 @@ export default function RouteMap({
         activeRoute={activeRoute}
         activeParty={activeParty}
         legs={legs}
+        effortLegs={effortLegs}
         statuses={statuses}
         checkinTimes={checkinTimes}
         checkinsByLeg={checkinsByLeg}

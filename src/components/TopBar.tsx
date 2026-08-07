@@ -25,6 +25,7 @@ interface TopBarProps {
   activeRoute: RouteSlug;
   activeParty: string;
   legs: Leg[];
+  effortLegs: Leg[];
   statuses: Map<number, LegStatus>;
   now: number;
   checkins: Checkin[];
@@ -35,10 +36,16 @@ interface TopBarProps {
 
 const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 
+// Every "Tempo" figure in this bar is grade-adjusted (Minetti-based, see
+// gradeAdjustedKm) rather than a flat km/u reading — a title tooltip is the
+// only explanation that fits without lengthening the label on mobile.
+const GAP_TITLE = "Hoogtegecorrigeerd tempo — houdt rekening met klimmen en dalen.";
+
 export default function TopBar({
   activeRoute,
   activeParty,
   legs,
+  effortLegs,
   statuses,
   now,
   checkins,
@@ -49,9 +56,12 @@ export default function TopBar({
   const config = routeConfig(activeRoute);
   const parties = partiesForRoute(activeRoute);
   const totalKm = useMemo(() => totalRouteKm(legs), [legs]);
+  // Grade-adjusted total — only ever divided into a grade-adjusted pace, so
+  // it stays out of anything that displays a plain "km" number.
+  const totalEffortKm = useMemo(() => totalRouteKm(effortLegs), [effortLegs]);
   const { km, percent } = useMemo(() => computeProgress(legs, statuses), [legs, statuses]);
   const countdownDays = useMemo(() => daysUntilStart(legs, now), [legs, now]);
-  const plannedPaceKmh = useMemo(() => totalPlannedPaceKmh(legs), [legs]);
+  const plannedPaceKmh = useMemo(() => totalPlannedPaceKmh(effortLegs), [effortLegs]);
   const paceLabel = useMemo(() => formatPaceKmh(plannedPaceKmh), [plannedPaceKmh]);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState(false);
@@ -59,15 +69,20 @@ export default function TopBar({
   // Once at least one check-in exists, the real status bar (built from
   // actual arrivals) takes over from the schedule-based one entirely —
   // before that (checkins is empty pre-race day, the normal state) the
-  // countdown / planned-progress display below is unchanged.
+  // countdown / planned-progress display below is unchanged. `progress`
+  // (real km, shown as-is) and `effortProgress` (grade-adjusted, only fed
+  // into pace/ETA math) are deliberately two separate computations — see
+  // buildEffortLegs.
   const actual = useMemo(() => {
     if (checkins.length === 0) return null;
     const progress = computeActualProgress(legs, checkinTimes);
+    const effortProgress = computeActualProgress(effortLegs, checkinTimes);
     const remainingKm = Math.max(0, totalKm - progress.km);
-    const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
-    const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, checkins.length);
+    const effortRemainingKm = Math.max(0, totalEffortKm - effortProgress.km);
+    const paceKmh = actualAveragePaceKmh(checkinTimes, effortProgress.km, now);
+    const arrival = estimateArrival(now, effortRemainingKm, paceKmh, plannedPaceKmh, checkins.length);
     return { progress, remainingKm, paceKmh, arrival };
-  }, [checkins.length, legs, checkinTimes, now, plannedPaceKmh, totalKm]);
+  }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
 
   async function handleShare() {
     const shareData = { title: config.pageTitle, url: window.location.href };
@@ -114,7 +129,12 @@ export default function TopBar({
           </span>
           <span className={styles.pace}>
             Te gaan: {formatKm(actual.remainingKm)}
-            {actual.paceKmh !== null && <> · Tempo: {formatPaceKmh(actual.paceKmh)}</>}
+            {actual.paceKmh !== null && (
+              <>
+                {" "}
+                · <span title={GAP_TITLE}>Tempo: {formatPaceKmh(actual.paceKmh)}</span>
+              </>
+            )}
             {actual.arrival && (
               <>
                 {" "}
@@ -145,7 +165,9 @@ export default function TopBar({
             <span className={styles.progressFill} style={{ width: `${percent}%` }} />
           </span>
           {paceLabel && (
-            <span className={styles.pace}>Gem. tempo: {paceLabel} (gepland)</span>
+            <span className={styles.pace} title={GAP_TITLE}>
+              Gem. tempo: {paceLabel} (gepland)
+            </span>
           )}
         </div>
       )}

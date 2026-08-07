@@ -57,6 +57,20 @@ stage). Anything that sums or divides by leg distance needs to respect this dire
 see `actualLegPaceKmh` in `actualProgress.ts` for the pattern (it deliberately uses the
 *previous* leg's distance against the elapsed time between two consecutive check-ins).
 
+Every "tempo"/pace figure shown (topbar, per-leg card, live marker) is **grade-adjusted**,
+not raw km/h — `src/lib/geo.ts`'s `gradeAdjustedKm` costs each GPX point-to-point hop by its
+own gradient via the Minetti et al. (2002) metabolic-cost model, so a climb doesn't just
+read as "slow" the way a flat km/h number would. `src/lib/segments.ts`'s `buildEffortLegs`
+turns a route's `legSegments` into a second `Leg[]` with `afstand_km`/`cumulatief_start_km`
+swapped for their grade-adjusted equivalents — every pace/ETA function in
+`actualProgress.ts`/`status.ts`/`liveMarker.ts` already reads generically off those two
+fields, so passing it `effortLegs` instead of `legs` makes it grade-adjusted for free, no
+changes to those functions themselves. The real, unadjusted `legs` (and `totalRouteKm`)
+still drive anything that displays a plain "km" number (progress bar, "X km totaal") —
+never mix the two arrays for the same figure. `src/components/AppShell.tsx` builds
+`effortLegs` once via `useMemo` alongside its other shared derived state and threads it down
+next to `legs`, the same pattern `statuses`/`checkinTimes` already follow.
+
 `src/components/AppShell.tsx` is the single place that computes shared derived state once
 per render (`now` via `useSimulatedNow`, `statuses`, `checkinTimes`) and threads it down to
 both `TopBar` and the map/sidebar tree (`RouteMapLoader` → `RouteMap` → `LegSchedule` →

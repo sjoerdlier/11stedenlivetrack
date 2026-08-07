@@ -59,9 +59,9 @@ describe("estimateLivePosition", () => {
     makeLeg({ nr: 3, afstand_km: 0, loper: null, cumulatief_start_km: 20 }),
   ];
   const legSegments: LegSegment[] = [
-    { leg: legs[0], positions: [[0, 0], [0, 1]] },
-    { leg: legs[1], positions: [[0, 1], [0, 2]] },
-    { leg: legs[2], positions: [[0, 2]] },
+    { leg: legs[0], positions: [[0, 0], [0, 1]], effortKm: 10 },
+    { leg: legs[1], positions: [[0, 1], [0, 2]], effortKm: 10 },
+    { leg: legs[2], positions: [[0, 2]], effortKm: 0 },
   ];
 
   it("returns null before the first check-in", () => {

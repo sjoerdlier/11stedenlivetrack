@@ -106,7 +106,9 @@ export default function LegCard({
                   </td>
                 </tr>
                 <tr>
-                  <th scope="row">Tempo</th>
+                  <th scope="row" title="Hoogtegecorrigeerd tempo — houdt rekening met klimmen en dalen.">
+                    Tempo
+                  </th>
                   <td>{formatPaceKmh(timing.tempoGepland) ?? DASH}</td>
                   <td className={timing.tempoWerkelijk === null ? styles.pending : ""}>
                     {formatPaceKmh(timing.tempoWerkelijk) ?? DASH}

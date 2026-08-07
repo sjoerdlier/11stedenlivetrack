@@ -67,7 +67,7 @@ export default async function Home({ searchParams }: HomeProps) {
   }
 
   const { points, elevations, start } = loadRoute(config.gpxFile);
-  const legSegments = buildLegSegments(points, legs);
+  const legSegments = buildLegSegments(points, elevations, legs);
   const elevationProfile = buildElevationProfile(points, elevations);
 
   // A missing Garmin link is a normal pre-race state (LiveTrackPanel shows a

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
-import type { LegSegment } from "@/lib/segments";
+import { buildEffortLegs, type LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
 import type { ElevationPoint } from "@/lib/elevation";
 import type { RouteSlug } from "@/lib/routes";
@@ -45,6 +45,10 @@ export default function AppShell({
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const router = useRouter();
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
+  // Grade-adjusted stand-in for `legs`, fed to pace/ETA math only — see
+  // buildEffortLegs. `legs` itself (real km) still drives anything that
+  // displays a distance.
+  const effortLegs = useMemo(() => buildEffortLegs(legSegments), [legSegments]);
   const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
   // TopBar/sidebar are scoped to whichever party the switcher has selected
   // (its own progress, pace, notes) — `checkins` itself stays unfiltered and
@@ -115,6 +119,7 @@ export default function AppShell({
         activeRoute={activeRoute}
         activeParty={activeParty}
         legs={legs}
+        effortLegs={effortLegs}
         statuses={statuses}
         now={now}
         checkins={partyCheckins}
@@ -130,6 +135,7 @@ export default function AppShell({
             activeParty={activeParty}
             start={start}
             legSegments={legSegments}
+            effortLegs={effortLegs}
             statuses={statuses}
             checkinTimes={checkinTimes}
             checkinsByLeg={checkinsByLeg}

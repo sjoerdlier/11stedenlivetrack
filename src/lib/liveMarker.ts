@@ -38,6 +38,20 @@ export interface LivePosition {
   legNr: number;
 }
 
+// A live_positions row (see livePositions.ts) is reported by the Android
+// tracker app roughly every 30s. Anything older than this is treated as a
+// tracker that's stopped reporting — dead battery, app closed, no signal —
+// so the map falls back to estimateLivePosition instead of showing a dot
+// that's stuck. Uses the absolute difference (not just now - recordedAt) so
+// a few seconds of clock skew between the phone and the server doesn't
+// wrongly mark a fresh reading as stale.
+export const LIVE_POSITION_MAX_AGE_MS = 3 * 60 * 1000;
+
+export function isLivePositionFresh(recordedAt: string, now: number): boolean {
+  const recordedMs = new Date(recordedAt).getTime();
+  return !Number.isNaN(recordedMs) && Math.abs(now - recordedMs) <= LIVE_POSITION_MAX_AGE_MS;
+}
+
 // Estimates where the walker currently is: interpolated along the segment
 // from the most recently checked-into leg toward the next one, based on
 // elapsed time since that check-in and an estimated pace (actual average if

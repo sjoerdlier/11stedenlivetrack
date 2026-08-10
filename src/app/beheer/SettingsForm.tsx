@@ -3,25 +3,37 @@
 import { useState, type FormEvent } from "react";
 import type { RouteSlug } from "@/lib/routes";
 import { routeConfig } from "@/lib/routes";
-import { garminUrlSettingKey, type PartyConfig } from "@/lib/parties";
+import { garminUrlSettingKey, liveTokenSettingKey, type PartyConfig } from "@/lib/parties";
 import styles from "../invoer/invoer.module.css";
 
 interface SettingsFormProps {
   routeParties: { route: RouteSlug; party: PartyConfig }[];
   initialGarminUrls: Record<string, string>;
+  initialLiveTokens: Record<string, string>;
   pinIsSet: boolean;
   loadError: string | null;
   onUnauthorized: () => void;
 }
 
+// Random enough for a bearer token that only ever gets copy-pasted once
+// into the tracker app's settings, not typed by hand — crypto.getRandomValues
+// rather than Math.random, since this is a credential, not a UI id.
+function randomToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function SettingsForm({
   routeParties,
   initialGarminUrls,
+  initialLiveTokens,
   pinIsSet,
   loadError,
   onUnauthorized,
 }: SettingsFormProps) {
   const [garminUrls, setGarminUrls] = useState(initialGarminUrls);
+  const [liveTokens, setLiveTokens] = useState(initialLiveTokens);
   const [newPin, setNewPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +51,7 @@ export default function SettingsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           garminUrls,
+          liveTokens,
           newPin: newPin.trim() ? newPin.trim() : undefined,
         }),
       });
@@ -68,7 +81,7 @@ export default function SettingsForm({
       <div className={styles.formHeader}>
         <div className={styles.formTitle}>Instellingen</div>
         <p className={styles.formHint}>
-          Garmin LiveTrack-links en de check-in PIN — direct van kracht, geen redeploy nodig.
+          Garmin LiveTrack-links, live-tracking tokens en de check-in PIN — direct van kracht, geen redeploy nodig.
         </p>
       </div>
 
@@ -95,6 +108,31 @@ export default function SettingsForm({
                 onChange={(e) => setGarminUrls((g) => ({ ...g, [key]: e.target.value }))}
                 placeholder="https://livetrack.garmin.com/…"
               />
+            </label>
+          );
+        })}
+
+        {routeParties.map(({ route, party }) => {
+          const key = liveTokenSettingKey(route, party.slug);
+          return (
+            <label className={styles.field} key={key}>
+              <span>
+                Live-tracking token — {routeConfig(route).navLabel} · {party.label}
+              </span>
+              <input
+                type="text"
+                value={liveTokens[key] ?? ""}
+                onChange={(e) => setLiveTokens((t) => ({ ...t, [key]: e.target.value }))}
+                placeholder="nog niet ingesteld — tracker-app kan niet versturen"
+              />
+              <button
+                type="button"
+                className={styles.routeLink}
+                style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", textAlign: "left" }}
+                onClick={() => setLiveTokens((t) => ({ ...t, [key]: randomToken() }))}
+              >
+                Genereer nieuw token
+              </button>
             </label>
           );
         })}

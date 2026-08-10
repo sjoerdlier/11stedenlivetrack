@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { CHECKIN_COOKIE, CHECKIN_COOKIE_MAX_AGE, isAuthorized, setPin, tokenForPin } from "@/lib/checkinAuth";
 import { saveSetting } from "@/lib/settings";
-import { allRouteParties, garminUrlSettingKey } from "@/lib/parties";
+import { allRouteParties, garminUrlSettingKey, liveTokenSettingKey } from "@/lib/parties";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
@@ -14,11 +14,13 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
 
-  const allowedKeys = new Set(
-    allRouteParties().map(({ route, party }) => garminUrlSettingKey(route, party.slug)),
-  );
+  const routeParties = allRouteParties();
+  const allowedGarminKeys = new Set(routeParties.map(({ route, party }) => garminUrlSettingKey(route, party.slug)));
+  const allowedTokenKeys = new Set(routeParties.map(({ route, party }) => liveTokenSettingKey(route, party.slug)));
   const garminUrls =
     body?.garminUrls && typeof body.garminUrls === "object" ? (body.garminUrls as Record<string, unknown>) : {};
+  const liveTokens =
+    body?.liveTokens && typeof body.liveTokens === "object" ? (body.liveTokens as Record<string, unknown>) : {};
 
   const newPinRaw = typeof body?.newPin === "string" ? body.newPin.trim() : "";
   if (newPinRaw && !/^\d{4}$/.test(newPinRaw)) {
@@ -27,7 +29,11 @@ export async function POST(request: Request) {
 
   try {
     for (const [key, value] of Object.entries(garminUrls)) {
-      if (!allowedKeys.has(key) || typeof value !== "string") continue;
+      if (!allowedGarminKeys.has(key) || typeof value !== "string") continue;
+      await saveSetting(key, value.trim());
+    }
+    for (const [key, value] of Object.entries(liveTokens)) {
+      if (!allowedTokenKeys.has(key) || typeof value !== "string") continue;
       await saveSetting(key, value.trim());
     }
     if (newPinRaw) {

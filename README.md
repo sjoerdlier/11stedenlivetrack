@@ -187,6 +187,31 @@ hoogtegecorrigeerd, geen platte km/u — een klimstuk laat het tempo dus niet ge
   omhoog schuift (`transform: translateY`), met een duidelijke 44×44px
   sluitknop rechtsboven.
 
+## Live GPS-tracking (los van Garmin)
+
+Garmin LiveTrack bleek geen toegankelijke API te hebben om iemand anders'
+sessie uit te lezen — daarom bestaat er een eigen, kleine pijplijn ernaast:
+
+- Supabase `live_positions`-tabel: één rij per `(route, party)`, alleen de
+  laatst gerapporteerde positie (geen trackgeschiedenis).
+- `POST /api/live` (`src/app/api/live/route.ts`) — token-geauthenticeerd
+  per `(route, party)`; zonder ingesteld token in `/beheer` is een party
+  standaard dicht, niet open met een raadbare sleutel.
+- `/beheer` heeft een live-tracking-tokenveld per `(route, party)`, met een
+  "genereer nieuw token"-knop.
+- `RouteMap`'s live bolletje geeft voorrang aan een verse (<3 min,
+  `isLivePositionFresh` in `src/lib/liveMarker.ts`) `live_positions`-rij
+  boven de bestaande check-in-gebaseerde schatting; valt terug op die
+  schatting zodra een tracker stopt met rapporteren. Tempo/ETA blijven wel
+  op check-ins gebaseerd — een los, groter stuk werk om ook uit
+  opeenvolgende GPS-punten af te leiden, bewust niet in deze v1 meegenomen.
+- `android/` — een losstaand Android Studio-project (Kotlin): een
+  minimale app die elke ~30s de locatie ophaalt en naar `/api/live` post.
+  Geschreven zonder ooit gecompileerd te zijn (deze sandbox had geen
+  Android SDK) — zie `android/README.md` voor bouwinstructies en bekende
+  aandachtspunten (met name achtergrond-locatie-betrouwbaarheid per
+  telefoonmerk).
+
 ## Meerdere routes
 
 De app ondersteunt meerdere routes naast elkaar, ook al is er op dit moment

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Livetrack Tracker</string>
+
+    <string name="label_base_url">Server-URL</string>
+    <string name="label_route">Route</string>
+    <string name="label_party">Wie ben je</string>
+    <string name="label_token">Live-tracking token</string>
+
+    <string name="hint_base_url">https://11stedenlivetrack.vercel.app</string>
+    <string name="hint_route">11steden</string>
+    <string name="hint_party">team</string>
+
+    <string name="button_start">Start livetracking</string>
+    <string name="button_stop">Stop livetracking</string>
+
+    <string name="status_idle">Niet actief.</string>
+    <string name="status_running">Actief — laatste update: %1$s</string>
+    <string name="status_error">Laatste update mislukt: %1$s</string>
+    <string name="status_missing_fields">Vul server-URL, route, wie-ben-je en token in.</string>
+    <string name="status_permission_denied">Locatietoegang geweigerd — zonder kan er niets gedeeld worden.</string>
+
+    <string name="notification_channel_name">Livetracking</string>
+    <string name="notification_title">Livetracking actief</string>
+    <string name="notification_text">Je locatie wordt periodiek gedeeld.</string>
+
+    <string name="battery_optimization_prompt">Voor betrouwbare tracking op de achtergrond: zet batterijoptimalisatie voor deze app uit op het volgende scherm.</string>
+</resources>

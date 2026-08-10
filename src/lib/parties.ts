@@ -7,21 +7,11 @@ export interface PartyConfig {
 }
 
 // Most routes have exactly one implicit party — everyone who checks in
-// shares the same timeline. KAT100 is the first route two independent
-// pairs run at once (Sjoerd & Lowie, Björn & Sander), each needing their
-// own progress/pace/notes without the other's check-ins mixed in.
+// shares the same timeline. A route that's shared by more than one
+// independent group (see git history for the KAT100 routes, removed after
+// that race weekend ended) adds an entry with more than one party here.
 export const PARTIES_BY_ROUTE: Record<RouteSlug, PartyConfig[]> = {
   "11steden": [{ slug: "team", label: "Lowie", color: "#2a78d6" }],
-  kat100: [
-    { slug: "sjoerd-lowie", label: "Sjoerd & Lowie", color: "#2a78d6" },
-    { slug: "bjorn-sander", label: "Björn & Sander", color: "#1baf7a" },
-  ],
-  // Martijn & Jeffrey each run this one solo, tracked independently rather
-  // than as a pair — separate check-in streams, separate shareable links.
-  "kat100-endurance": [
-    { slug: "martijn", label: "Martijn", color: "#d6572a" },
-    { slug: "jeffrey", label: "Jeffrey", color: "#7a3aa7" },
-  ],
 };
 
 export function partiesForRoute(route: RouteSlug): PartyConfig[] {

@@ -5,23 +5,25 @@ breed side-menu (~33vw) dat het volledige schema als kaart-achtige blokken per
 etappe toont — tijd, afstand, cumulatief, buddy, adres (met Google Maps-link) en
 bijzonderheden — de kaart toont dezelfde status in kleur.
 
-De app ondersteunt twee routes naast elkaar, omgeschakeld met een knop bovenin
-(zie "Meerdere routes" hieronder): de **11Stedentocht** (204 km, komoot-export,
-29–30 augustus, Lowie als onderwerp) en de **KAT100 Marathon Trail** (49 km,
-Fieberbrunn, 8 augustus, Sjoerd & Lowie) — die laatste dient onder meer als
-generale repetitie om te testen of de livetrack-flow werkt vóór de 11
-Steden-dag zelf.
+De app is gebouwd om meerdere routes naast elkaar te ondersteunen, omgeschakeld
+met een knop bovenin (zie "Meerdere routes" hieronder) — op dit moment is dat
+alleen de **11Stedentocht** (204 km, komoot-export, 29–30 augustus, Lowie als
+onderwerp). Eerder testte een tijdelijke tweede/derde route (KAT100 Marathon
+Trail + Endurance Trail, augustus) de livetrack-flow voor een ander evenement;
+die zijn na afloop weer uit `ROUTES` gehaald (de historische legs/checkins
+staan nog in Supabase, alleen niet meer bereikbaar vanuit de app) — de
+route/party-machinerie zelf bleef generiek staan voor een volgende keer.
 
 ## Hoe het werkt
 
-- `src/lib/routes.ts` — de configuratie voor beide routes (`11steden` /
-  `kat100`): welk GPX-bestand, welke titel/labels, start-/finishplaats. Elke
+- `src/lib/routes.ts` — de configuratie voor alle routes (op dit moment alleen
+  `11steden`): welk GPX-bestand, welke titel/labels, start-/finishplaats. Elke
   server component die route-afhankelijke data nodig heeft (kaart, schema,
   invoer) leest de actieve route uit de `?route=`-query-param
   (`parseRouteSlug`) en valt terug op `11steden` als die ontbreekt of onbekend
   is.
-- `data/route.gpx` / `data/kat100.gpx` — de GPX-tracks (komoot- resp. Trace de
-  Trail-export, één track, geen waypoints).
+- `data/route.gpx` — de GPX-track (komoot-export, één track, geen
+  waypoints).
 - `src/lib/gpx.ts` — leest en parsed de GPX server-side (`fast-xml-parser`) tot
   een lijst van `[lat, lon]`-punten. `loadRoute(gpxFile)` neemt de bestandsnaam
   uit `routes.ts` mee.
@@ -185,32 +187,41 @@ hoogtegecorrigeerd, geen platte km/u — een klimstuk laat het tempo dus niet ge
   omhoog schuift (`transform: translateY`), met een duidelijke 44×44px
   sluitknop rechtsboven.
 
-## Meerdere routes (11 Steden + KAT100)
+## Meerdere routes
+
+De app ondersteunt meerdere routes naast elkaar, ook al is er op dit moment
+maar één actief (`11steden`) — de machinerie hieronder bleef staan nadat een
+eerdere tweede/derde route (KAT100) na afloop van dat evenement weer uit
+`ROUTES` is gehaald.
 
 - `src/lib/routes.ts` — de enige plek die routes definieert: `slug`,
   `navLabel` (routeswitcher-knop), `pageTitle`, `gpxFile`,
   `startFinishPlaats` en `routeDescription` (kaart-popup/metadata-tekst).
   Nieuwe route toevoegen = een entry aan `ROUTES` plus een GPX-bestand in
   `data/` plus rijen in Supabase — verder hoeft nergens een route
-  hardcoded te worden, alle componenten lezen deze config.
+  hardcoded te worden, alle componenten lezen deze config. Route weer
+  weghalen = precies andersom: de entry uit `ROUTES` (en eventueel uit
+  `PARTIES_BY_ROUTE` in `parties.ts`), de bijbehorende GPX uit `data/` — de
+  Supabase-rijen (`legs`/`checkins`) kunnen gewoon blijven staan, die worden
+  simpelweg niet meer opgevraagd zodra er geen route meer naar verwijst.
 - De actieve route zit in de `?route=`-query-param (`11steden` is de
   default/fallback). `TopBar` rendert per route in `ROUTES` een knop die
   linkt naar `/?route=<slug>`; die knop draagt de route ook door naar
   `/schema` en `/invoer` zodat je niet per pagina opnieuw hoeft te
-  wisselen.
-- **Supabase**: `legs` en `checkins` hebben een `route`-kolom (`text`,
-  `'11steden'` of `'kat100'`). `legs`' primary key is samengesteld —
-  `(route, nr)`, niet alleen `nr` — en `checkins.leg_nr` verwijst via een
-  samengestelde foreign key `(route, leg_nr) → legs(route, nr)`. Zonder
-  die samenstelling zouden "leg 1" van beide routes tegen dezelfde rij
-  botsen. Elke query (`loadLegs`, `loadCheckins`, `insertCheckin`) filtert
-  expliciet op `route` — er is geen impliciete aanname dat er maar één
-  actieve route is.
-- Een route met een checkpoint dat de track twee keer passeert (zoals de
-  KAT100's Lärchfilzhochalm) werkt zonder extra code: `segments.ts`
-  zoekt toch al voorwaarts vanaf de vorige leg (zie de Bartlehiem-uitleg
-  hierboven), dus de tweede passage snapt gewoon naar het juiste,
-  latere stuk track.
+  wisselen. Met maar één route in `ROUTES` is er dus ook maar één knop (of,
+  afhankelijk van hoe dat gerenderd wordt, geen zichtbare switcher).
+- **Supabase**: `legs` en `checkins` hebben een `route`-kolom (`text`).
+  `legs`' primary key is samengesteld — `(route, nr)`, niet alleen `nr` —
+  en `checkins.leg_nr` verwijst via een samengestelde foreign key
+  `(route, leg_nr) → legs(route, nr)`. Zonder die samenstelling zouden
+  "leg 1" van twee verschillende routes tegen dezelfde rij botsen. Elke
+  query (`loadLegs`, `loadCheckins`, `insertCheckin`) filtert expliciet op
+  `route` — er is geen impliciete aanname dat er maar één route in de
+  tabel voorkomt.
+- Een route met een checkpoint dat de track twee keer passeert werkt zonder
+  extra code: `segments.ts` zoekt toch al voorwaarts vanaf de vorige leg
+  (zie de Bartlehiem-uitleg hierboven), dus de tweede passage snapt gewoon
+  naar het juiste, latere stuk track.
 
 ## /invoer — fallback check-in met PIN
 
@@ -279,7 +290,7 @@ rechtstreeks in de Supabase table editor — en herlaad `/`:
 - Voeg een `tijdstip` in het verleden toe (i.p.v. "nu") om een realistisch
   verstreken-tijd/tempo te simuleren zonder echt te hoeven wachten.
 
-**`checkins`-schema**: `route` (text, `'11steden'`/`'kat100'`), `tijdstip`
+**`checkins`-schema**: `route` (text, bijv. `'11steden'`), `tijdstip`
 (timestamptz), `leg_nr` (int, verwijst samen met `route` naar `legs`), `lat`/`lon`
 (numeric, nullable), `notitie` (text, nullable), `invoerder` (text). Wijkt je
 eigen tabel af, dan geeft de insert een duidelijke Supabase-foutmelding in het
@@ -348,7 +359,7 @@ Een bestaande route vervangen: zet een andere GPX-export (zelfde structuur:
 `<gpx><trk><trkseg><trkpt lat="…" lon="…">`) op het pad dat `routes.ts` voor
 die route noemt. Het startpunt wordt automatisch het eerste trackpoint.
 
-Een derde route toevoegen:
+Een tweede (of volgende) route toevoegen:
 
 1. GPX-bestand in `data/` zetten.
 2. Entry toevoegen aan `ROUTES` in `src/lib/routes.ts` (slug, labels,

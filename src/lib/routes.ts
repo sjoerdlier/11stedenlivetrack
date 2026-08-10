@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export type RouteSlug = "11steden" | "kat100" | "kat100-endurance";
+export type RouteSlug = "11steden";
 
 export interface RouteConfig {
   slug: RouteSlug;
@@ -21,33 +21,12 @@ export const ROUTES: RouteConfig[] = [
     startFinishPlaats: "Leeuwarden",
     routeDescription: "11Stedentocht wandelroute",
   },
-  {
-    slug: "kat100",
-    navLabel: "KAT100",
-    // No names here on purpose — two independent parties (see parties.ts)
-    // run this route, so a single name in the route-level title would be
-    // wrong for whichever one isn't it.
-    pageTitle: "KAT100 Marathon Trail",
-    gpxFile: "kat100.gpx",
-    startFinishPlaats: "Fieberbrunn",
-    routeDescription: "KAT100 Marathon Trail",
-  },
-  {
-    slug: "kat100-endurance",
-    navLabel: "KAT100 Endurance",
-    // Same weekend, same event, longer distance category (per the official
-    // KAT 2026 Runner Guide) — point-to-point: starts at the Kitzbühel
-    // football stadium (23:59), finishes at the same Fieberbrunn line as
-    // the Marathon Trail, 74.7km / ~4100m+. The map's single start/finish
-    // marker sits at the GPX's first point, i.e. the *start* here —
-    // startFinishPlaats describes that marker, so it names the start, not
-    // the finish. Run by Martijn & Jeffrey, each tracked separately (see
-    // parties.ts).
-    pageTitle: "KAT100 Endurance Trail",
-    gpxFile: "kat100-endurance.gpx",
-    startFinishPlaats: "Kitzbühel",
-    routeDescription: "KAT100 Endurance Trail",
-  },
+  // The KAT100 Marathon Trail and Endurance Trail routes (and their
+  // multi-party check-ins) were removed from the app after that race
+  // weekend ended — the historical legs/checkins rows are still in
+  // Supabase, just no longer reachable from the app. The multi-route and
+  // multi-party machinery itself (RouteSlug/ROUTES, parties.ts) is kept
+  // generic on purpose, so a future route is just a new ROUTES entry again.
 ];
 
 export const DEFAULT_ROUTE_SLUG: RouteSlug = "11steden";

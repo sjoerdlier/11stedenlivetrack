@@ -6,6 +6,7 @@ import type { LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import { buildEffortLegs, type LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
+import type { LivePositionRow } from "@/lib/livePositions";
 import type { ElevationPoint } from "@/lib/elevation";
 import type { RouteSlug } from "@/lib/routes";
 import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
@@ -31,6 +32,7 @@ interface AppShellProps {
   checkins: Checkin[];
   elevationProfile: ElevationPoint[];
   garminUrl: string | null;
+  livePositions: LivePositionRow[];
 }
 
 export default function AppShell({
@@ -41,6 +43,7 @@ export default function AppShell({
   checkins,
   elevationProfile,
   garminUrl,
+  livePositions,
 }: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const router = useRouter();
@@ -140,6 +143,7 @@ export default function AppShell({
             checkinTimes={checkinTimes}
             checkinsByLeg={checkinsByLeg}
             checkins={checkins}
+            livePositions={livePositions}
             now={now}
             lastRefreshedAt={lastRefreshedAt}
             elevationProfile={elevationProfile}

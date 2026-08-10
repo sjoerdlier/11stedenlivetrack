@@ -18,6 +18,7 @@ import type { LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import type { LegSegment } from "@/lib/segments";
 import type { Checkin } from "@/lib/checkins";
+import type { LivePositionRow } from "@/lib/livePositions";
 import type { ElevationPoint } from "@/lib/elevation";
 import { formatClockTime, formatGeplandeTijd, formatKm } from "@/lib/format";
 import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
@@ -26,7 +27,7 @@ import {
   computeActualProgress,
   firstCheckinTimesByLeg,
 } from "@/lib/actualProgress";
-import { estimateLivePosition, type LivePosition } from "@/lib/liveMarker";
+import { estimateLivePosition, isLivePositionFresh, type LivePosition } from "@/lib/liveMarker";
 import { assignCpTooltipDirections, labelModeForZoom } from "@/lib/mapLabels";
 import { routeConfig, type RouteSlug } from "@/lib/routes";
 import { partiesForRoute, partyConfig, type PartyConfig } from "@/lib/parties";
@@ -81,6 +82,7 @@ interface RouteMapProps {
   checkinTimes: Map<number, number>;
   checkinsByLeg: Map<number, Checkin>;
   checkins: Checkin[];
+  livePositions: LivePositionRow[];
   now: number;
   lastRefreshedAt: number | null;
   elevationProfile: ElevationPoint[];
@@ -131,6 +133,7 @@ export default function RouteMap({
   checkinTimes,
   checkinsByLeg,
   checkins,
+  livePositions,
   now,
   lastRefreshedAt,
   elevationProfile,
@@ -149,15 +152,29 @@ export default function RouteMap({
   }, [legSegments]);
 
   // One live marker per party sharing this route — for a single-party route
-  // (11 Steden) this is exactly the one marker it always was; KAT100 gets
-  // one per independent group (Sjoerd & Lowie, Björn & Sander), each on its
-  // own check-in stream and its own actual/planned pace, same rule TopBar's
-  // ETA uses. Pace and the within-leg fraction both come from effortLegs
-  // (grade-adjusted) rather than legs, so a climb slows the marker's
-  // progress along that stretch instead of assuming a flat, uniform pace.
+  // (11 Steden) this is exactly the one marker it always was; a route with
+  // more than one party (see git history for the KAT100 routes) gets one
+  // per independent group, each on its own check-in stream and its own
+  // actual/planned pace, same rule TopBar's ETA uses. Pace and the
+  // within-leg fraction both come from effortLegs (grade-adjusted) rather
+  // than legs, so a climb slows the marker's progress along that stretch
+  // instead of assuming a flat, uniform pace.
+  //
+  // A fresh (see isLivePositionFresh) livePositions row — reported by the
+  // Android tracker app — always wins over this estimate: real GPS beats a
+  // guess. The estimate is what's left once tracking stops reporting or
+  // never started, so the dot never just vanishes mid-race.
   const liveMarkers = useMemo(() => {
     return partiesForRoute(activeRoute)
       .map((party) => {
+        const liveRow = livePositions.find(
+          (p) => p.party === party.slug && isLivePositionFresh(p.recordedAt, now),
+        );
+        if (liveRow) {
+          const position: LivePosition = { position: [liveRow.lat, liveRow.lon], legNr: 0 };
+          return { party, position, isLive: true };
+        }
+
         const partyCheckins = checkins.filter((c) => c.party === party.slug);
         const partyCheckinTimes = firstCheckinTimesByLeg(partyCheckins);
         const progress = computeActualProgress(effortLegs, partyCheckinTimes);
@@ -167,10 +184,10 @@ export default function RouteMap({
             ? actualPaceKmh
             : totalPlannedPaceKmh(effortLegs);
         const position = estimateLivePosition(effortLegs, legSegments, partyCheckinTimes, now, paceKmh);
-        return position ? { party, position } : null;
+        return position ? { party, position, isLive: false } : null;
       })
-      .filter((m): m is { party: PartyConfig; position: LivePosition } => m !== null);
-  }, [activeRoute, checkins, effortLegs, legSegments, now]);
+      .filter((m): m is { party: PartyConfig; position: LivePosition; isLive: boolean } => m !== null);
+  }, [activeRoute, checkins, effortLegs, legSegments, livePositions, now]);
 
   // Check-ins carry an *optional* GPS position distinct from the leg's own
   // planned coordinates — a photo stop, a detour, wherever the phone
@@ -331,7 +348,7 @@ export default function RouteMap({
             );
           })}
 
-          {liveMarkers.map(({ party, position }) => (
+          {liveMarkers.map(({ party, position, isLive }) => (
             <Marker
               key={`live-${party.slug}`}
               position={position.position}
@@ -346,6 +363,7 @@ export default function RouteMap({
                     aria-hidden
                   />
                   {party.label}
+                  {isLive ? " · live GPS" : " · schatting"}
                 </span>
               </Tooltip>
             </Marker>

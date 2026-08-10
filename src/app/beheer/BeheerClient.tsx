@@ -11,6 +11,7 @@ interface BeheerClientProps {
   initialAuthorized: boolean;
   routeParties: { route: RouteSlug; party: PartyConfig }[];
   garminUrls: Record<string, string>;
+  liveTokens: Record<string, string>;
   pinIsSet: boolean;
   loadError: string | null;
 }
@@ -19,6 +20,7 @@ export default function BeheerClient({
   initialAuthorized,
   routeParties,
   garminUrls,
+  liveTokens,
   pinIsSet,
   loadError,
 }: BeheerClientProps) {
@@ -30,6 +32,7 @@ export default function BeheerClient({
         <SettingsForm
           routeParties={routeParties}
           initialGarminUrls={garminUrls}
+          initialLiveTokens={liveTokens}
           pinIsSet={pinIsSet}
           loadError={loadError}
           onUnauthorized={() => setAuthorized(false)}

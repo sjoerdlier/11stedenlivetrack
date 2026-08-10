@@ -39,6 +39,14 @@ export function garminUrlSettingKey(route: RouteSlug, partySlug: string): string
   return `garmin_url__${route}__${partySlug}`;
 }
 
+// The settings.ts key a party's live-tracking bearer token is stored
+// under — set via /beheer, checked by /api/live on every incoming GPS
+// update from that party's own tracker app. No default: a party with no
+// token set here has live tracking closed, not open with a guessable key.
+export function liveTokenSettingKey(route: RouteSlug, partySlug: string): string {
+  return `live_token__${route}__${partySlug}`;
+}
+
 // Every (route, party) pair that exists — the set /beheer's Garmin-link
 // form renders one field for, and page.tsx looks a link up from.
 export function allRouteParties(): { route: RouteSlug; party: PartyConfig }[] {

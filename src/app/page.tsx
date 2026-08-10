@@ -5,6 +5,7 @@ import LoadError from "@/components/LoadError";
 import { loadRoute } from "@/lib/gpx";
 import { loadLegs, type Leg } from "@/lib/legs";
 import { loadCheckins, type Checkin } from "@/lib/checkins";
+import { loadLivePositions, type LivePositionRow } from "@/lib/livePositions";
 import { buildLegSegments } from "@/lib/segments";
 import { buildElevationProfile } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
@@ -30,6 +31,7 @@ export const dynamic = "force-dynamic";
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
+const getCachedLivePositions = unstable_cache(loadLivePositions, ["live_positions"], { revalidate: 20 });
 
 interface HomeProps {
   searchParams: Promise<{ route?: string; party?: string }>;
@@ -80,6 +82,16 @@ export default async function Home({ searchParams }: HomeProps) {
     garminUrl = null;
   }
 
+  // Same reasoning: no live_positions rows yet (tracker app not running, or
+  // not built yet) is a normal state — the map just falls back to the
+  // check-in-based position estimate, same as before this existed.
+  let livePositions: LivePositionRow[] = [];
+  try {
+    livePositions = await getCachedLivePositions(activeRoute);
+  } catch {
+    livePositions = [];
+  }
+
   return (
     <AppShell
       activeRoute={activeRoute}
@@ -89,6 +101,7 @@ export default async function Home({ searchParams }: HomeProps) {
       checkins={checkins}
       elevationProfile={elevationProfile}
       garminUrl={garminUrl}
+      livePositions={livePositions}
     />
   );
 }

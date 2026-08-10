@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateLivePosition, pointAtFraction } from "./liveMarker";
+import { estimateLivePosition, isLivePositionFresh, LIVE_POSITION_MAX_AGE_MS, pointAtFraction } from "./liveMarker";
 import type { LatLng } from "./geo";
 import type { Leg } from "./legs";
 import type { LegSegment } from "./segments";
@@ -95,5 +95,32 @@ describe("estimateLivePosition", () => {
     const wayLater = 10 * 60 * 60 * 1000; // way past the ~2h estimate
     const result = estimateLivePosition(legs, legSegments, checkinTimes, wayLater, 5);
     expect(result?.position).toEqual([0, 1]);
+  });
+});
+
+describe("isLivePositionFresh", () => {
+  const now = 1_000_000_000;
+
+  it("is fresh right at the moment it was recorded", () => {
+    expect(isLivePositionFresh(new Date(now).toISOString(), now)).toBe(true);
+  });
+
+  it("is fresh just under the max age", () => {
+    const recordedAt = new Date(now - LIVE_POSITION_MAX_AGE_MS + 1000).toISOString();
+    expect(isLivePositionFresh(recordedAt, now)).toBe(true);
+  });
+
+  it("is stale just over the max age", () => {
+    const recordedAt = new Date(now - LIVE_POSITION_MAX_AGE_MS - 1000).toISOString();
+    expect(isLivePositionFresh(recordedAt, now)).toBe(false);
+  });
+
+  it("tolerates a little clock skew rather than treating a future timestamp as invalid", () => {
+    const recordedAt = new Date(now + 5000).toISOString();
+    expect(isLivePositionFresh(recordedAt, now)).toBe(true);
+  });
+
+  it("is not fresh for an unparseable timestamp", () => {
+    expect(isLivePositionFresh("not-a-date", now)).toBe(false);
   });
 });

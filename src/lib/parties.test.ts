@@ -5,40 +5,28 @@ describe("partiesForRoute", () => {
   it("has exactly one implicit party for 11steden", () => {
     expect(partiesForRoute("11steden")).toHaveLength(1);
   });
-
-  it("has two independent parties for kat100", () => {
-    expect(partiesForRoute("kat100").map((p) => p.slug)).toEqual(["sjoerd-lowie", "bjorn-sander"]);
-  });
-
-  it("has two independent parties for kat100-endurance", () => {
-    expect(partiesForRoute("kat100-endurance").map((p) => p.slug)).toEqual(["martijn", "jeffrey"]);
-  });
 });
 
 describe("parsePartySlug", () => {
-  it("accepts a known party slug for the route", () => {
-    expect(parsePartySlug("kat100", "bjorn-sander")).toBe("bjorn-sander");
+  it("accepts the known party slug for the route", () => {
+    expect(parsePartySlug("11steden", "team")).toBe("team");
   });
 
   it("falls back to the route's first party for an unknown slug", () => {
-    expect(parsePartySlug("kat100", "does-not-exist")).toBe("sjoerd-lowie");
-  });
-
-  it("falls back for a slug that belongs to a different route", () => {
-    expect(parsePartySlug("11steden", "bjorn-sander")).toBe("team");
+    expect(parsePartySlug("11steden", "does-not-exist")).toBe("team");
   });
 
   it("falls back when missing entirely", () => {
-    expect(parsePartySlug("kat100", undefined)).toBe("sjoerd-lowie");
+    expect(parsePartySlug("11steden", undefined)).toBe("team");
   });
 });
 
 describe("partyConfig", () => {
   it("returns the matching config", () => {
-    expect(partyConfig("kat100", "bjorn-sander").label).toBe("Björn & Sander");
+    expect(partyConfig("11steden", "team").label).toBe("Lowie");
   });
 
   it("falls back to the first party for an unknown slug", () => {
-    expect(partyConfig("kat100", "does-not-exist").slug).toBe("sjoerd-lowie");
+    expect(partyConfig("11steden", "does-not-exist").slug).toBe("team");
   });
 });

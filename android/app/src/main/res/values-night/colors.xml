@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark palette — same token names as values/colors.xml, same source: the
+     website's own dark-mode tokens (prefers-color-scheme blocks in its
+     .module.css files). Brand blue and accent orange are lifted slightly
+     (#2a78d6 -> #4c93e8, #eb6834 -> #ef7c50) for the same reason the site
+     does it: the darker light-mode hue reads too muted against a near-black
+     background otherwise. -->
+<resources>
+    <color name="bg">#161615</color>
+    <color name="surface">#1e1e1c</color>
+    <color name="surface_sunken">#101010</color>
+    <color name="text_primary">#ffffff</color>
+    <color name="text_muted">#c3c2b7</color>
+    <color name="text_faint">#8f8d86</color>
+    <color name="border">#2c2c2a</color>
+
+    <color name="brand">#4c93e8</color>
+    <color name="on_brand">#101010</color>
+    <color name="accent">#ef7c50</color>
+    <color name="danger">#e2604f</color>
+
+    <color name="notification_bg">#4c93e8</color>
+</resources>

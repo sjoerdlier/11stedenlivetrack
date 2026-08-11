@@ -43,6 +43,28 @@ class TrackerPrefs(context: Context) {
         get() = prefs.getBoolean(KEY_LAST_UPDATE_SUCCESS, true)
         set(value) = prefs.edit().putBoolean(KEY_LAST_UPDATE_SUCCESS, value).apply()
 
+    // Epoch millis of the last send attempt (success or failure) — separate
+    // from lastUpdateText so the UI can compute a live "X geleden" instead of
+    // freezing on the clock time the update happened to land at.
+    var lastUpdateAtMs: Long
+        get() = prefs.getLong(KEY_LAST_UPDATE_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_UPDATE_AT, value).apply()
+
+    // Set by MainActivity the moment a fresh "Start livetracking" tap
+    // actually starts the service — drives the "1u 23m onderweg" elapsed
+    // readout. Deliberately not touched by the service itself, so a
+    // START_STICKY restart (or a BootReceiver resume) doesn't reset the
+    // clock back to zero.
+    var trackingStartedAtMs: Long
+        get() = prefs.getLong(KEY_TRACKING_STARTED_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_TRACKING_STARTED_AT, value).apply()
+
+    // The permission primer only needs to be seen once per install, not
+    // every time tracking is (re)started.
+    var primerShown: Boolean
+        get() = prefs.getBoolean(KEY_PRIMER_SHOWN, false)
+        set(value) = prefs.edit().putBoolean(KEY_PRIMER_SHOWN, value).apply()
+
     fun hasRequiredFields(): Boolean =
         baseUrl.isNotBlank() && route.isNotBlank() && party.isNotBlank() && token.isNotBlank()
 
@@ -54,5 +76,8 @@ class TrackerPrefs(context: Context) {
         private const val KEY_TRACKING = "is_tracking"
         private const val KEY_LAST_UPDATE = "last_update_text"
         private const val KEY_LAST_UPDATE_SUCCESS = "last_update_success"
+        private const val KEY_LAST_UPDATE_AT = "last_update_at_ms"
+        private const val KEY_TRACKING_STARTED_AT = "tracking_started_at_ms"
+        private const val KEY_PRIMER_SHOWN = "primer_shown"
     }
 }

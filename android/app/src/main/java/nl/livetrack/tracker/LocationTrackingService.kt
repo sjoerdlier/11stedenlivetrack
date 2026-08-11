@@ -85,7 +85,9 @@ class LocationTrackingService : Service() {
 
         val recordedAtIso = Instant.now().toString()
         networkExecutor.execute {
-            val time = timeFormatter.format(java.util.Date())
+            val now = System.currentTimeMillis()
+            val time = timeFormatter.format(java.util.Date(now))
+            prefs.lastUpdateAtMs = now
             try {
                 ApiClient.postLocation(baseUrl, route, party, token, lat, lon, recordedAtIso)
                 prefs.lastUpdateSuccess = true
@@ -94,8 +96,11 @@ class LocationTrackingService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "Kon locatie niet versturen", e)
                 prefs.lastUpdateSuccess = false
-                prefs.lastUpdateText = "$time — ${e.message}"
-                notificationManager.notify(NOTIFICATION_ID, buildNotification("${getString(R.string.notification_text)} (mislukt: $time)"))
+                prefs.lastUpdateText = e.message ?: time
+                notificationManager.notify(
+                    NOTIFICATION_ID,
+                    buildNotification(getString(R.string.notification_text_failed, time)),
+                )
             }
         }
     }

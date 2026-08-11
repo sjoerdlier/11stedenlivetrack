@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Light palette — same tokens (by name) as values-night/colors.xml, so
+     every layout/style reference (@color/bg, @color/brand, ...) resolves to
+     the right theme automatically via Android's day/night resource
+     qualifier, the same way the website switches palettes via
+     prefers-color-scheme. Values are the website's own tokens
+     (src/components/*.module.css), not invented separately, since this app
+     is meant to read as the same product. -->
 <resources>
+    <color name="bg">#fcfcfb</color>
+    <color name="surface">#ffffff</color>
+    <color name="surface_sunken">#f5f4f1</color>
+    <color name="text_primary">#0b0b0b</color>
+    <color name="text_muted">#52514e</color>
+    <color name="text_faint">#898781</color>
+    <color name="border">#e1e0d9</color>
+
     <color name="brand">#2a78d6</color>
-    <color name="brand_dark">#1a4d8f</color>
-    <color name="background">#fcfcfb</color>
-    <color name="text">#0b0b0b</color>
+    <color name="on_brand">#ffffff</color>
+    <color name="accent">#eb6834</color>
+    <color name="danger">#c1442f</color>
+
+    <color name="notification_bg">#2a78d6</color>
 </resources>

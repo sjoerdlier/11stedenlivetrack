@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import { formatClockTime, formatKm, formatPaceKmh } from "@/lib/format";
+import { formatClockTime, formatKm, formatPaceKmh, formatScheduleDelta } from "@/lib/format";
 import {
   actualAveragePaceKmh,
   computeActualProgress,
+  currentScheduleDelta,
   estimateArrival,
+  type ScheduleDeltaBand,
 } from "@/lib/actualProgress";
 import {
   computeProgress,
@@ -43,6 +45,14 @@ const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 // gradeAdjustedKm) rather than a flat km/u reading — a title tooltip is the
 // only explanation that fits without lengthening the label on mobile.
 const GAP_TITLE = "Hoogtegecorrigeerd tempo — houdt rekening met klimmen en dalen.";
+
+// Same three-way signal system used on LegCard's own delta badge and
+// everywhere else on the board (see globals.css's token roles).
+const DELTA_COLOR: Record<ScheduleDeltaBand, string> = {
+  voor: "var(--db-signal-green)",
+  op: "var(--db-amber)",
+  achter: "var(--db-signal-red)",
+};
 
 export default function TopBar({
   activeRoute,
@@ -85,7 +95,11 @@ export default function TopBar({
     const effortRemainingKm = Math.max(0, totalEffortKm - effortProgress.km);
     const paceKmh = actualAveragePaceKmh(checkinTimes, effortProgress.km, now);
     const arrival = estimateArrival(now, effortRemainingKm, paceKmh, plannedPaceKmh, checkins.length);
-    return { progress, remainingKm, paceKmh, arrival };
+    // "How far ahead/behind schedule is the walker *right now*" — keyed off
+    // the real (unadjusted) legs, since geplande_tijd is a wall-clock time,
+    // not a distance the grade adjustment would apply to.
+    const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
+    return { progress, remainingKm, paceKmh, arrival, scheduleDelta };
   }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
 
   // The strongest conversion moment for the donation ask: Lowie has actually
@@ -139,6 +153,15 @@ export default function TopBar({
               </div>
               <div className={styles.heroMeta}>
                 <span className={styles.liveTag}>Nu live</span>
+                {actual.scheduleDelta && (
+                  <span
+                    className={styles.deltaTag}
+                    style={{ color: DELTA_COLOR[actual.scheduleDelta.band] }}
+                    aria-label={`Schema: ${formatScheduleDelta(actual.scheduleDelta)}`}
+                  >
+                    {formatScheduleDelta(actual.scheduleDelta)}
+                  </span>
+                )}
                 <span className={styles.heroLabel}>
                   {formatKm(actual.progress.km)} van {formatKm(totalKm)}
                 </span>

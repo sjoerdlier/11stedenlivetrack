@@ -41,6 +41,55 @@
   margin-top: var(--sp-1);
 }
 
+/* ---------- tabs (Schema / Updates / Aankomst) ---------- */
+
+.tabs {
+  display: flex;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-6) var(--sp-3);
+}
+
+.tab {
+  flex: 1;
+  border: 1px solid var(--db-border);
+  background: transparent;
+  color: var(--db-text-dim);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-2);
+  cursor: pointer;
+  text-align: center;
+}
+
+.tab:hover {
+  background: var(--db-surface-2);
+  color: var(--db-text);
+}
+
+/* :focus-visible so the ring only shows for keyboard/AT navigation, same
+   convention as .header/.row elsewhere in this redesign. */
+.tab:focus-visible {
+  outline: 2px solid var(--db-amber);
+  outline-offset: -2px;
+}
+
+/* Selected tab — --db-steel is the token's "selectie" role (see
+   TopBar.module.css's .actionSelected), distinct from --db-amber's
+   "live/actief". */
+.tabSelected {
+  background: var(--db-steel);
+  border-color: var(--db-steel);
+  color: var(--db-ground);
+}
+
+.tabSelected:hover {
+  background: var(--db-steel);
+  filter: brightness(1.05);
+  color: var(--db-ground);
+}
+
 .elevationWrap {
   padding: 0 var(--sp-6);
   margin: calc(var(--sp-2) * -1) 0 var(--sp-3);
@@ -84,6 +133,45 @@
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   overflow: hidden;
+}
+
+.dayGroup {
+  display: block;
+}
+
+.dayList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The sticky day separator — stays pinned to the top of .sidebar's own
+   scroll port while its day's legs scroll past underneath, then gets pushed
+   off by the next day's header taking over the same `top: 0`. .list's own
+   overflow:hidden (used to clip the last row's rounded corners) doesn't
+   break this: it only clips content that would exceed .list's own box,
+   which a position:sticky element inside it never does — .list is exactly
+   as tall as its (day-header + row) content, same scroll container either
+   way. */
+.dayHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: var(--sp-1) var(--sp-4);
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+  background: var(--db-surface-2);
+  border-top: 1px solid var(--db-border);
+  border-bottom: 1px solid var(--db-border);
+}
+
+.dayGroup:first-child .dayHeader {
+  border-top: none;
 }
 
 .handle {

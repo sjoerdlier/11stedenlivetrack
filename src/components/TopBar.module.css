@@ -120,6 +120,19 @@
   }
 }
 
+/* "Voor/op/achter op schema" — the color comes from the DELTA_COLOR token
+   map at the call site (voor/op/achter -> --db-signal-green/--db-amber/
+   --db-signal-red), but the text itself ("+7 min" / "Op schema") already
+   carries the same meaning on its own, so this is never the only signal. */
+.deltaTag {
+  display: inline-flex;
+  align-self: flex-start;
+  font-family: var(--font-mono-family);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
 /* ---------- mono stat row ---------- */
 
 .statRow {

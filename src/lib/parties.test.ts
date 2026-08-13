@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { parsePartySlug, partiesForRoute, partyConfig } from "./parties";
 
 describe("partiesForRoute", () => {
-  it("has exactly one implicit party for 11steden", () => {
-    expect(partiesForRoute("11steden")).toHaveLength(1);
+  it("has two parties for 11steden (Lowie and Björn)", () => {
+    expect(partiesForRoute("11steden")).toHaveLength(2);
   });
 });
 

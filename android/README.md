@@ -15,12 +15,36 @@ one round of "fix a Gradle/SDK version mismatch" before it runs.
 
 ## What it does
 
-One screen, four fields (server URL, route, "who are you", and a
-live-tracking token from `/beheer` on the site), and a start/stop button.
+A calm status screen — brand colors and type matching the site itself —
+that shows one of three panels depending on state:
+
+- **Not set up yet**: the four fields (server URL, route, "who are you",
+  and a live-tracking token from `/beheer`) live on a separate settings
+  screen behind the gear icon, not on the main screen. The empty state
+  points there.
+- **Permission primer**: shown once, the first time you ever tap "Start
+  livetracking" — explains *why* the app is about to ask for background
+  location and a battery-optimization exemption, before the OS dialogs
+  themselves show up.
+- **Hero**: a pulsing marker plus live status (active/idle/error), how long
+  you've been sharing, how long ago the last update landed, which
+  route/party you're sharing as, and a "bekijk mezelf op de kaart" link
+  straight to the site.
+
 Once started, a foreground service (a persistent notification, so it's
 never silently killed) requests a location update roughly every 30 seconds
-and POSTs it to `<server-url>/api/live`. Stop it the same way; nothing
-happens in the background beyond that.
+and POSTs it to `<server-url>/api/live`. Stop it the same way.
+
+A few reliability details that aren't visible as separate screens:
+
+- **Survives a reboot.** If the phone restarts while tracking was on,
+  `BootReceiver` resumes the foreground service automatically instead of
+  leaving sharing silently off until someone notices.
+- **Themed splash screen** on cold start (via `core-splashscreen`), and a
+  proper adaptive launcher icon — no more generic default icon in the app
+  drawer.
+- **Dark mode** follows the phone's system setting, using the same
+  light/dark token pairs as the website.
 
 ## Building it
 
@@ -45,15 +69,18 @@ happens in the background beyond that.
 
 1. On the site, go to `/beheer`, generate a live-tracking token for their
    `(route, party)`, save.
-2. In the app: server URL (`https://11stedenlivetrack.vercel.app`), route
-   slug (e.g. `11steden`), party slug (e.g. `team` — see
-   `src/lib/parties.ts` in the main repo for the exact slugs currently
-   configured), and paste that token in.
-3. Tap "Start livetracking". You'll be walked through: location permission,
-   then (Android 10+) a *second* prompt for background location access,
-   then a battery-optimization exemption screen for this app specifically.
-   All three matter — skipping any of them is the most likely reason
-   tracking stops working once the phone's screen is off for a while.
+2. In the app, tap the gear icon: server URL
+   (`https://11stedenlivetrack.vercel.app`), route slug (e.g. `11steden`),
+   party slug (e.g. `team` — see `src/lib/parties.ts` in the main repo for
+   the exact slugs currently configured), and paste that token in, then
+   save.
+3. Back on the main screen, tap "Start livetracking". The first time ever,
+   you'll see a short explanation screen before anything else happens —
+   after that: location permission, then (Android 10+) a *second* prompt
+   for background location access, then a battery-optimization exemption
+   screen for this app specifically. All three matter — skipping any of
+   them is the most likely reason tracking stops working once the phone's
+   screen is off for a while.
 
 ## The background-location reliability problem, and what this does about it
 

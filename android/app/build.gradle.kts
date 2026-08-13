@@ -44,4 +44,8 @@ dependencies {
     // the raw android.location APIs, and the standard choice for this exact
     // "periodic background location" use case.
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    // The standard "SplashScreen API" compat shim — without it, pre-Android
+    // 12 devices just get a blank white flash on cold start instead of the
+    // themed splash screen.
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }

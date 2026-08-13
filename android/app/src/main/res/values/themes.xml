@@ -2,8 +2,22 @@
 <resources>
     <style name="Theme.LiveTrackTracker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brand</item>
-        <item name="colorPrimaryDark">@color/brand_dark</item>
+        <item name="colorOnPrimary">@color/on_brand</item>
         <item name="colorAccent">@color/brand</item>
-        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- Only MainActivity (the cold-start entry point) uses this — see the
+         manifest. Deliberately doesn't set windowSplashScreenAnimatedIcon:
+         leaving it unset makes the SplashScreen API fall back to the app's
+         own launcher icon automatically, which is already sized/centred
+         correctly for its own purpose (mipmap-anydpi-v26/ic_launcher.xml),
+         instead of hand-tuning a third icon variant. -->
+    <style name="Theme.LiveTrackTracker.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand</item>
+        <item name="postSplashScreenTheme">@style/Theme.LiveTrackTracker</item>
     </style>
 </resources>

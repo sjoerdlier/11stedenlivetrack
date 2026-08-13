@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import PinScreenFixture from "./PinScreenFixture";
+import LoadError from "@/components/LoadError";
+import NewCheckinToast from "@/components/NewCheckinToast";
+import BuddyBadge from "@/components/BuddyBadge";
 import LegScheduleFixture from "./LegScheduleFixture";
 import ElevationProfile from "@/components/ElevationProfile";
 import type { ElevationPoint } from "@/lib/elevation";
@@ -129,6 +133,47 @@ export default function StyleguidePage() {
         </p>
         <div className={styles.fixtureWrap}>
           <LegScheduleFixture />
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.blockTitle}>Restjes-surfaces (fixtures)</h2>
+        <div className={styles.fixtureGrid}>
+          <div className={styles.fixtureCard}>
+            <span className={styles.fixtureLabel}>PinScreen — /invoer, /beheer</span>
+            <div className={styles.fixtureFrame}>
+              <PinScreenFixture />
+            </div>
+          </div>
+
+          <div className={styles.fixtureCard}>
+            <span className={styles.fixtureLabel}>LoadError — route laadfout</span>
+            <div className={styles.fixtureFrame}>
+              <LoadError
+                message="Mock voor styleguide: Supabase niet bereikbaar"
+                retryHref="#styleguide-fixture"
+              />
+            </div>
+          </div>
+
+          <div className={styles.fixtureCard}>
+            <span className={styles.fixtureLabel}>NewCheckinToast</span>
+            <div className={`${styles.fixtureFrame} ${styles.fixtureFrameShort}`}>
+              <NewCheckinToast plaats="Bartlehiem" />
+            </div>
+          </div>
+
+          <div className={styles.fixtureCard}>
+            <span className={styles.fixtureLabel}>BuddyBadge</span>
+            <div className={styles.fixtureFrame}>
+              <div className={styles.fixtureBadgeRow}>
+                <BuddyBadge name="Sjoerd" />
+                <BuddyBadge name="Lowie" />
+                <BuddyBadge name="Anna" />
+                <BuddyBadge name="Mark" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>

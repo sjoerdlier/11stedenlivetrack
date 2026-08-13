@@ -290,3 +290,50 @@
   border-radius: var(--radius-md);
   overflow: hidden;
 }
+
+/* ---------- utility surface fixtures ---------- */
+
+/* Stacked, not a grid — LoadError's fixture is intentionally shown at its
+   real (100vh) height, which would force every grid row to match it. */
+.fixtureGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.fixtureCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.fixtureLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+}
+
+.fixtureFrame {
+  position: relative;
+  background: var(--db-ground);
+  border: 1px dashed var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  padding: var(--sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fixtureFrameShort {
+  min-height: 96px;
+  padding: 0;
+}
+
+.fixtureBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

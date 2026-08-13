@@ -4,8 +4,9 @@ import AppShell from "@/components/AppShell";
 import LoadError from "@/components/LoadError";
 import { loadRoute, type LatLng } from "@/lib/gpx";
 import { loadLegs, type Leg } from "@/lib/legs";
-import { loadCheckins, type Checkin } from "@/lib/checkins";
-import { loadLivePositions, type LivePositionRow } from "@/lib/livePositions";
+import type { Checkin } from "@/lib/checkins";
+import type { LivePositionRow } from "@/lib/livePositions";
+import { getCachedCheckins, getCachedLivePositions } from "@/lib/cachedData";
 import { buildLegSegments, type LegSegment } from "@/lib/segments";
 import { buildElevationProfile, type ElevationPoint } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
@@ -29,9 +30,9 @@ import { loadSetting } from "@/lib/settings";
 export const dynamic = "force-dynamic";
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
-const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
-const getCachedLivePositions = unstable_cache(loadLivePositions, ["live_positions"], { revalidate: 20 });
+// getCachedCheckins/getCachedLivePositions now live in @/lib/cachedData,
+// shared with /api/poll — see that file's comment.
 
 interface RouteGeometry {
   start: LatLng;

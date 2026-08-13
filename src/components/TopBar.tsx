@@ -236,19 +236,21 @@ export default function TopBar({
       )}
 
       <nav className={styles.actions}>
-        <div className={styles.routeSwitch} role="group" aria-label="Route">
-          {ROUTES.map((r) => (
-            <Link
-              key={r.slug}
-              href={`/?route=${r.slug}`}
-              className={`${styles.action} ${r.slug === activeRoute ? styles.actionSelected : ""}`}
-              title={r.pageTitle}
-              aria-current={r.slug === activeRoute}
-            >
-              {r.navLabel}
-            </Link>
-          ))}
-        </div>
+        {ROUTES.length > 1 && (
+          <div className={styles.routeSwitch} role="group" aria-label="Route">
+            {ROUTES.map((r) => (
+              <Link
+                key={r.slug}
+                href={`/?route=${r.slug}`}
+                className={`${styles.action} ${r.slug === activeRoute ? styles.actionSelected : ""}`}
+                title={r.pageTitle}
+                aria-current={r.slug === activeRoute}
+              >
+                {r.navLabel}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {parties.length > 1 && (
           <div className={styles.routeSwitch} role="group" aria-label="Loper(s)">

@@ -100,7 +100,14 @@ export default function LegSchedule({
     parties.length > 1 ? `${partyConfig(activeRoute, activeParty).label} — ${config.pageTitle}` : config.pageTitle;
 
   return (
-    <div className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}>
+    // id/tabIndex target the skip link in AppShell — tabIndex={-1} makes it
+    // focusable programmatically (so keyboard focus visibly lands here, not
+    // just the scroll position) without adding it to the normal Tab order.
+    <div
+      id="etappeschema"
+      tabIndex={-1}
+      className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}
+    >
       <div className={styles.handle} aria-hidden />
       <div
         className={styles.header}
@@ -113,7 +120,7 @@ export default function LegSchedule({
         }}
       >
         <div>
-          <div className={styles.title}>{title}</div>
+          <h2 className={styles.title}>{title}</h2>
           <div className={styles.hint}>
             {formatKm(totalRouteKm(legs))}, {legs.length} stops
             {lastRefreshedAt !== null && ` · bijgewerkt ${formatRelativeTime(lastRefreshedAt, now)}`}

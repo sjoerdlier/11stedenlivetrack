@@ -5,6 +5,43 @@
   flex-direction: column;
 }
 
+/* Standard "invisible until focused" skip-link pattern: parked off-screen
+   (not display:none, which would drop it from the tab order entirely) so
+   the very first Tab press on the page reveals it, letting keyboard/screen
+   reader users jump straight past the map to the etappeschema sidebar. */
+.skipLink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--db-amber);
+  color: var(--db-amber-ink);
+  font-family: var(--font-sans-family);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  border-radius: 0 0 var(--radius-md) 0;
+}
+
+.skipLink:focus {
+  left: 0;
+}
+
+/* Visually hidden but still reachable by assistive tech — the standard
+   "clip" pattern (not display:none/visibility:hidden, which both remove an
+   element from the accessibility tree too). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .body {
   flex: 1;
   min-height: 0;

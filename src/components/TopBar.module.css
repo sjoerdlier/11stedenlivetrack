@@ -48,6 +48,12 @@
   }
 }
 
+.milestoneLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .progressFull {
   font-weight: 400;
   color: #52514e;

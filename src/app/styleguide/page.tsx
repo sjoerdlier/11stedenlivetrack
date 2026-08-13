@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import ElevationProfile from "@/components/ElevationProfile";
+import type { ElevationPoint } from "@/lib/elevation";
 import styles from "./styleguide.module.css";
 
 export const metadata: Metadata = {
@@ -25,6 +27,16 @@ const legs = [
   { stad: "Sloten", tijd: "14:20", status: "nog" as const, tempo: "—" },
   { stad: "Stavoren", tijd: "17:10", status: "nog" as const, tempo: "—" },
 ];
+
+// Deterministic mock profile — Friesland is mostly flat, with a handful of
+// dike/bridge bumps, rather than random noise, so it screenshots the same
+// way every time. distanceKm goes from 0 to 204 (the real route length),
+// elevationM stays low/near-sea-level with a few +/- swings.
+const mockElevationProfile: ElevationPoint[] = Array.from({ length: 41 }, (_, i) => {
+  const distanceKm = (i / 40) * 204;
+  const elevationM = 3 + 4 * Math.sin(i / 3.4) + 2 * Math.sin(i / 1.1) - (i > 30 ? (i - 30) * 0.3 : 0);
+  return { distanceKm, elevationM };
+});
 
 export default function StyleguidePage() {
   return (
@@ -77,6 +89,13 @@ export default function StyleguidePage() {
         <div className={styles.typeDisplay}>204</div>
         <div className={styles.typeSans}>IBM Plex Sans — Etappe 3: IJlst → Sloten</div>
         <div className={styles.typeMono}>12:05:33 · 14,2 km · 5,4 km/u</div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.blockTitle}>Hoogteprofiel</h2>
+        <div className={styles.panelNarrow}>
+          <ElevationProfile profile={mockElevationProfile} />
+        </div>
       </section>
 
       <section className={styles.block}>

@@ -1,0 +1,390 @@
+.page {
+  min-height: 100%;
+  background: var(--db-ground);
+  color: var(--db-text);
+  padding: var(--sp-7) var(--sp-6) var(--sp-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.eyebrow {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--db-amber);
+}
+
+.heroRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.heroNumber {
+  font-family: var(--font-display-family);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--db-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-xs);
+  color: var(--db-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.heroDivider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--db-border);
+}
+
+.heroStats {
+  display: flex;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.heroStat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.statLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+}
+
+.statValue {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--db-text);
+}
+
+.progressTrack {
+  height: 6px;
+  background: var(--db-surface-2);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--db-amber);
+  transition: width var(--motion-flip) var(--motion-ease);
+}
+
+.donate {
+  align-self: flex-start;
+  font-family: var(--font-sans-family);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--db-amber-ink);
+  background: var(--db-amber);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--sp-5);
+  cursor: pointer;
+}
+
+/* ---------- generic block ---------- */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.blockTitle {
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+  border-bottom: 1px solid var(--db-border);
+  padding-bottom: var(--sp-2);
+}
+
+/* ---------- color swatches ---------- */
+
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--sp-4);
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.swatchColor {
+  height: 56px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
+}
+
+.swatchLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+}
+
+/* ---------- type specimens ---------- */
+
+.typeDisplay {
+  font-family: var(--font-display-family);
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  color: var(--db-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.typeSans {
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-md);
+  color: var(--db-text);
+}
+
+.typeMono {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-base);
+  color: var(--db-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- elevation profile ---------- */
+
+/* Constrains the fixture to roughly the sidebar's real width (see
+   LegSchedule.module.css's 380–560px range) so the chart's aspect ratio
+   here matches how it actually reads in the app, not stretched full-bleed
+   across the styleguide's 960px column. */
+.panelNarrow {
+  max-width: 400px;
+}
+
+/* ---------- departure board ---------- */
+
+.board {
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.boardHeader,
+.boardRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 0.6fr;
+  padding: var(--sp-3) var(--sp-4);
+  align-items: center;
+}
+
+.boardHeader {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+  background: var(--db-surface-2);
+}
+
+.boardRow {
+  background: var(--db-surface);
+  border-top: 1px solid var(--db-border);
+  font-family: var(--font-sans-family);
+}
+
+.rowCity {
+  font-weight: 600;
+}
+
+.rowTime,
+.rowTempo {
+  font-family: var(--font-mono-family);
+  font-variant-numeric: tabular-nums;
+  color: var(--db-text-dim);
+}
+
+.rowStamp {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-md);
+}
+
+.row_voltooid .rowStamp {
+  color: var(--db-signal-green);
+}
+
+.row_bezig .rowTime,
+.row_bezig .rowTempo,
+.row_bezig .rowCity {
+  color: var(--db-text);
+}
+
+.row_bezig .rowStamp {
+  color: var(--db-amber);
+}
+
+.row_bezig {
+  background: color-mix(in srgb, var(--db-amber) 8%, var(--db-surface));
+}
+
+.row_nog {
+  opacity: 0.55;
+}
+
+.row_nog .rowStamp {
+  color: var(--db-text-dim);
+}
+
+/* ---------- map preview ---------- */
+
+.mapCaption {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+}
+
+/* Breaks out of .page's 960px reading-column max-width so the fixture below
+   has enough width for LegSchedule's fixed-ish sidebar (min-width: 380px)
+   to leave a genuinely map-sized remainder, instead of squeezing RouteMap's
+   map pane down to a sliver. */
+.mapPreview {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: 560px;
+  border-top: 1px solid var(--db-border);
+  border-bottom: 1px solid var(--db-border);
+  overflow: hidden;
+}
+
+/* ---------- TopBar fixtures ---------- */
+
+/* Breaks out of .page's centered 960px column — TopBar is a full-viewport-
+   width header in the real app, so the fixture gallery needs real desktop
+   width to be an honest preview instead of squeezing it artificially. */
+.fixtureGallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 0 var(--sp-6);
+  box-sizing: border-box;
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* TopBar renders full-bleed; a plain border (no padding/centering) keeps
+   the preview an honest edge-to-edge read instead of floating it in a
+   dashed, padded box like the smaller utility-surface fixtures below. */
+.topBarFrame {
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ---------- real LegSchedule fixture ---------- */
+
+.blockHint {
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  color: var(--db-text-dim);
+  margin-top: calc(var(--sp-2) * -1);
+}
+
+.blockHint code {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+}
+
+/* LegSchedule renders itself as a full-height sidebar (position: fixed
+   below 768px) — this wrapper gives it a bounded, in-flow box to sit in on
+   the styleguide page instead of overlaying the whole viewport. */
+.fixtureWrap {
+  height: 640px;
+  display: flex;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ---------- utility surface fixtures ---------- */
+
+/* Stacked, not a grid — LoadError's fixture is intentionally shown at its
+   real (100vh) height, which would force every grid row to match it. */
+.fixtureGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.fixtureCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.fixtureLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+}
+
+.fixtureFrame {
+  position: relative;
+  background: var(--db-ground);
+  border: 1px dashed var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  padding: var(--sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fixtureFrameShort {
+  min-height: 96px;
+  padding: 0;
+}
+
+.fixtureBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

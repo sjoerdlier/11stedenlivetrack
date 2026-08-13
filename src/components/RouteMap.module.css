@@ -1,14 +1,10 @@
-.layout {
-  display: flex;
-  height: 100%;
-  width: 100%;
-}
-
+/* RouteMap's own root — sits inside AppShell's .mapWrap, which is the flex
+   item / positioning context now (LegSchedule moved out to be its sibling,
+   see AppShell.tsx), so this just fills whatever space .mapWrap gives it. */
 .mapArea {
   position: relative;
   height: 100%;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .map {
@@ -16,12 +12,73 @@
   width: 100%;
 }
 
-.cpTooltip {
-  font-size: 11px;
+/* ---------- popup / tooltip chrome ----------
+   Leaflet ships its own default popup/tooltip skin (white background,
+   rounded corners, drop shadow) via leaflet.css, loaded above — these
+   `:global` overrides retint every popup/tooltip on the map to the board's
+   surface/border tokens with sharp corners, matching how the rest of the
+   redesign treats informational chrome (see globals.css: "radius is used
+   sparingly, only where something is genuinely interactive/tappable" — a
+   hover tooltip or a click popup is neither, so this goes fully square
+   rather than --radius-sm/md). Base typography is the UI sans; individual
+   figures/times inside opt into mono via .tooltipTime. */
+.map :global(.leaflet-tooltip),
+.map :global(.leaflet-popup-content-wrapper) {
+  background: var(--db-surface);
+  color: var(--db-text);
+  border: 1px solid var(--db-border);
+  border-radius: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
+}
+
+.map :global(.leaflet-popup-tip) {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  box-shadow: none;
+}
+
+.map :global(.leaflet-popup-content) {
+  margin: var(--sp-2) var(--sp-3);
+  line-height: 1.5;
+}
+
+/* Tooltip direction arrows are painted via border-color triangles in
+   leaflet.css (one edge colored, the rest transparent) — retint the
+   colored edge per direction so the arrow doesn't stay leaflet's default
+   white against the new dark board surface. */
+.map :global(.leaflet-tooltip-top)::before {
+  border-top-color: var(--db-border);
+}
+.map :global(.leaflet-tooltip-bottom)::before {
+  border-bottom-color: var(--db-border);
+}
+.map :global(.leaflet-tooltip-left)::before {
+  border-left-color: var(--db-border);
+}
+.map :global(.leaflet-tooltip-right)::before {
+  border-right-color: var(--db-border);
+}
+
+/* The permanent per-checkpoint label — route/schedule identity content, so
+   it borrows --db-steel rather than the generic tooltip border/text above.
+   Selector is deliberately `:global(.leaflet-tooltip).cpTooltip` (two
+   classes), not just `.cpTooltip` alone — the generic tooltip rule above is
+   also two classes (`.map :global(.leaflet-tooltip)`), and same-specificity
+   rules fall back to source order, which is fragile. This keeps the
+   override unconditional regardless of where either rule ends up in the
+   compiled stylesheet. */
+.map :global(.leaflet-tooltip).cpTooltip {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  padding: 2px 7px;
-  border: 1px solid #4a3aa7;
-  color: #4a3aa7;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-steel);
+  color: var(--db-steel);
+  border-radius: 0;
 }
 
 .tooltipRow {
@@ -30,13 +87,48 @@
   gap: 6px;
 }
 
+/* Any figure/time inside a tooltip or popup — matches how every other live
+   number on the board reads (tabular mono), distinct from the surrounding
+   sans-serif label text. */
+.tooltipTime {
+  font-family: var(--font-mono-family);
+  font-variant-numeric: tabular-nums;
+  color: var(--db-text-dim);
+}
+
 .partyDot {
   display: inline-block;
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  border: 1px solid #ffffff;
-  box-shadow: 0 0 0 1px rgba(11, 11, 11, 0.3);
+  border: 1px solid var(--db-surface);
+  box-shadow: 0 0 0 1px var(--db-border);
+}
+
+/* "Bezig" checkpoint/leg markers pulse to read as live/active, the same
+   role amber plays everywhere else on the board — a plain fill-opacity
+   breathe rather than a scale transform, since CircleMarker renders as an
+   SVG <path> (no `r` attribute to animate) and fill-opacity is broadly
+   animatable on any SVG shape. Applied via pathOptions.className, so this
+   targets the marker's own path element directly, no wrapper needed. */
+.markerPulse {
+  animation: marker-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes marker-pulse {
+  0%,
+  100% {
+    fill-opacity: 1;
+  }
+  50% {
+    fill-opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markerPulse {
+    animation: none;
+  }
 }
 
 .liveIconWrap {
@@ -64,11 +156,17 @@
   }
 }
 
+/* Both this and .liveDot below declare var(--db-amber) as their own
+   background/border color, even though the RouteMap.tsx call site also
+   passes that same value inline (`style="background:${color}"` /
+   `border-color:${color}`) — the inline style is what actually paints, this
+   is just so the class's own declared color matches the design system
+   instead of sitting stale at the old literal orange. */
 .livePulse {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: #eb6834;
+  background: var(--db-amber);
   animation: live-pulse 1.8s ease-out infinite;
 }
 
@@ -86,7 +184,7 @@
   right: 4px;
   bottom: 4px;
   border-radius: 50%;
-  background: #eb6834;
+  background: var(--db-amber);
   border: 2px solid #ffffff;
   box-shadow: 0 1px 4px rgba(11, 11, 11, 0.4);
 }

@@ -1,8 +1,15 @@
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import type { LegTiming } from "@/lib/actualProgress";
-import { formatGeplandeTijd, formatClockTime, formatKm, formatPaceKmh, googleMapsUrl } from "@/lib/format";
-import { STATUS_COLORS, STATUS_LABELS, type LegStatus } from "@/lib/status";
+import { scheduleDeltaForLeg, type LegTiming, type ScheduleDeltaBand } from "@/lib/actualProgress";
+import {
+  formatGeplandeTijd,
+  formatClockTime,
+  formatKm,
+  formatPaceKmh,
+  formatScheduleDelta,
+  googleMapsUrl,
+} from "@/lib/format";
+import { STATUS_LABELS, type LegStatus } from "@/lib/status";
 import BuddyBadge from "./BuddyBadge";
 import styles from "./LegCard.module.css";
 
@@ -18,6 +25,25 @@ interface LegCardProps {
 
 const DASH = "–";
 
+// The row's status glyph — the departure-board "stamp" — mirrors the
+// styleguide's board mock exactly (voltooid/bezig/nog-te-gaan), colored via
+// the status-* class on the row rather than per-glyph so it stays in sync
+// with the rest of the row's signal coloring.
+const STATUS_GLYPH: Record<LegStatus, string> = {
+  voltooid: "●",
+  bezig: "▸",
+  "nog-te-gaan": "○",
+};
+
+// Same three-way signal system used everywhere else on the board (see
+// globals.css's token roles) — voor/op/achter schedule maps directly onto
+// the "done"/"live"/"critical-now" roles those tokens already carry.
+const DELTA_COLOR: Record<ScheduleDeltaBand, string> = {
+  voor: "var(--db-signal-green)",
+  op: "var(--db-amber)",
+  achter: "var(--db-signal-red)",
+};
+
 export default function LegCard({
   leg,
   status,
@@ -28,43 +54,44 @@ export default function LegCard({
   onToggle,
 }: LegCardProps) {
   const isCp = leg.cp_nummer !== null;
+  // "compact" only gates the detail panel below the summary line — the
+  // summary itself (stad/tijd/tempo/status) is always shown, unchanged
+  // logic from before the redesign (voltooid legs collapse by default,
+  // bezig/nog-te-gaan legs and any explicitly selected leg stay open).
   const compact = status === "voltooid" && !expanded;
   const noteTijd = checkin ? formatClockTime(new Date(checkin.tijdstip).getTime()) : null;
+  const scheduleDelta = scheduleDeltaForLeg(
+    leg.geplande_tijd,
+    checkin ? new Date(checkin.tijdstip).getTime() : null,
+  );
 
   return (
     <li>
       <button
         type="button"
         id={`leg-row-${leg.nr}`}
-        className={[
-          styles.card,
-          styles[`status-${status}`],
-          compact ? styles.compact : "",
-          status === "bezig" ? styles.active : "",
-        ]
+        className={[styles.row, styles[`status-${status}`], compact ? styles.compact : ""]
           .filter(Boolean)
           .join(" ")}
         onClick={onToggle}
         aria-expanded={expanded}
       >
-        <div className={styles.header}>
-          <span
-            className={`${styles.dot} ${isCp ? styles.dotCp : ""}`}
-            style={{ background: STATUS_COLORS[status] }}
-            aria-hidden
-          />
-          <span className={styles.plaats}>{leg.start_plaats}</span>
-          {isCp && <span className={styles.cpBadge}>CP {leg.cp_nummer}</span>}
-          {compact ? (
-            <span className={styles.tijd}>{formatGeplandeTijd(leg.geplande_tijd) ?? DASH}</span>
-          ) : (
-            <span className={styles.statusLabel}>{STATUS_LABELS[status]}</span>
-          )}
-        </div>
+        <span className={styles.summary}>
+          <span className={styles.city}>
+            {leg.start_plaats}
+            {isCp && <span className={styles.cpBadge}>CP {leg.cp_nummer}</span>}
+          </span>
+          <span className={styles.time}>{formatGeplandeTijd(leg.geplande_tijd) ?? DASH}</span>
+          <span className={styles.tempo}>{formatPaceKmh(timing.tempoGepland) ?? DASH}</span>
+          <span className={styles.stamp} aria-hidden>
+            {STATUS_GLYPH[status]}
+          </span>
+        </span>
+        <span className={styles.srOnly}>{STATUS_LABELS[status]}</span>
 
         {!compact && (
-          <>
-            <div className={styles.metaRow}>
+          <span className={styles.detail}>
+            <span className={styles.metaRow}>
               {leg.afstand_km !== null && (
                 <>
                   <span>{formatKm(leg.afstand_km)}</span>
@@ -72,7 +99,7 @@ export default function LegCard({
                 </>
               )}
               <span>{formatKm(leg.cumulatief_start_km)} totaal</span>
-            </div>
+            </span>
 
             <table className={styles.timingTable}>
               <thead>
@@ -90,6 +117,11 @@ export default function LegCard({
                     {timing.aankomstWerkelijk !== null
                       ? formatClockTime(timing.aankomstWerkelijk) ?? DASH
                       : DASH}
+                    {scheduleDelta && (
+                      <span className={styles.deltaBadge} style={{ color: DELTA_COLOR[scheduleDelta.band] }}>
+                        {formatScheduleDelta(scheduleDelta)}
+                      </span>
+                    )}
                   </td>
                 </tr>
                 <tr>
@@ -176,7 +208,7 @@ export default function LegCard({
                 </div>
               </div>
             )}
-          </>
+          </span>
         )}
       </button>
     </li>

@@ -1,11 +1,17 @@
+/* Same stamp language as LegCard's checkpoint badge (.cpBadge): small,
+   uppercase-tracked, tight radius. Unlike that outline-only badge this one
+   fills with the buddy's assigned color (colorForBuddy), so the shape
+   stays a rectangle rather than a pill — reads as a stamped tag, not a
+   status pill. */
 .badge {
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.02em;
-  border-radius: 999px;
-  padding: 2px 9px;
+  letter-spacing: 0.03em;
+  border-radius: var(--radius-sm);
+  padding: 1px var(--sp-2);
   line-height: 1.5;
   width: fit-content;
 }

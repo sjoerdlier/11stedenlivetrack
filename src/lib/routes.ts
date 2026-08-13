@@ -42,10 +42,13 @@ export function parseRouteSlug(value: string | string[] | undefined): RouteSlug 
   return ROUTES.some((r) => r.slug === v) ? (v as RouteSlug) : DEFAULT_ROUTE_SLUG;
 }
 
-// Shared title + description + Open Graph shape for generateMetadata, so a
-// shared link (the topbar's "Delen" button, or the donation ask) gets a real
-// preview card on WhatsApp/Twitter/Facebook instead of a bare link — none of
-// the three pages had openGraph fields before this.
+// Shared title + description + Open Graph/Twitter Card shape for
+// generateMetadata, so a shared link (the topbar's "Delen" button, or the
+// donation ask) gets a real preview card on WhatsApp/Twitter/Facebook
+// instead of a bare link. The og:image/twitter:image tags themselves come
+// for free from the file-based app/opengraph-image.tsx and
+// app/twitter-image.tsx routes (see src/lib/ogImage.tsx) — Next.js
+// auto-detects those and doesn't need an `images` field here.
 export function socialMetadata(title: string, description: string): Metadata {
   return {
     title,
@@ -55,6 +58,11 @@ export function socialMetadata(title: string, description: string): Metadata {
       description,
       locale: "nl_NL",
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

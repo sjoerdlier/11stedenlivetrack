@@ -255,3 +255,24 @@
 .row_nog .rowStamp {
   color: var(--db-text-dim);
 }
+
+/* ---------- map preview ---------- */
+
+.mapCaption {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+}
+
+/* Breaks out of .page's 960px reading-column max-width so the fixture below
+   has enough width for LegSchedule's fixed-ish sidebar (min-width: 380px)
+   to leave a genuinely map-sized remainder, instead of squeezing RouteMap's
+   map pane down to a sliver. */
+.mapPreview {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: 560px;
+  border-top: 1px solid var(--db-border);
+  border-bottom: 1px solid var(--db-border);
+  overflow: hidden;
+}

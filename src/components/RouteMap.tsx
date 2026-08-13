@@ -21,7 +21,7 @@ import type { Checkin } from "@/lib/checkins";
 import type { LivePositionRow } from "@/lib/livePositions";
 import type { ElevationPoint } from "@/lib/elevation";
 import { formatClockTime, formatGeplandeTijd, formatKm } from "@/lib/format";
-import { STATUS_COLORS, totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
+import { totalPlannedPaceKmh, totalRouteKm, type LegStatus } from "@/lib/status";
 import {
   actualAveragePaceKmh,
   computeActualProgress,
@@ -36,30 +36,53 @@ import styles from "./RouteMap.module.css";
 
 const INITIAL_ZOOM = 11;
 
-// Deliberately a plain literal, not var(--color-text-secondary): that token
-// gets a lighter dark-mode value (#c3c2b7), but this marker ring needs to
-// stay this exact charcoal against the map's tiles in both themes — Leaflet
-// isn't part of the page's light/dark cascade the way the sidebar text is.
-const MARKER_RING_COLOR = "#52514e";
-// The route line no longer follows leg status (that made most of the route
-// white/invisible); it's blue by default and turns green when a leg is
-// selected from the sidebar, so the click actually stands out.
-//
-// Reads --color-accent from the CSS custom property introduced in
-// globals.css rather than repeating the literal hex a 7th time — the token
-// has no dark-mode override (this line has always been the same blue in
-// both themes), so this resolves to the same "#2a78d6" as before. Falls
-// back to that literal for the (client-only, pre-mount) instant before the
-// stylesheet has painted.
-function readAccentColor(): string {
-  if (typeof window === "undefined") return "#2a78d6";
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue("--color-accent")
-    .trim();
-  return value || "#2a78d6";
+// Leaflet's SVG layer isn't part of the page's light/dark cascade the way
+// the sidebar's DOM is — a `var(--db-*)` in a stylesheet resolves for a
+// CSS-painted element automatically, but pathOptions.color needs a literal
+// string handed to Leaflet's JS. So every "Vertrekstaat" board color used on
+// the map is read once via getComputedStyle at module load (client-only —
+// falls back to the token's light-mode literal for the instant before the
+// stylesheet has painted, and again if this ever evaluates during SSR).
+// This deliberately *does* track the theme's light/dark split (unlike the
+// single fixed charcoal below): --db-steel, --db-amber etc. all carry a
+// dark-mode override in globals.css, and the map is meant to re-light with
+// the rest of the board, not stay pinned to one theme's values.
+function readBoardColor(token: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  return value || fallback;
 }
-const ROUTE_BASE_COLOR = readAccentColor();
-const ROUTE_SELECTED_COLOR = "#16a34a";
+
+// The route line's identity color — previously a plain accent blue, always
+// on regardless of theme. --db-steel *is* "route/schedule identity" in the
+// token system (see globals.css), so this is a deliberate swap to that
+// token's value, not just the old blue hiding behind a new variable name.
+const ROUTE_BASE_COLOR = readBoardColor("--db-steel", "#2c5c8a");
+// A selected leg used to turn green ("the click actually stands out" from
+// the rest of the route). Green is now reserved for "voltooid" elsewhere on
+// the board, so reusing it here would make a selection read as "done" —
+// amber ("live/actief") fits a user-focused segment much better within the
+// four-color system, and still contrasts hard against the steel default.
+const ROUTE_SELECTED_COLOR = readBoardColor("--db-amber", "#c97a12");
+
+// Filled leg-marker stroke: keeps a "stamped seal" edge readable against
+// whatever color the OSM tile underneath happens to be (green fields, blue
+// water, pale roads) — same rationale as the old fixed charcoal ring this
+// replaces, kept as a literal for the same reason (this is contrast against
+// tiles, not a themed board surface).
+const MARKER_STROKE_COLOR = "#52514e";
+// "Nog te gaan" markers are hollow outlines dimmed to --db-text-dim, not
+// pure white — the old bug was a white ring vanishing against near-white
+// tiles/cards; a dim mid-gray ring stays visible on both light and dark
+// tiles while clearly reading as "hasn't happened yet".
+const MARKER_DIM_COLOR = readBoardColor("--db-text-dim", "#5b5f68");
+const MARKER_AMBER_COLOR = readBoardColor("--db-amber", "#c97a12");
+const MARKER_GREEN_COLOR = readBoardColor("--db-signal-green", "#1f7a4d");
+// The live marker (real GPS or estimate) is a fixed "live/actief" amber
+// signal now, the same role --db-amber plays everywhere else on the board —
+// not tinted per party the way it used to be (see liveMarkers below for
+// why that's an acceptable trade here).
+const LIVE_MARKER_COLOR = readBoardColor("--db-amber", "#c97a12");
 
 const startFinishIcon = L.icon({
   iconUrl:
@@ -75,12 +98,11 @@ const startFinishIcon = L.icon({
   popupAnchor: [0, -38],
 });
 
-// A small pulsing dot for a party's estimated live position — deliberately
+// A small pulsing dot for a party's live/estimated position — deliberately
 // not a Leaflet CircleMarker, since those can't carry a CSS animation/
 // transition. The pulse ring and animation live in RouteMap.module.css
 // (with a prefers-reduced-motion override); this just wires up the two
-// layered spans divIcon expects as an HTML string, tinted to that party's
-// color so two simultaneous parties stay visually distinct.
+// layered spans divIcon expects as an HTML string.
 //
 // isLive (real Android-tracker GPS) and the estimated fallback (interpolated
 // from pace + check-ins) get visibly different treatments — a solid filled
@@ -307,16 +329,30 @@ export default function RouteMap({
             const showCpLabel = isCp && labelMode !== "hidden";
             const cpDirection = cpDirections.get(leg.nr) ?? "right";
             const cpOffset: [number, number] = cpDirection === "right" ? [8, 0] : [-8, 0];
+            // Checkpoint/leg markers read as stamps: a "voltooid" leg is a
+            // filled green dot (done), "bezig" is a filled amber dot that
+            // pulses (live/actief, see .markerPulse below), and anything
+            // still ahead is a dimmed outline-only ring — not filled at
+            // all — rather than the old solid gray, so it clearly reads as
+            // "hasn't happened" instead of just a duller version of "done".
+            const markerFill =
+              status === "voltooid"
+                ? MARKER_GREEN_COLOR
+                : status === "bezig"
+                  ? MARKER_AMBER_COLOR
+                  : "none";
+            const markerStroke = status === "nog-te-gaan" ? MARKER_DIM_COLOR : MARKER_STROKE_COLOR;
             return (
               <CircleMarker
                 key={`marker-${leg.nr}`}
                 center={[leg.start_lat, leg.start_lon]}
                 radius={isSelected ? baseRadius + 3 : baseRadius}
                 pathOptions={{
-                  color: MARKER_RING_COLOR,
+                  color: markerStroke,
                   weight: isCp || isSelected ? 2.5 : 1.5,
-                  fillColor: STATUS_COLORS[status],
-                  fillOpacity: 1,
+                  fillColor: markerFill,
+                  fillOpacity: status === "nog-te-gaan" ? 0 : 1,
+                  className: status === "bezig" ? styles.markerPulse : undefined,
                 }}
                 eventHandlers={{ click: () => selectFromMap(isSelected ? null : leg.nr) }}
               >
@@ -340,7 +376,7 @@ export default function RouteMap({
                   <Tooltip key="hover" direction="top" offset={[0, -6]}>
                     <span className={styles.tooltipRow}>
                       {leg.start_plaats}
-                      {tijd ? ` · ${tijd}` : ""}
+                      {tijd ? <span className={styles.tooltipTime}> · {tijd}</span> : null}
                     </span>
                   </Tooltip>
                 )}
@@ -367,7 +403,7 @@ export default function RouteMap({
                 <Tooltip direction="top" offset={[0, -6]}>
                   <span className={styles.tooltipRow}>
                     📍 {leg?.start_plaats ?? `Leg ${checkin.leg_nr}`}
-                    {tijd ? ` · ${tijd}` : ""}
+                    {tijd ? <span className={styles.tooltipTime}> · {tijd}</span> : null}
                     {checkin.notitie ? ` · “${checkin.notitie}”` : ""}
                   </span>
                 </Tooltip>
@@ -379,7 +415,7 @@ export default function RouteMap({
             <Marker
               key={`live-${party.slug}`}
               position={position.position}
-              icon={liveIconFor(party.color, isLive)}
+              icon={liveIconFor(LIVE_MARKER_COLOR, isLive)}
               zIndexOffset={1000}
             >
               <Tooltip direction="top" offset={[0, -10]}>
@@ -400,7 +436,7 @@ export default function RouteMap({
             <Popup>
               Start / Finish — {config.startFinishPlaats}
               <br />
-              {config.routeDescription} ({formatKm(totalKm)})
+              {config.routeDescription} (<span className={styles.tooltipTime}>{formatKm(totalKm)}</span>)
             </Popup>
           </Marker>
         </MapContainer>

@@ -265,3 +265,28 @@
 .row_nog .rowStamp {
   color: var(--db-text-dim);
 }
+
+/* ---------- real LegSchedule fixture ---------- */
+
+.blockHint {
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  color: var(--db-text-dim);
+  margin-top: calc(var(--sp-2) * -1);
+}
+
+.blockHint code {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+}
+
+/* LegSchedule renders itself as a full-height sidebar (position: fixed
+   below 768px) — this wrapper gives it a bounded, in-flow box to sit in on
+   the styleguide page instead of overlaying the whole viewport. */
+.fixtureWrap {
+  height: 640px;
+  display: flex;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}

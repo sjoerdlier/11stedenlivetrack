@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Code tooling state — background-agent git worktrees each carry
+    // their own .next/node_modules; without this, linting from the main
+    // checkout also scans every stray worktree's compiled build output.
+    ".claude/**",
   ]),
 ]);
 

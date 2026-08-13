@@ -3,6 +3,7 @@ import { saveLivePosition } from "@/lib/livePositions";
 import { loadSetting } from "@/lib/settings";
 import { parseRouteSlug } from "@/lib/routes";
 import { liveTokenSettingKey, parsePartySlug } from "@/lib/parties";
+import { timingSafeStringEqual } from "@/lib/checkinAuth";
 
 // Called by the Android tracker app, not a browser — auth is a bearer token
 // per (route, party) rather than the /invoer PIN-cookie flow, since there's
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 
-  if (!expectedToken || !bearerToken || bearerToken !== expectedToken) {
+  if (!expectedToken || !bearerToken || !timingSafeStringEqual(bearerToken, expectedToken)) {
     return NextResponse.json({ ok: false, error: "Niet geautoriseerd." }, { status: 401 });
   }
 

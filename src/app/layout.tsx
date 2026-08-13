@@ -7,9 +7,21 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+// Needed to resolve the relative og:image/twitter:image URLs that the
+// file-based app/opengraph-image.tsx and app/twitter-image.tsx routes
+// produce into absolute ones (required for social platforms to fetch them).
+// NEXT_PUBLIC_SITE_URL isn't in .env.example/Vercel yet — falls back to the
+// known production URL (see android/README.md's server-URL setup step) so
+// this works out of the box; set the env var if that domain ever changes.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://11stedenlivetrack.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "11Stedentocht Live Track",
   description: "Kaart van de 11Stedentocht wandelroute (204 km)",
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 // Matches TopBar's own light/dark background so the browser chrome (status

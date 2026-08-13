@@ -199,3 +199,98 @@ export function estimateLegArrivals(
   }
   return result;
 }
+
+export interface ArrivalWindow {
+  earliest: number;
+  latest: number;
+}
+
+// Same paceKmh basis as estimateLegArrivals, but widened into a
+// +/-marginRatio window instead of one falsely-precise instant — a
+// faster-than-current pace pulls the arrival earlier, a slower one pushes it
+// later, so a spectator gets an honest "somewhere in this range" for "wanneer
+// is hij bij mij". Empty under the same <2-check-ins condition
+// estimateLegArrivals uses (not enough real pace data yet); callers fall
+// back to the leg's own geplande_tijd, labeled "volgens schema", for that
+// case — see UpcomingArrivals.
+export function estimateLegArrivalWindows(
+  legs: Leg[],
+  checkinTimes: Map<number, number>,
+  now: number,
+  marginRatio = 0.1,
+): Map<number, ArrivalWindow> {
+  const result = new Map<number, ArrivalWindow>();
+  if (checkinTimes.size < 2) return result;
+
+  const progress = computeActualProgress(legs, checkinTimes);
+  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  if (paceKmh === null || paceKmh <= 0) return result;
+
+  const fastPaceKmh = paceKmh * (1 + marginRatio);
+  const slowPaceKmh = paceKmh * (1 - marginRatio);
+
+  for (const leg of legs) {
+    if (checkinTimes.has(leg.nr)) continue;
+    const remainingKm = leg.cumulatief_start_km - progress.km;
+    if (remainingKm <= 0) continue;
+    const earliest = now + (remainingKm / fastPaceKmh) * 60 * 60 * 1000;
+    const latest = slowPaceKmh > 0 ? now + (remainingKm / slowPaceKmh) * 60 * 60 * 1000 : earliest;
+    result.set(leg.nr, { earliest, latest });
+  }
+  return result;
+}
+
+export type ScheduleDeltaBand = "voor" | "op" | "achter";
+
+export interface ScheduleDelta {
+  minutes: number;
+  band: ScheduleDeltaBand;
+}
+
+// Within this many minutes either way of geplande_tijd reads as "op schema"
+// rather than meaningfully ahead/behind — a real walking pace drifts by a
+// minute or two leg to leg even when everything is going exactly to plan.
+const ON_SCHEDULE_THRESHOLD_MINUTES = 3;
+
+function bandForMinutes(minutes: number): ScheduleDeltaBand {
+  if (minutes <= -ON_SCHEDULE_THRESHOLD_MINUTES) return "voor";
+  if (minutes >= ON_SCHEDULE_THRESHOLD_MINUTES) return "achter";
+  return "op";
+}
+
+// Minutes behind (positive) or ahead of (negative) the printed schedule for
+// a single leg: the raw difference between when the walker actually checked
+// in here and when geplande_tijd said they would. null when either side is
+// missing/unparseable — a leg with no schedule time, or one not yet reached.
+export function scheduleDeltaForLeg(
+  plannedTijd: string | null,
+  actualMs: number | null,
+): ScheduleDelta | null {
+  if (!plannedTijd || actualMs === null) return null;
+  const planned = new Date(plannedTijd).getTime();
+  if (Number.isNaN(planned)) return null;
+  const minutes = Math.round((actualMs - planned) / MINUTE_MS);
+  return { minutes, band: bandForMinutes(minutes) };
+}
+
+// The schedule delta for the most recently reached leg — "how far
+// ahead/behind schedule is the walker *right now*", the single figure
+// TopBar's hero shows (as opposed to a per-leg delta, which is what
+// scheduleDeltaForLeg/LegCard show). "Most recently reached" = latest actual
+// check-in timestamp, not necessarily the highest leg nr — check-ins should
+// arrive in order, but this stays correct even if one lands out of order.
+export function currentScheduleDelta(
+  legs: Leg[],
+  checkinTimes: Map<number, number>,
+): ScheduleDelta | null {
+  let latestLeg: Leg | null = null;
+  let latestTime = -Infinity;
+  for (const leg of legs) {
+    const time = checkinTimes.get(leg.nr);
+    if (time !== undefined && time > latestTime) {
+      latestTime = time;
+      latestLeg = leg;
+    }
+  }
+  return latestLeg ? scheduleDeltaForLeg(latestLeg.geplande_tijd, latestTime) : null;
+}

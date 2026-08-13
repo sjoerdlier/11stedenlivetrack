@@ -15,8 +15,6 @@ import {
   CLOSEUP_START,
   CLOSEUP_STATUSES,
   FIXTURE_CHECKINS,
-  FIXTURE_CHECKINS_BY_LEG,
-  FIXTURE_CHECKIN_TIMES,
   FIXTURE_EFFORT_LEGS,
   FIXTURE_LEG_SEGMENTS,
   FIXTURE_LIVE_POSITIONS,
@@ -150,18 +148,13 @@ export default function StyleguidePage() {
         <div className={styles.mapPreview}>
           <RouteMapLoader
             activeRoute="11steden"
-            activeParty="team"
             start={FIXTURE_START}
             legSegments={FIXTURE_LEG_SEGMENTS}
             effortLegs={FIXTURE_EFFORT_LEGS}
             statuses={FIXTURE_STATUSES}
-            checkinTimes={FIXTURE_CHECKIN_TIMES}
-            checkinsByLeg={FIXTURE_CHECKINS_BY_LEG}
             checkins={FIXTURE_CHECKINS}
             livePositions={FIXTURE_LIVE_POSITIONS}
             now={FIXTURE_NOW}
-            lastRefreshedAt={FIXTURE_NOW}
-            elevationProfile={[]}
           />
         </div>
         <p className={styles.mapCaption}>
@@ -170,18 +163,13 @@ export default function StyleguidePage() {
         <div className={styles.mapPreview}>
           <RouteMapLoader
             activeRoute="11steden"
-            activeParty="team"
             start={FIXTURE_START}
             legSegments={FIXTURE_LEG_SEGMENTS}
             effortLegs={FIXTURE_EFFORT_LEGS}
             statuses={FIXTURE_STATUSES}
-            checkinTimes={FIXTURE_CHECKIN_TIMES}
-            checkinsByLeg={FIXTURE_CHECKINS_BY_LEG}
             checkins={FIXTURE_CHECKINS}
             livePositions={[]}
             now={FIXTURE_NOW}
-            lastRefreshedAt={FIXTURE_NOW}
-            elevationProfile={[]}
           />
         </div>
         <p className={styles.mapCaption}>
@@ -190,18 +178,13 @@ export default function StyleguidePage() {
         <div className={styles.mapPreview}>
           <RouteMapLoader
             activeRoute="11steden"
-            activeParty="team"
             start={CLOSEUP_START}
             legSegments={CLOSEUP_LEG_SEGMENTS}
             effortLegs={CLOSEUP_EFFORT_LEGS}
             statuses={CLOSEUP_STATUSES}
-            checkinTimes={new Map()}
-            checkinsByLeg={new Map()}
             checkins={[]}
             livePositions={[]}
             now={FIXTURE_NOW}
-            lastRefreshedAt={FIXTURE_NOW}
-            elevationProfile={[]}
           />
         </div>
       </section>

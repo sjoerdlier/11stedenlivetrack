@@ -26,6 +26,26 @@ export function googleMapsUrl(lat: number, lon: number): string {
   return `https://maps.google.com/?q=${lat},${lon}`;
 }
 
+const dutchDayFormatter = new Intl.DateTimeFormat("nl-NL", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "Europe/Amsterdam",
+});
+
+// Formats a timestamptz value's calendar day (Europe/Amsterdam) as
+// "Zaterdag 29 augustus" — the sticky day-separator label in the schedule.
+// nl-NL's "long" weekday/month come back lowercase ("zaterdag augustus"),
+// so the leading letter is capitalized to read as a heading. Falls back to
+// null for a missing/unparseable value, same contract as formatGeplandeTijd.
+export function formatDayLabel(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const label = dutchDayFormatter.format(date);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 const dutchDateTimeFormatter = new Intl.DateTimeFormat("nl-NL", {
   weekday: "short",
   day: "numeric",
@@ -64,6 +84,17 @@ const kmFormatter = new Intl.NumberFormat("nl-NL", {
 // same table), which read as inconsistent side by side without this.
 export function formatKm(value: number): string {
   return `${kmFormatter.format(value)} km`;
+}
+
+// Formats a schedule delta (see actualProgress.ts's ScheduleDelta) as
+// "+7 min" (achter), "−4 min" (voor) or "Op schema". The sign/word already
+// carries the meaning on its own — this is deliberately never the *only*
+// signal a caller pairs with the --db-signal-*/--db-amber color for the same
+// band, so the reading survives without color too.
+export function formatScheduleDelta(delta: { minutes: number; band: "voor" | "op" | "achter" }): string {
+  if (delta.band === "op") return "Op schema";
+  const sign = delta.band === "achter" ? "+" : "−";
+  return `${sign}${Math.abs(delta.minutes)} min`;
 }
 
 // Formats how long ago `sinceMs` was, relative to `now`, as "zojuist" /

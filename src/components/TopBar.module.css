@@ -19,6 +19,16 @@
 
 /* ---------- board panel (countdown / progress) ---------- */
 
+/* Wraps .board + WeatherStrip as .bar's single left-hand flex child, so the
+   weather line stays visually attached to the live status instead of
+   becoming a third item in .bar's space-between layout. */
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
 .board {
   display: flex;
   flex-direction: column;

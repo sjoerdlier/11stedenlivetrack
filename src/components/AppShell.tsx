@@ -9,6 +9,7 @@ import type { Checkin } from "@/lib/checkins";
 import type { LivePositionRow } from "@/lib/livePositions";
 import type { ElevationPoint } from "@/lib/elevation";
 import type { RouteSlug } from "@/lib/routes";
+import type { WeatherSnapshot } from "@/lib/weather";
 import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import { computeLegStatuses } from "@/lib/status";
 import { useSimulatedNow } from "@/lib/useSimulatedNow";
@@ -33,6 +34,7 @@ interface AppShellProps {
   elevationProfile: ElevationPoint[];
   garminUrl: string | null;
   livePositions: LivePositionRow[];
+  weather: WeatherSnapshot | null;
 }
 
 export default function AppShell({
@@ -44,6 +46,7 @@ export default function AppShell({
   elevationProfile,
   garminUrl,
   livePositions,
+  weather,
 }: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const router = useRouter();
@@ -129,6 +132,7 @@ export default function AppShell({
         checkinTimes={checkinTimes}
         liveTrackOpen={liveTrackOpen}
         onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
+        weather={weather}
       />
       <div className={styles.body}>
         <div className={styles.mapWrap}>

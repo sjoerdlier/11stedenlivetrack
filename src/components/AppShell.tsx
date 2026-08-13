@@ -117,7 +117,17 @@ export default function AppShell({
   }, [checkins, isDebugMode]);
 
   return (
-    <div className={styles.shell}>
+    <main className={styles.shell}>
+      {/* Skip link: invisible until it receives keyboard focus (first Tab
+          stop on the page), then jumps straight past the map to the
+          etappeschema sidebar — see #etappeschema on LegSchedule's root. */}
+      <a href="#etappeschema" className={styles.skipLink}>
+        Naar het etappeschema
+      </a>
+      {/* Visually hidden (not display:none, so it stays in the accessibility
+          tree) — the map itself has no visible page title, so this is the
+          only <h1> a screen reader user gets. */}
+      <h1 className={styles.srOnly}>11 Steden Livetrack — Lowie &amp; Björn</h1>
       <TopBar
         activeRoute={activeRoute}
         activeParty={activeParty}
@@ -151,6 +161,6 @@ export default function AppShell({
         </div>
         <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} garminUrl={garminUrl} />
       </div>
-    </div>
+    </main>
   );
 }

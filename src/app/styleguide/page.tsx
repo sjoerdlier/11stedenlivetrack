@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import RouteMapLoader from "@/components/RouteMapLoader";
 import PinScreenFixture from "./PinScreenFixture";
 import LoadError from "@/components/LoadError";
@@ -15,8 +16,6 @@ import {
   CLOSEUP_START,
   CLOSEUP_STATUSES,
   FIXTURE_CHECKINS,
-  FIXTURE_CHECKINS_BY_LEG,
-  FIXTURE_CHECKIN_TIMES,
   FIXTURE_EFFORT_LEGS,
   FIXTURE_LEG_SEGMENTS,
   FIXTURE_LIVE_POSITIONS,
@@ -61,6 +60,15 @@ const mockElevationProfile: ElevationPoint[] = Array.from({ length: 41 }, (_, i)
 });
 
 export default function StyleguidePage() {
+  // Internal design-reference doc only — it was reachable in production with
+  // nothing but a `robots: noindex` meta tag (not an access control, just a
+  // request search engines don't have to honor) between it and anyone with
+  // the URL. Simplest guard that doesn't cost anything during development:
+  // 404 it out of existence once this is actually a production build.
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
@@ -150,18 +158,13 @@ export default function StyleguidePage() {
         <div className={styles.mapPreview}>
           <RouteMapLoader
             activeRoute="11steden"
-            activeParty="team"
             start={FIXTURE_START}
             legSegments={FIXTURE_LEG_SEGMENTS}
             effortLegs={FIXTURE_EFFORT_LEGS}
             statuses={FIXTURE_STATUSES}
-            checkinTimes={FIXTURE_CHECKIN_TIMES}
-            checkinsByLeg={FIXTURE_CHECKINS_BY_LEG}
             checkins={FIXTURE_CHECKINS}
             livePositions={FIXTURE_LIVE_POSITIONS}
             now={FIXTURE_NOW}
-            lastRefreshedAt={FIXTURE_NOW}
-            elevationProfile={[]}
           />
         </div>
         <p className={styles.mapCaption}>
@@ -170,18 +173,13 @@ export default function StyleguidePage() {
         <div className={styles.mapPreview}>
           <RouteMapLoader
             activeRoute="11steden"
-            activeParty="team"
             start={FIXTURE_START}
             legSegments={FIXTURE_LEG_SEGMENTS}
             effortLegs={FIXTURE_EFFORT_LEGS}
             statuses={FIXTURE_STATUSES}
-            checkinTimes={FIXTURE_CHECKIN_TIMES}
-            checkinsByLeg={FIXTURE_CHECKINS_BY_LEG}
             checkins={FIXTURE_CHECKINS}
             livePositions={[]}
             now={FIXTURE_NOW}
-            lastRefreshedAt={FIXTURE_NOW}
-            elevationProfile={[]}
           />
         </div>
         <p className={styles.mapCaption}>
@@ -190,18 +188,13 @@ export default function StyleguidePage() {
         <div className={styles.mapPreview}>
           <RouteMapLoader
             activeRoute="11steden"
-            activeParty="team"
             start={CLOSEUP_START}
             legSegments={CLOSEUP_LEG_SEGMENTS}
             effortLegs={CLOSEUP_EFFORT_LEGS}
             statuses={CLOSEUP_STATUSES}
-            checkinTimes={new Map()}
-            checkinsByLeg={new Map()}
             checkins={[]}
             livePositions={[]}
             now={FIXTURE_NOW}
-            lastRefreshedAt={FIXTURE_NOW}
-            elevationProfile={[]}
           />
         </div>
       </section>

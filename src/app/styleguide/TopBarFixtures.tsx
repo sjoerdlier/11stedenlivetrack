@@ -9,12 +9,24 @@
 import TopBar from "@/components/TopBar";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
+import type { WeatherSnapshot } from "@/lib/weather";
 import { computeLegStatuses } from "@/lib/status";
 import { firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import styles from "./styleguide.module.css";
 
 const ROUTE = "11steden" as const;
 const PARTY = "team";
+
+// Fixed mock snapshot — WeatherStrip doesn't vary with the leg/check-in
+// state these fixtures otherwise sweep through, so every fixture below
+// shares this one value.
+const MOCK_WEATHER: WeatherSnapshot = {
+  temperatureC: 14,
+  windKmh: 18,
+  weatherCode: 3,
+  description: "bewolkt",
+  isDay: true,
+};
 
 function iso(base: string, hoursOffset: number): string {
   const d = new Date(base);
@@ -124,6 +136,7 @@ function Fixture({ label, legs, now, checkins, garminUrl = null }: FixtureProps)
           checkins={checkins}
           checkinTimes={checkinTimes}
           garminUrl={garminUrl}
+          weather={MOCK_WEATHER}
         />
       </div>
     </div>

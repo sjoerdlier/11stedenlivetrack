@@ -1,7 +1,14 @@
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import type { LegTiming } from "@/lib/actualProgress";
-import { formatGeplandeTijd, formatClockTime, formatKm, formatPaceKmh, googleMapsUrl } from "@/lib/format";
+import { scheduleDeltaForLeg, type LegTiming, type ScheduleDeltaBand } from "@/lib/actualProgress";
+import {
+  formatGeplandeTijd,
+  formatClockTime,
+  formatKm,
+  formatPaceKmh,
+  formatScheduleDelta,
+  googleMapsUrl,
+} from "@/lib/format";
 import { STATUS_LABELS, type LegStatus } from "@/lib/status";
 import BuddyBadge from "./BuddyBadge";
 import styles from "./LegCard.module.css";
@@ -28,6 +35,15 @@ const STATUS_GLYPH: Record<LegStatus, string> = {
   "nog-te-gaan": "○",
 };
 
+// Same three-way signal system used everywhere else on the board (see
+// globals.css's token roles) — voor/op/achter schedule maps directly onto
+// the "done"/"live"/"critical-now" roles those tokens already carry.
+const DELTA_COLOR: Record<ScheduleDeltaBand, string> = {
+  voor: "var(--db-signal-green)",
+  op: "var(--db-amber)",
+  achter: "var(--db-signal-red)",
+};
+
 export default function LegCard({
   leg,
   status,
@@ -44,6 +60,10 @@ export default function LegCard({
   // bezig/nog-te-gaan legs and any explicitly selected leg stay open).
   const compact = status === "voltooid" && !expanded;
   const noteTijd = checkin ? formatClockTime(new Date(checkin.tijdstip).getTime()) : null;
+  const scheduleDelta = scheduleDeltaForLeg(
+    leg.geplande_tijd,
+    checkin ? new Date(checkin.tijdstip).getTime() : null,
+  );
 
   return (
     <li>
@@ -97,6 +117,11 @@ export default function LegCard({
                     {timing.aankomstWerkelijk !== null
                       ? formatClockTime(timing.aankomstWerkelijk) ?? DASH
                       : DASH}
+                    {scheduleDelta && (
+                      <span className={styles.deltaBadge} style={{ color: DELTA_COLOR[scheduleDelta.band] }}>
+                        {formatScheduleDelta(scheduleDelta)}
+                      </span>
+                    )}
                   </td>
                 </tr>
                 <tr>

@@ -5,7 +5,7 @@ import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import { computeLegStatuses } from "@/lib/status";
 import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
-import LegSchedule from "@/components/LegSchedule";
+import LegSchedule, { type SidebarTab } from "@/components/LegSchedule";
 
 // Static mock data for the styleguide preview only — same shape the real
 // page.tsx assembles from Supabase/GPX, but hand-written here so this page
@@ -73,7 +73,10 @@ const FIXTURE_LEGS: Leg[] = [
     cumulatief_start_km: 61.6,
     start_lat: 52.886,
     start_lon: 5.3572,
-    geplande_tijd: "2026-08-15T15:10:00.000Z",
+    // Deliberately past CEST midnight into the 16th — the fixture's own
+    // "day 2" leg, so LegSchedule's sticky day separator (see
+    // scheduleDays.ts) has something to actually split on.
+    geplande_tijd: "2026-08-16T02:10:00.000Z",
     cp_nummer: null,
     adres: null,
     bijzonderheden: null,
@@ -86,17 +89,21 @@ const FIXTURE_LEGS: Leg[] = [
     cumulatief_start_km: 76.7,
     start_lat: 52.9525,
     start_lon: 5.3961,
-    geplande_tijd: "2026-08-15T17:30:00.000Z",
+    geplande_tijd: "2026-08-16T04:30:00.000Z",
     cp_nummer: null,
     adres: null,
     bijzonderheden: null,
   },
 ];
 
+// Deltas deliberately span all three voor/op/achter bands (see
+// actualProgress.ts's ScheduleDeltaBand) so the styleguide's LegCard/TopBar
+// previews show the full green/amber/red set, not just one color.
 const FIXTURE_CHECKINS: Checkin[] = [
   {
     party: "team",
-    tijdstip: "2026-08-15T04:58:00.000Z",
+    // 5 min ahead of leg 1's 05:00 geplande_tijd -> "voor" (green).
+    tijdstip: "2026-08-15T04:55:00.000Z",
     leg_nr: 1,
     lat: 53.2012,
     lon: 5.7999,
@@ -105,7 +112,8 @@ const FIXTURE_CHECKINS: Checkin[] = [
   },
   {
     party: "team",
-    tijdstip: "2026-08-15T08:52:00.000Z",
+    // 1 min after leg 2's 08:40 -> within the threshold, "op schema" (amber).
+    tijdstip: "2026-08-15T08:41:00.000Z",
     leg_nr: 2,
     lat: 53.0331,
     lon: 5.6586,
@@ -114,6 +122,7 @@ const FIXTURE_CHECKINS: Checkin[] = [
   },
   {
     party: "team",
+    // 9 min after leg 3's 10:05 -> "achter" (red).
     tijdstip: "2026-08-15T10:14:00.000Z",
     leg_nr: 3,
     lat: 52.9736,
@@ -131,6 +140,7 @@ const FIXTURE_NOW = new Date("2026-08-15T11:00:00.000Z").getTime();
 export default function LegScheduleFixture() {
   const [selectedNr, setSelectedNr] = useState<number | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<SidebarTab>("schema");
   const statuses = useMemo(() => computeLegStatuses(FIXTURE_LEGS, FIXTURE_NOW), []);
   const checkinTimes = useMemo(() => firstCheckinTimesByLeg(FIXTURE_CHECKINS), []);
   const checkinsByLeg = useMemo(() => firstCheckinByLeg(FIXTURE_CHECKINS), []);
@@ -144,10 +154,13 @@ export default function LegScheduleFixture() {
       statuses={statuses}
       checkinTimes={checkinTimes}
       checkinsByLeg={checkinsByLeg}
+      checkins={FIXTURE_CHECKINS}
       selectedNr={selectedNr}
       onSelect={setSelectedNr}
       mobileExpanded={mobileExpanded}
       onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
       now={FIXTURE_NOW}
       lastRefreshedAt={FIXTURE_NOW}
       elevationProfile={[]}

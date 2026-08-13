@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import { formatClockTime, formatKm, formatPaceKmh } from "@/lib/format";
+import { formatClockTime, formatKm, formatPaceKmh, formatScheduleDelta } from "@/lib/format";
 import {
   actualAveragePaceKmh,
   computeActualProgress,
+  currentScheduleDelta,
   estimateArrival,
+  type ScheduleDeltaBand,
 } from "@/lib/actualProgress";
 import {
   computeProgress,
@@ -19,6 +21,8 @@ import {
 } from "@/lib/status";
 import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
 import { partiesForRoute } from "@/lib/parties";
+import type { WeatherSnapshot } from "@/lib/weather";
+import WeatherStrip from "./WeatherStrip";
 import styles from "./TopBar.module.css";
 
 interface TopBarProps {
@@ -35,6 +39,7 @@ interface TopBarProps {
   // LiveTrack link is only worth surfacing at all once it's actually set in
   // /beheer — never a full-screen panel, just a small outbound link.
   garminUrl: string | null;
+  weather: WeatherSnapshot | null;
 }
 
 const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
@@ -43,6 +48,14 @@ const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL;
 // gradeAdjustedKm) rather than a flat km/u reading — a title tooltip is the
 // only explanation that fits without lengthening the label on mobile.
 const GAP_TITLE = "Hoogtegecorrigeerd tempo — houdt rekening met klimmen en dalen.";
+
+// Same three-way signal system used on LegCard's own delta badge and
+// everywhere else on the board (see globals.css's token roles).
+const DELTA_COLOR: Record<ScheduleDeltaBand, string> = {
+  voor: "var(--db-signal-green)",
+  op: "var(--db-amber)",
+  achter: "var(--db-signal-red)",
+};
 
 export default function TopBar({
   activeRoute,
@@ -54,6 +67,7 @@ export default function TopBar({
   checkins,
   checkinTimes,
   garminUrl,
+  weather,
 }: TopBarProps) {
   const config = routeConfig(activeRoute);
   const parties = partiesForRoute(activeRoute);
@@ -83,7 +97,11 @@ export default function TopBar({
     const effortRemainingKm = Math.max(0, totalEffortKm - effortProgress.km);
     const paceKmh = actualAveragePaceKmh(checkinTimes, effortProgress.km, now);
     const arrival = estimateArrival(now, effortRemainingKm, paceKmh, plannedPaceKmh, checkins.length);
-    return { progress, remainingKm, paceKmh, arrival };
+    // "How far ahead/behind schedule is the walker *right now*" — keyed off
+    // the real (unadjusted) legs, since geplande_tijd is a wall-clock time,
+    // not a distance the grade adjustment would apply to.
+    const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
+    return { progress, remainingKm, paceKmh, arrival, scheduleDelta };
   }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
 
   // The strongest conversion moment for the donation ask: Lowie has actually
@@ -123,134 +141,153 @@ export default function TopBar({
 
   return (
     <header className={styles.bar}>
-      {actual ? (
-        <div className={styles.board} aria-live="polite">
-          <div className={styles.panelMain}>
-            <div className={styles.heroBlock}>
-              <span className={styles.heroNumber}>{Math.round(actual.progress.percent)}</span>
-              <span className={styles.heroPercent}>%</span>
+      {/* Groups the countdown/progress board with the weather strip as one
+          flex child, so WeatherStrip stays visually attached to the live
+          status instead of splitting header's two-column space-between
+          layout into three. */}
+      <div className={styles.leftColumn}>
+        {actual ? (
+          <div className={styles.board} aria-live="polite">
+            <div className={styles.panelMain}>
+              <div className={styles.heroBlock}>
+                <span className={styles.heroNumber}>{Math.round(actual.progress.percent)}</span>
+                <span className={styles.heroPercent}>%</span>
+              </div>
+              <div className={styles.heroMeta}>
+                <span className={styles.liveTag}>Nu live</span>
+                {actual.scheduleDelta && (
+                  <span
+                    className={styles.deltaTag}
+                    style={{ color: DELTA_COLOR[actual.scheduleDelta.band] }}
+                    aria-label={`Schema: ${formatScheduleDelta(actual.scheduleDelta)}`}
+                  >
+                    {formatScheduleDelta(actual.scheduleDelta)}
+                  </span>
+                )}
+                <span className={styles.heroLabel}>
+                  {formatKm(actual.progress.km)} van {formatKm(totalKm)}
+                </span>
+              </div>
             </div>
-            <div className={styles.heroMeta}>
-              <span className={styles.liveTag}>Nu live</span>
-              <span className={styles.heroLabel}>
-                {formatKm(actual.progress.km)} van {formatKm(totalKm)}
-              </span>
-            </div>
-          </div>
 
-          <div className={styles.statRow}>
-            <span className={styles.stat}>
-              <span className={styles.statLabel}>Te gaan</span>
-              <span className={styles.statValue}>{formatKm(actual.remainingKm)}</span>
-            </span>
-            {actual.paceKmh !== null && (
-              <span className={styles.stat} title={GAP_TITLE}>
-                <span className={styles.statLabel}>Tempo</span>
-                <span className={styles.statValue}>
-                  {formatPaceKmh(actual.paceKmh)}
-                  <span className={styles.gapBadge} aria-hidden>
-                    ⛰
+            <div className={styles.statRow}>
+              <span className={styles.stat}>
+                <span className={styles.statLabel}>Te gaan</span>
+                <span className={styles.statValue}>{formatKm(actual.remainingKm)}</span>
+              </span>
+              {actual.paceKmh !== null && (
+                <span className={styles.stat} title={GAP_TITLE}>
+                  <span className={styles.statLabel}>Tempo</span>
+                  <span className={styles.statValue}>
+                    {formatPaceKmh(actual.paceKmh)}
+                    <span className={styles.gapBadge} aria-hidden>
+                      ⛰
+                    </span>
                   </span>
                 </span>
-              </span>
-            )}
-            {actual.arrival && (
-              <span className={styles.stat}>
-                <span className={styles.statLabel}>Aankomst ±</span>
-                <span className={styles.statValue}>
-                  {formatClockTime(actual.arrival.time)}
-                  {actual.arrival.basis === "gepland" && (
-                    <span className={styles.statNote}> (schatting o.b.v. gepland tempo)</span>
-                  )}
+              )}
+              {actual.arrival && (
+                <span className={styles.stat}>
+                  <span className={styles.statLabel}>Aankomst ±</span>
+                  <span className={styles.statValue}>
+                    {formatClockTime(actual.arrival.time)}
+                    {actual.arrival.basis === "gepland" && (
+                      <span className={styles.statNote}> (schatting o.b.v. gepland tempo)</span>
+                    )}
+                  </span>
                 </span>
-              </span>
-            )}
-          </div>
-
-          {actual.progress.percent >= 50 && (
-            <div className={styles.milestone}>
-              🎉 Halverwege
-              {donationUrl && (
-                <>
-                  {" — "}
-                  <a
-                    href={donationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.milestoneLink}
-                  >
-                    steun Lowie
-                  </a>
-                </>
               )}
             </div>
-          )}
 
-          <span className={styles.progressTrack}>
-            <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
-          </span>
-        </div>
-      ) : countdownDays !== null ? (
-        <div className={styles.board} aria-live="polite">
-          <div className={styles.panelMain}>
-            <div className={styles.heroBlock}>
-              <span className={styles.heroNumber}>{countdownDays}</span>
-            </div>
-            <div className={styles.heroMeta}>
-              <span className={styles.heroLabel}>
-                {countdownDays === 1 ? "dag tot de start" : "dagen tot de start"}
-              </span>
+            {actual.progress.percent >= 50 && (
+              <div className={styles.milestone}>
+                🎉 Halverwege
+                {donationUrl && (
+                  <>
+                    {" — "}
+                    <a
+                      href={donationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.milestoneLink}
+                    >
+                      steun Lowie
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
+
+            <span className={styles.progressTrack}>
+              <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
+            </span>
+          </div>
+        ) : countdownDays !== null ? (
+          <div className={styles.board} aria-live="polite">
+            <div className={styles.panelMain}>
+              <div className={styles.heroBlock}>
+                <span className={styles.heroNumber}>{countdownDays}</span>
+              </div>
+              <div className={styles.heroMeta}>
+                <span className={styles.heroLabel}>
+                  {countdownDays === 1 ? "dag tot de start" : "dagen tot de start"}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className={styles.board} aria-live="polite">
-          <div className={styles.panelMain}>
-            <div className={styles.heroBlock}>
-              <span className={styles.heroNumber}>{Math.round(percent)}</span>
-              <span className={styles.heroPercent}>%</span>
+        ) : (
+          <div className={styles.board} aria-live="polite">
+            <div className={styles.panelMain}>
+              <div className={styles.heroBlock}>
+                <span className={styles.heroNumber}>{Math.round(percent)}</span>
+                <span className={styles.heroPercent}>%</span>
+              </div>
+              <div className={styles.heroMeta}>
+                <span className={styles.heroLabel}>
+                  {formatKm(km)} van {formatKm(totalKm)}
+                </span>
+              </div>
             </div>
-            <div className={styles.heroMeta}>
-              <span className={styles.heroLabel}>
-                {formatKm(km)} van {formatKm(totalKm)}
-              </span>
-            </div>
-          </div>
 
-          {paceLabel && (
-            <div className={styles.statRow}>
-              <span className={styles.stat} title={GAP_TITLE}>
-                <span className={styles.statLabel}>Gem. tempo (gepland)</span>
-                <span className={styles.statValue}>
-                  {paceLabel}
-                  <span className={styles.gapBadge} aria-hidden>
-                    ⛰
+            {paceLabel && (
+              <div className={styles.statRow}>
+                <span className={styles.stat} title={GAP_TITLE}>
+                  <span className={styles.statLabel}>Gem. tempo (gepland)</span>
+                  <span className={styles.statValue}>
+                    {paceLabel}
+                    <span className={styles.gapBadge} aria-hidden>
+                      ⛰
+                    </span>
                   </span>
                 </span>
-              </span>
-            </div>
-          )}
+              </div>
+            )}
 
-          <span className={styles.progressTrack}>
-            <span className={styles.progressFill} style={{ width: `${percent}%` }} />
-          </span>
-        </div>
-      )}
+            <span className={styles.progressTrack}>
+              <span className={styles.progressFill} style={{ width: `${percent}%` }} />
+            </span>
+          </div>
+        )}
+
+        <WeatherStrip weather={weather} />
+      </div>
 
       <nav className={styles.actions}>
-        <div className={styles.routeSwitch} role="group" aria-label="Route">
-          {ROUTES.map((r) => (
-            <Link
-              key={r.slug}
-              href={`/?route=${r.slug}`}
-              className={`${styles.action} ${r.slug === activeRoute ? styles.actionSelected : ""}`}
-              title={r.pageTitle}
-              aria-current={r.slug === activeRoute}
-            >
-              {r.navLabel}
-            </Link>
-          ))}
-        </div>
+        {ROUTES.length > 1 && (
+          <div className={styles.routeSwitch} role="group" aria-label="Route">
+            {ROUTES.map((r) => (
+              <Link
+                key={r.slug}
+                href={`/?route=${r.slug}`}
+                className={`${styles.action} ${r.slug === activeRoute ? styles.actionSelected : ""}`}
+                title={r.pageTitle}
+                aria-current={r.slug === activeRoute}
+              >
+                {r.navLabel}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {parties.length > 1 && (
           <div className={styles.routeSwitch} role="group" aria-label="Loper(s)">
@@ -321,6 +358,22 @@ export default function TopBar({
             <span className={styles.actionLabel}>Doneren volgt nog</span>
           </span>
         )}
+
+        {/* This tracker is a companion to oogvoormaja.nl, where the full
+            story lives (Lowie & Björn walking the Elfstedentocht
+            blindfolded for OOG voor Maja/het Oogfonds) — a small, plain-text
+            pointer back there, deliberately not styled as another action
+            button. Independent of the NEXT_PUBLIC_DONATION_URL button
+            above: that donates directly, this links to the story. */}
+        <a
+          href="https://www.oogvoormaja.nl/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.storyLink}
+          aria-label="Het volledige verhaal en doneren op oogvoormaja.nl (opent in nieuw tabblad)"
+        >
+          Het volledige verhaal: oogvoormaja.nl
+        </a>
       </nav>
     </header>
   );

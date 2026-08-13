@@ -6,6 +6,7 @@ import { loadRoute, type LatLng } from "@/lib/gpx";
 import { loadLegs, type Leg } from "@/lib/legs";
 import { loadCheckins, type Checkin } from "@/lib/checkins";
 import { loadLivePositions, type LivePositionRow } from "@/lib/livePositions";
+import { loadWeather, type WeatherSnapshot } from "@/lib/weather";
 import { buildLegSegments, type LegSegment } from "@/lib/segments";
 import { buildElevationProfile, type ElevationPoint } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
@@ -32,6 +33,12 @@ const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
 const getCachedLivePositions = unstable_cache(loadLivePositions, ["live_positions"], { revalidate: 20 });
+// Open-Meteo, unlike the Supabase reads above, isn't something a viewer's
+// own poll should hammer every 20s — weather doesn't change that fast, and
+// this is a free API with no key. A much longer window (30 min, within the
+// "900-1800s" range other slow-changing context uses) still means everyone
+// checking during the event sees the same handful of API calls.
+const getCachedWeather = unstable_cache(loadWeather, ["weather"], { revalidate: 1800 });
 
 interface RouteGeometry {
   start: LatLng;
@@ -120,6 +127,18 @@ export default async function Home({ searchParams }: HomeProps) {
     livePositions = [];
   }
 
+  // Weather context for whoever's tracking the walk — loadWeather() already
+  // never throws (any Open-Meteo hiccup resolves to null there), this
+  // try/catch just matches the same defensive shape every other optional
+  // data source on this page uses.
+  let weather: WeatherSnapshot | null = null;
+  try {
+    weather = await getCachedWeather(start[0], start[1]);
+  } catch (err) {
+    console.error(`Home(${activeRoute}): loading weather failed`, err);
+    weather = null;
+  }
+
   return (
     <AppShell
       activeRoute={activeRoute}
@@ -130,6 +149,7 @@ export default async function Home({ searchParams }: HomeProps) {
       elevationProfile={elevationProfile}
       garminUrl={garminUrl}
       livePositions={livePositions}
+      weather={weather}
     />
   );
 }

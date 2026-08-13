@@ -1,0 +1,84 @@
+.empty {
+  padding: var(--sp-5) var(--sp-6);
+  color: var(--db-text-dim);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.list {
+  list-style: none;
+  margin: 0 var(--sp-2) var(--sp-5);
+  padding: 0;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.row {
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--db-border);
+  background: var(--db-surface);
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+.headline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-sans-family);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--db-text);
+}
+
+.cpBadge {
+  flex: none;
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--db-steel);
+  border: 1px solid var(--db-steel);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.window {
+  margin-top: 4px;
+  font-family: var(--font-mono-family);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  color: var(--db-steel);
+}
+
+.window strong {
+  font-weight: 700;
+}
+
+.basis {
+  margin-left: 5px;
+  font-family: var(--font-sans-family);
+  font-variant-numeric: normal;
+  font-weight: 400;
+  color: var(--db-text-dim);
+}
+
+.meta {
+  margin-top: var(--sp-2);
+  font-family: var(--font-mono-family);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+}
+
+.adres {
+  color: var(--db-steel);
+  text-decoration: none;
+}
+
+.adres:hover {
+  text-decoration: underline;
+}

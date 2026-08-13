@@ -35,6 +35,7 @@ export async function loadLegs(route: RouteSlug): Promise<Leg[]> {
     .order("nr", { ascending: true });
 
   if (error) {
+    console.error(`loadLegs(${route}): Supabase query failed`, error);
     throw new Error(`Kon legs niet laden uit Supabase: ${error.message}`);
   }
 

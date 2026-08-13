@@ -34,6 +34,7 @@ export async function POST(request: Request) {
   try {
     expectedToken = await loadSetting(liveTokenSettingKey(route, party));
   } catch (err) {
+    console.error(`POST /api/live/traccar: loadSetting failed for (${route}, ${party})`, err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
   try {
     await saveLivePosition(route, party, lat, lon, recordedAt);
   } catch (err) {
+    console.error(`POST /api/live/traccar: saveLivePosition failed for (${route}, ${party})`, err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

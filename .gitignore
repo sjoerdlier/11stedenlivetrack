@@ -10,6 +10,9 @@
 !.yarn/releases
 !.yarn/versions
 
+# claude code tooling (agent worktrees, local session state)
+/.claude/
+
 # testing
 /coverage
 

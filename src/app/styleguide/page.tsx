@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import LegScheduleFixture from "./LegScheduleFixture";
 import styles from "./styleguide.module.css";
 
 export const metadata: Metadata = {
@@ -98,6 +99,17 @@ export default function StyleguidePage() {
               </span>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.blockTitle}>Etappeschema — echte component</h2>
+        <p className={styles.blockHint}>
+          De werkelijke <code>LegSchedule</code>/<code>LegCard</code> met mock-legs — klik een rij open (voltooide
+          rijen collapsen standaard, de actieve rij en alles wat nog moet komen staat al open).
+        </p>
+        <div className={styles.fixtureWrap}>
+          <LegScheduleFixture />
         </div>
       </section>
     </main>

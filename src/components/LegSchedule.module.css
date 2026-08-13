@@ -5,60 +5,85 @@
   max-width: 560px;
   flex: none;
   overflow-y: auto;
-  background: #fcfcfb;
-  color: #0b0b0b;
-  border-right: 1px solid var(--color-border);
-}
-
-@media (prefers-color-scheme: dark) {
-  .sidebar {
-    background: var(--color-surface-dark);
-    color: #ffffff;
-    border-right-color: var(--color-border);
-  }
+  background: var(--db-surface);
+  color: var(--db-text);
+  border-right: 1px solid var(--db-border);
 }
 
 .header {
-  padding: 20px 30px 14px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 14px;
+  padding: var(--sp-5) var(--sp-6) var(--sp-4);
+  border-bottom: 1px solid var(--db-border);
+  margin-bottom: var(--sp-4);
 }
 
 /* .header is a role="button" tabIndex={0} div (toggles the mobile
    bottom-sheet) — it stays in the tab order at every breakpoint even though
    the toggle itself is only meaningful below 768px, so the focus ring isn't
-   scoped to that media query either. Matches invoer.module.css's
-   outline/offset convention; a negative offset keeps the ring inside the
-   sidebar's edge instead of getting clipped by its overflow/border-radius. */
+   scoped to that media query either. --db-amber per the redesign's
+   focus-ring rule; a negative offset keeps the ring inside the sidebar's
+   edge instead of getting clipped by its overflow/border-radius. */
 .header:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--db-amber);
   outline-offset: -2px;
 }
 
 .title {
+  font-family: var(--font-sans-family);
   font-weight: 700;
-  font-size: 20px;
+  font-size: var(--fs-md);
   letter-spacing: -0.01em;
 }
 
 .hint {
-  /* #898781 on #fcfcfb was 3.50:1, below the 4.5:1 AA text minimum;
-     --color-text-secondary (#52514e light / #c3c2b7 dark, already used
-     elsewhere for this same "secondary text" role) clears it comfortably. */
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  margin-top: 2px;
+  font-family: var(--font-mono-family);
+  color: var(--db-text-dim);
+  font-size: var(--fs-2xs);
+  margin-top: var(--sp-1);
 }
 
 .elevationWrap {
-  padding: 0 30px;
-  margin: -6px 0 8px;
+  padding: 0 var(--sp-6);
+  margin: calc(var(--sp-2) * -1) 0 var(--sp-3);
+}
+
+/* Column labels for the departure rows below — matches the styleguide's
+   .boardHeader (mono, uppercase, dim, on the surface-2 layer) and shares its
+   grid proportions with LegCard's .summary so columns line up. */
+/* Shares one seamless border with .list below (header's bottom edge is the
+   only line between them) so the two read as a single .board panel, the
+   same unified rectangle the styleguide's .board wraps around its header +
+   rows. */
+.boardHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 0.6fr;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  margin: 0 var(--sp-2);
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+  background: var(--db-surface-2);
+  border: 1px solid var(--db-border);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.boardHeader span:last-child,
+.boardHeader span:nth-child(2),
+.boardHeader span:nth-child(3) {
+  text-align: right;
 }
 
 .list {
   list-style: none;
-  margin: 0;
-  padding: 0 0 16px;
+  margin: 0 var(--sp-2);
+  padding: 0 0 var(--sp-5);
+  border: 1px solid var(--db-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  overflow: hidden;
 }
 
 .handle {
@@ -101,18 +126,12 @@
     max-width: none;
     max-height: 84px;
     border-right: none;
-    border-top: 1px solid var(--color-border);
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -6px 24px rgba(11, 11, 11, 0.18);
-    transition: max-height 0.25s ease, height 0.25s ease;
+    border-top: 1px solid var(--db-border);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.25);
+    transition: max-height var(--motion-flip) var(--motion-ease), height var(--motion-flip) var(--motion-ease);
     z-index: 1000;
     overflow-y: hidden;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .sidebar {
-      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5);
-    }
   }
 
   .sidebar.expanded {
@@ -126,17 +145,17 @@
     width: 40px;
     height: 4px;
     border-radius: 999px;
-    background: var(--color-border);
-    margin: 8px auto 0;
+    background: var(--db-border);
+    margin: var(--sp-2) auto 0;
   }
 
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 10px 20px 14px;
-    margin-bottom: 8px;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-5) var(--sp-4);
+    margin-bottom: var(--sp-2);
     cursor: pointer;
     min-height: 44px;
     box-sizing: border-box;
@@ -145,12 +164,13 @@
   .chevron {
     display: block;
     flex: none;
-    font-size: 13px;
-    /* Deliberately left off --color-text-secondary: this is a decorative
-       expand/collapse glyph, not body text subject to the 4.5:1 AA text
-       ratio, and the subtler tint reads better against the handle above it. */
-    color: #898781;
-    transition: transform 0.25s ease;
+    font-size: var(--fs-xs);
+    /* Deliberately not --db-text-dim: this is a decorative expand/collapse
+       glyph, not body text subject to the 4.5:1 AA text ratio, and a
+       subtler tint reads better against the handle above it. */
+    color: var(--db-text-dim);
+    opacity: 0.75;
+    transition: transform var(--motion-flip) var(--motion-ease);
   }
 
   .sidebar.expanded .chevron {

@@ -114,7 +114,7 @@ function Fixture({ label, legs, now, checkins }: FixtureProps) {
   return (
     <div className={styles.fixture}>
       <span className={styles.fixtureLabel}>{label}</span>
-      <div className={styles.fixtureFrame}>
+      <div className={styles.topBarFrame}>
         <TopBar
           activeRoute={ROUTE}
           activeParty={PARTY}

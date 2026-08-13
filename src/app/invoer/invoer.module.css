@@ -3,20 +3,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: #f9f9f7;
-  color: #0b0b0b;
+  padding: var(--sp-6);
+  background: var(--db-ground);
+  color: var(--db-text);
   box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  .page {
-    background: #0d0d0d;
-    color: #ffffff;
-  }
-}
-
-/* PIN screen */
+/* Board panel — every screen in /invoer and /beheer sits on one of these:
+   flat surface, hairline border, sharp corners (radius reserved for the
+   rare truly-interactive element, not the panel itself). */
 
 .pinWrap {
   width: 100%;
@@ -27,169 +22,162 @@
 .pinCard {
   width: 100%;
   max-width: 320px;
-  background: #fcfcfb;
-  border-radius: 14px;
-  padding: 28px 24px;
-  box-shadow: 0 2px 16px rgba(11, 11, 11, 0.12);
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6) var(--sp-5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .pinCard {
-    background: #161615;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
-  }
+  gap: var(--sp-3);
 }
 
 .pinTitle {
-  font-size: 18px;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-md);
   font-weight: 700;
   text-align: center;
 }
 
 .pinHint {
   margin: 0;
-  font-size: 13px;
-  color: #898781;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
+  color: var(--db-text-dim);
   text-align: center;
 }
 
 .pinInput {
-  font-size: 28px;
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-xl);
   letter-spacing: 0.5em;
   text-align: center;
-  padding: 12px 8px 12px 16px;
-  border-radius: 10px;
-  border: 1px solid #e1e0d9;
-  background: transparent;
-  color: inherit;
+  /* extra left padding balances the trailing letter-spacing gap after the
+     last digit, so the 4-digit run still optically centers */
+  padding: var(--sp-3) var(--sp-2) var(--sp-3) calc(var(--sp-2) + 0.5em);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-2);
+  color: var(--db-text);
   font-variant-numeric: tabular-nums;
 }
 
-@media (prefers-color-scheme: dark) {
-  .pinInput {
-    border-color: #2c2c2a;
-  }
-}
-
-.pinInput:focus {
-  outline: 2px solid #2a78d6;
+.pinInput:focus-visible {
+  outline: 2px solid var(--db-steel);
   outline-offset: 1px;
 }
 
 .pinError {
-  color: #d03b3b;
-  font-size: 13px;
+  font-family: var(--font-sans-family);
+  color: var(--db-signal-red);
+  font-size: var(--fs-xs);
   text-align: center;
 }
 
 .pinSubmit {
   border: none;
-  background: #2a78d6;
-  color: #ffffff;
+  background: var(--db-amber);
+  color: var(--db-amber-ink);
+  font-family: var(--font-sans-family);
   font-weight: 700;
-  font-size: 15px;
-  border-radius: 10px;
-  padding: 12px;
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3);
   cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
 .pinSubmit:hover {
-  background: #2568bd;
+  opacity: 0.85;
+}
+
+.pinSubmit:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
 }
 
 .pinSubmit:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Check-in form */
+/* Check-in / settings form */
 
 .formWrap {
   width: 100%;
   max-width: 480px;
-  background: #fcfcfb;
-  border-radius: 14px;
-  padding: 24px;
-  box-shadow: 0 2px 16px rgba(11, 11, 11, 0.12);
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
   box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  .formWrap {
-    background: #161615;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
-  }
-}
-
 .formHeader {
-  margin-bottom: 16px;
+  margin-bottom: var(--sp-4);
 }
 
 .formTitle {
-  font-size: 18px;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
 .formHint {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #898781;
+  margin: var(--sp-1) 0 0;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
+  color: var(--db-text-dim);
 }
 
 /* globals.css resets all links to color: inherit + no underline, which
    would make this indistinguishable from the surrounding hint text —
-   needs its own visible affordance to read as clickable. */
+   needs its own visible affordance to read as clickable. Steel is the
+   route/schedule-identity color, reused here for "secondary action". */
 .routeLink {
-  color: #2a78d6;
+  color: var(--db-steel);
   text-decoration: underline;
   font-weight: 600;
 }
 
 .routeLink:hover {
-  color: #2568bd;
+  opacity: 0.8;
 }
 
-@media (prefers-color-scheme: dark) {
-  .routeLink {
-    color: #3987e5;
-  }
-
-  .routeLink:hover {
-    color: #5b9ce8;
-  }
+.routeLink:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
 }
 
 .confirmation {
-  background: #0ca30c26;
-  border-left: 3px solid #0ca30c;
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 14px;
+  background: color-mix(in srgb, var(--db-signal-green) 16%, var(--db-surface));
+  border-left: 3px solid var(--db-signal-green);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  margin-bottom: 14px;
+  margin-bottom: var(--sp-4);
 }
 
 .formError {
-  background: #d03b3b26;
-  border-left: 3px solid #d03b3b;
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 14px;
-  margin-bottom: 14px;
+  background: color-mix(in srgb, var(--db-signal-red) 16%, var(--db-surface));
+  border-left: 3px solid var(--db-signal-red);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-4);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--sp-4);
 }
 
 .fieldRow {
   display: flex;
-  gap: 12px;
+  gap: var(--sp-3);
 }
 
 .fieldRow .field {
@@ -200,16 +188,11 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 13px;
+  gap: var(--sp-1);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .field {
-    color: #c3c2b7;
-  }
+  color: var(--db-text-dim);
 }
 
 .field input,
@@ -217,29 +200,21 @@
 .field textarea {
   font: inherit;
   font-weight: 400;
+  color: var(--db-text);
   /* iOS Safari auto-zooms the page on focus for any input under 16px —
      disruptive on a form filled out multiple times an hour. */
   font-size: 16px;
-  color: inherit;
-  background: transparent;
-  border: 1px solid #e1e0d9;
-  border-radius: 8px;
-  padding: 10px 12px;
+  background: var(--db-surface-2);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
   box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  .field input,
-  .field select,
-  .field textarea {
-    border-color: #2c2c2a;
-  }
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  outline: 2px solid #2a78d6;
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--db-steel);
   outline-offset: 1px;
 }
 
@@ -249,21 +224,28 @@
 
 .submitButton {
   border: none;
-  background: #2a78d6;
-  color: #ffffff;
+  background: var(--db-amber);
+  color: var(--db-amber-ink);
+  font-family: var(--font-sans-family);
   font-weight: 700;
-  font-size: 15px;
-  border-radius: 10px;
-  padding: 13px;
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3);
   cursor: pointer;
-  margin-top: 4px;
+  margin-top: var(--sp-1);
+  transition: opacity 0.15s ease;
 }
 
 .submitButton:hover {
-  background: #2568bd;
+  opacity: 0.85;
+}
+
+.submitButton:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
 }
 
 .submitButton:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }

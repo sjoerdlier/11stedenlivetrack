@@ -82,6 +82,13 @@ export default function LegSchedule({
         <ElevationProfile profile={elevationProfile} />
       </div>
 
+      <div className={styles.boardHeader}>
+        <span>Stad</span>
+        <span>Tijd</span>
+        <span>Tempo</span>
+        <span>Status</span>
+      </div>
+
       <ol className={styles.list}>
         {legs.map((leg, index) => {
           const status = statuses.get(leg.nr) ?? "nog-te-gaan";

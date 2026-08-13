@@ -183,6 +183,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- elevation profile ---------- */
+
+/* Constrains the fixture to roughly the sidebar's real width (see
+   LegSchedule.module.css's 380–560px range) so the chart's aspect ratio
+   here matches how it actually reads in the app, not stretched full-bleed
+   across the styleguide's 960px column. */
+.panelNarrow {
+  max-width: 400px;
+}
+
 /* ---------- departure board ---------- */
 
 .board {

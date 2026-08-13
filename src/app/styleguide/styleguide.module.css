@@ -183,6 +183,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- elevation profile ---------- */
+
+/* Constrains the fixture to roughly the sidebar's real width (see
+   LegSchedule.module.css's 380–560px range) so the chart's aspect ratio
+   here matches how it actually reads in the app, not stretched full-bleed
+   across the styleguide's 960px column. */
+.panelNarrow {
+  max-width: 400px;
+}
+
 /* ---------- departure board ---------- */
 
 .board {
@@ -275,4 +285,106 @@
   border-top: 1px solid var(--db-border);
   border-bottom: 1px solid var(--db-border);
   overflow: hidden;
+}
+
+/* ---------- TopBar fixtures ---------- */
+
+/* Breaks out of .page's centered 960px column — TopBar is a full-viewport-
+   width header in the real app, so the fixture gallery needs real desktop
+   width to be an honest preview instead of squeezing it artificially. */
+.fixtureGallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 0 var(--sp-6);
+  box-sizing: border-box;
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* TopBar renders full-bleed; a plain border (no padding/centering) keeps
+   the preview an honest edge-to-edge read instead of floating it in a
+   dashed, padded box like the smaller utility-surface fixtures below. */
+.topBarFrame {
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ---------- real LegSchedule fixture ---------- */
+
+.blockHint {
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  color: var(--db-text-dim);
+  margin-top: calc(var(--sp-2) * -1);
+}
+
+.blockHint code {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+}
+
+/* LegSchedule renders itself as a full-height sidebar (position: fixed
+   below 768px) — this wrapper gives it a bounded, in-flow box to sit in on
+   the styleguide page instead of overlaying the whole viewport. */
+.fixtureWrap {
+  height: 640px;
+  display: flex;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ---------- utility surface fixtures ---------- */
+
+/* Stacked, not a grid — LoadError's fixture is intentionally shown at its
+   real (100vh) height, which would force every grid row to match it. */
+.fixtureGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.fixtureCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.fixtureLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+}
+
+.fixtureFrame {
+  position: relative;
+  background: var(--db-ground);
+  border: 1px dashed var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  padding: var(--sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fixtureFrameShort {
+  min-height: 96px;
+  padding: 0;
+}
+
+.fixtureBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }

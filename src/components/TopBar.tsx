@@ -122,92 +122,116 @@ export default function TopBar({
   return (
     <header className={styles.bar}>
       {actual ? (
-        <div className={styles.progress} aria-live="polite">
-          <span className={styles.progressText}>
-            {/* Mounts fresh the moment checkins flips from empty to
-                non-empty (this whole branch replaces the schedule-based one
-                below), so its one-shot CSS animation naturally fires right
-                at that switch and settles into a small persistent "this is
-                real check-in data, not the schedule" indicator. */}
-            <span className={styles.liveBadge}>Live</span>
-            <span className={styles.progressFull}>
-              {formatKm(actual.progress.km)} van {formatKm(totalKm)} ·{" "}
-            </span>
-            {Math.round(actual.progress.percent)}%
-            {actual.progress.percent >= 50 && (
-              <span className={styles.milestone}>
-                🎉 Halverwege
-                {donationUrl && (
-                  <>
-                    {" — "}
-                    <a
-                      href={donationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.milestoneLink}
-                    >
-                      steun Lowie
-                    </a>
-                  </>
-                )}
+        <div className={styles.board} aria-live="polite">
+          <div className={styles.panelMain}>
+            <div className={styles.heroBlock}>
+              <span className={styles.heroNumber}>{Math.round(actual.progress.percent)}</span>
+              <span className={styles.heroPercent}>%</span>
+            </div>
+            <div className={styles.heroMeta}>
+              <span className={styles.liveTag}>Nu live</span>
+              <span className={styles.heroLabel}>
+                {formatKm(actual.progress.km)} van {formatKm(totalKm)}
               </span>
-            )}
-          </span>
-          <span className={styles.progressTrack}>
-            <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
-          </span>
-          <span className={styles.pace}>
-            Te gaan: {formatKm(actual.remainingKm)}
+            </div>
+          </div>
+
+          <div className={styles.statRow}>
+            <span className={styles.stat}>
+              <span className={styles.statLabel}>Te gaan</span>
+              <span className={styles.statValue}>{formatKm(actual.remainingKm)}</span>
+            </span>
             {actual.paceKmh !== null && (
-              <>
-                {" "}
-                ·{" "}
-                <span title={GAP_TITLE}>
-                  Tempo: {formatPaceKmh(actual.paceKmh)}
+              <span className={styles.stat} title={GAP_TITLE}>
+                <span className={styles.statLabel}>Tempo</span>
+                <span className={styles.statValue}>
+                  {formatPaceKmh(actual.paceKmh)}
                   <span className={styles.gapBadge} aria-hidden>
                     ⛰
                   </span>
                 </span>
-              </>
+              </span>
             )}
             {actual.arrival && (
-              <>
-                {" "}
-                · Aankomst ± {formatClockTime(actual.arrival.time)}
-                {actual.arrival.basis === "gepland" && " (schatting o.b.v. gepland tempo)"}
-              </>
+              <span className={styles.stat}>
+                <span className={styles.statLabel}>Aankomst ±</span>
+                <span className={styles.statValue}>
+                  {formatClockTime(actual.arrival.time)}
+                  {actual.arrival.basis === "gepland" && (
+                    <span className={styles.statNote}> (schatting o.b.v. gepland tempo)</span>
+                  )}
+                </span>
+              </span>
             )}
+          </div>
+
+          {actual.progress.percent >= 50 && (
+            <div className={styles.milestone}>
+              🎉 Halverwege
+              {donationUrl && (
+                <>
+                  {" — "}
+                  <a
+                    href={donationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.milestoneLink}
+                  >
+                    steun Lowie
+                  </a>
+                </>
+              )}
+            </div>
+          )}
+
+          <span className={styles.progressTrack}>
+            <span className={styles.progressFill} style={{ width: `${actual.progress.percent}%` }} />
           </span>
         </div>
       ) : countdownDays !== null ? (
-        <div className={styles.progress} aria-live="polite">
-          <span className={styles.progressText}>
-            <span className={styles.progressFull}>Nog </span>
-            {countdownDays}
-            <span className={styles.progressFull}> {countdownDays === 1 ? "dag" : "dagen"} tot de start</span>
-            <span className={styles.progressShort}>d tot start</span>
-          </span>
+        <div className={styles.board} aria-live="polite">
+          <div className={styles.panelMain}>
+            <div className={styles.heroBlock}>
+              <span className={styles.heroNumber}>{countdownDays}</span>
+            </div>
+            <div className={styles.heroMeta}>
+              <span className={styles.heroLabel}>
+                {countdownDays === 1 ? "dag tot de start" : "dagen tot de start"}
+              </span>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className={styles.progress} aria-live="polite">
-          <span className={styles.progressText}>
-            <span className={styles.progressFull}>
-              {formatKm(km)} van {formatKm(totalKm)} ·{" "}
-            </span>
-            {Math.round(percent)}%
-          </span>
+        <div className={styles.board} aria-live="polite">
+          <div className={styles.panelMain}>
+            <div className={styles.heroBlock}>
+              <span className={styles.heroNumber}>{Math.round(percent)}</span>
+              <span className={styles.heroPercent}>%</span>
+            </div>
+            <div className={styles.heroMeta}>
+              <span className={styles.heroLabel}>
+                {formatKm(km)} van {formatKm(totalKm)}
+              </span>
+            </div>
+          </div>
+
+          {paceLabel && (
+            <div className={styles.statRow}>
+              <span className={styles.stat} title={GAP_TITLE}>
+                <span className={styles.statLabel}>Gem. tempo (gepland)</span>
+                <span className={styles.statValue}>
+                  {paceLabel}
+                  <span className={styles.gapBadge} aria-hidden>
+                    ⛰
+                  </span>
+                </span>
+              </span>
+            </div>
+          )}
+
           <span className={styles.progressTrack}>
             <span className={styles.progressFill} style={{ width: `${percent}%` }} />
           </span>
-          {paceLabel && (
-            <span className={styles.pace} title={GAP_TITLE}>
-              Gem. tempo: {paceLabel}
-              <span className={styles.gapBadge} aria-hidden>
-                ⛰
-              </span>{" "}
-              (gepland)
-            </span>
-          )}
         </div>
       )}
 
@@ -217,7 +241,7 @@ export default function TopBar({
             <Link
               key={r.slug}
               href={`/?route=${r.slug}`}
-              className={`${styles.action} ${r.slug === activeRoute ? styles.actionActive : ""}`}
+              className={`${styles.action} ${r.slug === activeRoute ? styles.actionSelected : ""}`}
               title={r.pageTitle}
               aria-current={r.slug === activeRoute}
             >
@@ -232,7 +256,7 @@ export default function TopBar({
               <Link
                 key={p.slug}
                 href={`/?route=${activeRoute}&party=${p.slug}`}
-                className={`${styles.action} ${p.slug === activeParty ? styles.actionActive : ""}`}
+                className={`${styles.action} ${p.slug === activeParty ? styles.actionSelected : ""}`}
                 title={p.label}
                 aria-current={p.slug === activeParty}
               >
@@ -246,7 +270,7 @@ export default function TopBar({
         <button
           type="button"
           onClick={onToggleLiveTrack}
-          className={`${styles.action} ${liveTrackOpen ? styles.actionActive : ""}`}
+          className={`${styles.action} ${liveTrackOpen ? styles.actionLive : ""}`}
           title="Live locatie"
           aria-pressed={liveTrackOpen}
         >

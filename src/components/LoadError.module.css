@@ -1,74 +1,73 @@
 .wrap {
   height: 100vh;
-  width: 100vw;
+  /* 100% rather than 100vw: identical full-bleed result as the sole child
+     of body (its real usage in page.tsx/error.tsx), but nests correctly
+     inside a constrained-width container too (e.g. the styleguide fixture
+     preview) instead of overflowing past it. */
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--sp-6);
   box-sizing: border-box;
-  background: #fcfcfb;
-  color: #0b0b0b;
+  background: var(--db-ground);
+  color: var(--db-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  .wrap {
-    background: #161615;
-    color: #ffffff;
-  }
-}
-
+/* Board panel, same shape/border language as /invoer's panels — red is
+   used only as an accent (top rule + icon), the panel face stays neutral
+   so this doesn't read as a full-bleed alarm. */
 .card {
   width: 100%;
   max-width: 380px;
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 28px 24px;
-  box-shadow: 0 2px 16px rgba(11, 11, 11, 0.12);
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-top: 3px solid var(--db-signal-red);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6) var(--sp-5);
   text-align: center;
 }
 
-@media (prefers-color-scheme: dark) {
-  .card {
-    background: #1c1b16;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
-  }
-}
-
 .icon {
-  font-size: 28px;
-  margin-bottom: 10px;
+  font-size: var(--fs-xl);
+  margin-bottom: var(--sp-2);
+  color: var(--db-signal-red);
 }
 
 .title {
-  font-size: 17px;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-md);
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: var(--sp-2);
 }
 
 .hint {
-  font-size: 14px;
-  color: #52514e;
-  margin: 0 0 20px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .hint {
-    color: #c3c2b7;
-  }
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  color: var(--db-text-dim);
+  margin: 0 0 var(--sp-5);
 }
 
 .retry {
   display: inline-block;
   border: none;
-  background: #2a78d6;
-  color: #ffffff;
+  background: var(--db-amber);
+  color: var(--db-amber-ink);
+  font-family: var(--font-sans-family);
   font-weight: 700;
-  font-size: 14px;
-  border-radius: 10px;
-  padding: 10px 20px;
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--sp-5);
   text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
 .retry:hover {
-  background: #2568bd;
+  opacity: 0.85;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
 }

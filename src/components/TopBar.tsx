@@ -114,7 +114,7 @@ export default function TopBar({
   return (
     <header className={styles.bar}>
       {actual ? (
-        <div className={styles.progress}>
+        <div className={styles.progress} aria-live="polite">
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
               {formatKm(actual.progress.km)} van {formatKm(totalKm)} ·{" "}
@@ -145,7 +145,7 @@ export default function TopBar({
           </span>
         </div>
       ) : countdownDays !== null ? (
-        <div className={styles.progress}>
+        <div className={styles.progress} aria-live="polite">
           <span className={styles.progressText}>
             <span className={styles.progressFull}>Nog </span>
             {countdownDays}
@@ -154,7 +154,7 @@ export default function TopBar({
           </span>
         </div>
       ) : (
-        <div className={styles.progress}>
+        <div className={styles.progress} aria-live="polite">
           <span className={styles.progressText}>
             <span className={styles.progressFull}>
               {formatKm(km)} van {formatKm(totalKm)} ·{" "}

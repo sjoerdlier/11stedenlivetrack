@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geistSans.variable}>
+    <html lang="nl" className={geistSans.variable}>
       <body>{children}</body>
     </html>
   );

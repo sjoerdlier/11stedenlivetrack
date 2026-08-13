@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { loadLegs } from "@/lib/legs";
-import { formatGeplandeTijd, formatKm } from "@/lib/format";
+import { formatDateTime, formatGeplandeTijd, formatKm } from "@/lib/format";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 import styles from "./page.module.css";
 
@@ -25,14 +25,7 @@ export default async function SchemaPage({ searchParams }: SchemaPageProps) {
   const activeRoute = parseRouteSlug(route);
   const config = routeConfig(activeRoute);
   const legs = await loadLegs(activeRoute);
-  const generatedAt = new Intl.DateTimeFormat("nl-NL", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Amsterdam",
-  }).format(new Date());
+  const generatedAt = formatDateTime(new Date());
 
   return (
     <main className={styles.page}>

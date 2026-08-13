@@ -26,6 +26,23 @@ export function googleMapsUrl(lat: number, lon: number): string {
   return `https://maps.google.com/?q=${lat},${lon}`;
 }
 
+const dutchDateTimeFormatter = new Intl.DateTimeFormat("nl-NL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Amsterdam",
+});
+
+// Formats a moment as "za 13 aug, 14:32" — full date context, unlike
+// formatGeplandeTijd/formatClockTime (weekday + time only, for moments
+// whose day is already implied elsewhere). Used for "gegenereerd op"-style
+// timestamps, e.g. the printable schema page's header.
+export function formatDateTime(date: Date): string {
+  return dutchDateTimeFormatter.format(date);
+}
+
 const paceFormatter = new Intl.NumberFormat("nl-NL", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,

@@ -1,0 +1,12 @@
+/* Deliberately quiet — same mono/dim treatment as TopBar's .heroLabel, so
+   this reads as ambient context, never competing with the hero number or
+   the stat row for attention. */
+.strip {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50vw;
+}

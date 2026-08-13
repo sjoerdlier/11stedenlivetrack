@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 // "Vertrekstaat" design system — three faces, one job each:
@@ -62,7 +63,12 @@ export default function RootLayout({
       lang="nl"
       className={`${displayFont.variable} ${sansFont.variable} ${monoFont.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Vercel Web Analytics — pageviews only, no cookies. The only
+            measurement this app has besides console.error. */}
+        <Analytics />
+      </body>
     </html>
   );
 }

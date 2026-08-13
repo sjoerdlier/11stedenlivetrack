@@ -25,6 +25,15 @@
   background: #0b0b0b12;
 }
 
+/* Matches the outline/offset convention already established in
+   invoer.module.css's .pinInput/.field :focus rules. :focus-visible (not
+   :focus) so the ring only appears for keyboard/assistive-tech navigation,
+   not on every mouse click. */
+.card:focus-visible {
+  outline: 2px solid #2a78d6;
+  outline-offset: 1px;
+}
+
 @media (prefers-color-scheme: dark) {
   .card:hover {
     background: #ffffff14;

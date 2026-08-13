@@ -158,6 +158,16 @@
   background: #0b0b0b0d;
 }
 
+/* Matches the outline/offset convention already established in
+   invoer.module.css's .pinInput/.field :focus rules — covers the route
+   switcher, party switcher, and icon action buttons/links, all of which
+   share this class. :focus-visible so the ring only shows for
+   keyboard/assistive-tech navigation, not on every mouse click. */
+.action:focus-visible {
+  outline: 2px solid #2a78d6;
+  outline-offset: 1px;
+}
+
 .actionActive {
   background: var(--color-accent);
   border-color: var(--color-accent);
@@ -193,6 +203,11 @@
 
 .donate:hover {
   background: #d95926;
+}
+
+.donate:focus-visible {
+  outline: 2px solid #2a78d6;
+  outline-offset: 1px;
 }
 
 .donateTodo {

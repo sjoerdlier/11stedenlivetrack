@@ -84,6 +84,14 @@ export default function TopBar({
     return { progress, remainingKm, paceKmh, arrival };
   }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
 
+  // The strongest conversion moment for the donation ask: Lowie has actually
+  // finished, not just "the tocht is scheduled to be over". `actual` is only
+  // non-null once there's real check-in data, and its percent only reaches
+  // 100 once a check-in exists for the finish leg itself
+  // (computeActualProgress) — so this can't fire on the pre-start countdown
+  // or on the schedule-only view.
+  const isFinished = actual !== null && actual.progress.percent >= 100;
+
   async function handleShare() {
     const shareData = { title: config.pageTitle, url: window.location.href };
     if (navigator.share) {
@@ -127,7 +135,22 @@ export default function TopBar({
             </span>
             {Math.round(actual.progress.percent)}%
             {actual.progress.percent >= 50 && (
-              <span className={styles.milestone}>🎉 Halverwege</span>
+              <span className={styles.milestone}>
+                🎉 Halverwege
+                {donationUrl && (
+                  <>
+                    {" — "}
+                    <a
+                      href={donationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.milestoneLink}
+                    >
+                      steun Lowie
+                    </a>
+                  </>
+                )}
+              </span>
             )}
           </span>
           <span className={styles.progressTrack}>
@@ -254,10 +277,12 @@ export default function TopBar({
             target="_blank"
             rel="noopener noreferrer"
             className={styles.donate}
-            title="Doneer voor Lowie"
+            title={isFinished ? "Lowie is gefinisht — nu doneren" : "Doneer voor Lowie"}
           >
-            <span aria-hidden>❤</span>
-            <span className={styles.actionLabel}>Doneer</span>
+            <span aria-hidden>{isFinished ? "🎉" : "❤"}</span>
+            <span className={styles.actionLabel}>
+              {isFinished ? "Lowie is gefinisht — doneer" : "Doneer"}
+            </span>
           </a>
         ) : (
           <span

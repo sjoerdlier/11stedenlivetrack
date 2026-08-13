@@ -45,12 +45,18 @@ export const metadata: Metadata = {
 
 // Matches TopBar's own light/dark background so the browser chrome (status
 // bar on mobile, tab/toolbar color on desktop) blends with the app instead
-// of showing the browser's default color.
+// of showing the browser's default color. viewportFit: "cover" lets the app
+// draw underneath notches/the iOS home-indicator area instead of stopping
+// short of them — CSS then reclaims that space deliberately via
+// env(safe-area-inset-*) wherever content sits flush against an edge
+// (AppShell.module.css's .shell, LegSchedule.module.css's mobile bottom
+// sheet).
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fdfcf7" },
     { media: "(prefers-color-scheme: dark)", color: "#171b21" },
   ],
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

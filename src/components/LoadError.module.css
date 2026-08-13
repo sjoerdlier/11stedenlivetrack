@@ -1,5 +1,8 @@
 .wrap {
-  height: 100vh;
+  /* 100dvh rather than 100vh — see AppShell.module.css's .shell for why
+     (iOS Safari's address bar otherwise leaves content stranded under
+     browser chrome). */
+  height: 100dvh;
   /* 100% rather than 100vw: identical full-bleed result as the sole child
      of body (its real usage in page.tsx/error.tsx), but nests correctly
      inside a constrained-width container too (e.g. the styleguide fixture

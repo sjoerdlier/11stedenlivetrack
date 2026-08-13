@@ -1,5 +1,11 @@
 .shell {
-  height: 100vh;
+  /* 100dvh (dynamic viewport height) rather than 100vh: on iOS Safari, 100vh
+     is measured against the *largest* possible viewport (toolbar hidden),
+     so a shell sized to it runs taller than the visible area whenever the
+     address bar/tab bar is showing, cutting off content under browser
+     chrome. 100dvh tracks the actual visible viewport as that chrome
+     shows/hides. */
+  height: 100dvh;
   width: 100vw;
   display: flex;
   flex-direction: column;

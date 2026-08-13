@@ -34,8 +34,11 @@ interface TopBarProps {
   now: number;
   checkins: Checkin[];
   checkinTimes: Map<number, number>;
-  liveTrackOpen: boolean;
-  onToggleLiveTrack: () => void;
+  // Purely a fallback: the site has its own live marker on the map (real GPS
+  // via /api/live, with a check-in-based estimate as fallback), so a Garmin
+  // LiveTrack link is only worth surfacing at all once it's actually set in
+  // /beheer — never a full-screen panel, just a small outbound link.
+  garminUrl: string | null;
   weather: WeatherSnapshot | null;
 }
 
@@ -63,8 +66,7 @@ export default function TopBar({
   now,
   checkins,
   checkinTimes,
-  liveTrackOpen,
-  onToggleLiveTrack,
+  garminUrl,
   weather,
 }: TopBarProps) {
   const config = routeConfig(activeRoute);
@@ -304,16 +306,18 @@ export default function TopBar({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={onToggleLiveTrack}
-          className={`${styles.action} ${liveTrackOpen ? styles.actionLive : ""}`}
-          title="Live locatie"
-          aria-pressed={liveTrackOpen}
-        >
-          <span aria-hidden>📡</span>
-          <span className={styles.actionLabel}>Live</span>
-        </button>
+        {garminUrl && (
+          <a
+            href={garminUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.garminLink}
+            title="Garmin LiveTrack (achtervang)"
+          >
+            <span aria-hidden>📡</span>
+            <span className={styles.actionLabel}>Garmin</span>
+          </a>
+        )}
 
         <Link
           href={`/schema?route=${activeRoute}`}

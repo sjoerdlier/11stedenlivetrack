@@ -10,7 +10,10 @@ interface NewCheckinToastProps {
 export default function NewCheckinToast({ plaats }: NewCheckinToastProps) {
   return (
     <div className={styles.toast} role="status">
-      <span aria-hidden>📍</span> Nieuwe check-in: {plaats}
+      <span className={styles.dot} aria-hidden>
+        ●
+      </span>
+      Nieuwe check-in: {plaats}
     </div>
   );
 }

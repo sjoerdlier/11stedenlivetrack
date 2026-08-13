@@ -4,8 +4,9 @@ import AppShell from "@/components/AppShell";
 import LoadError from "@/components/LoadError";
 import { loadRoute, type LatLng } from "@/lib/gpx";
 import { loadLegs, type Leg } from "@/lib/legs";
-import { loadCheckins, type Checkin } from "@/lib/checkins";
-import { loadLivePositions, type LivePositionRow } from "@/lib/livePositions";
+import type { Checkin } from "@/lib/checkins";
+import type { LivePositionRow } from "@/lib/livePositions";
+import { getCachedCheckins, getCachedLivePositions } from "@/lib/cachedData";
 import { loadWeather, type WeatherSnapshot } from "@/lib/weather";
 import { buildLegSegments, type LegSegment } from "@/lib/segments";
 import { buildElevationProfile, type ElevationPoint } from "@/lib/elevation";
@@ -30,9 +31,9 @@ import { loadSetting } from "@/lib/settings";
 export const dynamic = "force-dynamic";
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
-const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
-const getCachedLivePositions = unstable_cache(loadLivePositions, ["live_positions"], { revalidate: 20 });
+// getCachedCheckins/getCachedLivePositions now live in @/lib/cachedData,
+// shared with /api/poll — see that file's comment.
 // Open-Meteo, unlike the Supabase reads above, isn't something a viewer's
 // own poll should hammer every 20s — weather doesn't change that fast, and
 // this is a free API with no key. A much longer window (30 min, within the

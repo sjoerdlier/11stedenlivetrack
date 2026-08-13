@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import { buildEffortLegs, type LegSegment } from "@/lib/segments";
@@ -71,14 +70,20 @@ export default function AppShell({
   activeParty,
   start,
   legSegments,
-  checkins,
+  // Renamed on destructure: these are only the SSR baseline now — the
+  // `checkins`/`livePositions` used everywhere below are local state that
+  // the poll effect further down keeps fresh, reset back to this baseline
+  // whenever a real navigation (route/party switch, hard reload) hands
+  // AppShell new SSR props. See that effect's comment for why.
+  checkins: initialCheckins,
   elevationProfile,
   garminUrl,
-  livePositions,
+  livePositions: initialLivePositions,
   weather,
 }: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
-  const router = useRouter();
+  const [checkins, setCheckins] = useState(initialCheckins);
+  const [livePositions, setLivePositions] = useState(initialLivePositions);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   // Grade-adjusted stand-in for `legs`, fed to pace/ETA math only — see
   // buildEffortLegs. `legs` itself (real km) still drives anything that
@@ -105,6 +110,23 @@ export default function AppShell({
   const [isDebugMode] = useState(
     () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugTime"),
   );
+
+  // Resets the polled overlay back to the fresh SSR baseline whenever
+  // AppShell receives genuinely new props from a real navigation (route or
+  // party switch — a hard reload just remounts). `initialCheckins`/
+  // `initialLivePositions` never change after mount for any other reason
+  // (the poll effect below talks straight to /api/poll and never touches
+  // router.refresh() or these props), so a route/party change is exactly
+  // the signal to re-sync on. This follows React's "adjusting state when a
+  // prop changes" pattern — done during render, not inside an effect, so it
+  // can't create a refresh loop with the poll below.
+  const navKey = `${activeRoute}:${activeParty}`;
+  const [prevNavKey, setPrevNavKey] = useState(navKey);
+  if (navKey !== prevNavKey) {
+    setPrevNavKey(navKey);
+    setCheckins(initialCheckins);
+    setLivePositions(initialLivePositions);
+  }
 
   // Selection state lives here (not in RouteMap, not in LegSchedule) so a
   // click in either place drives the other — see selectLeg below. Deep-links
@@ -139,14 +161,70 @@ export default function AppShell({
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedNr]);
 
-  // Viewers were left to reload the page by hand to see new check-ins.
-  // Skipped under ?debugTime= so a debug session stays reproducible instead
-  // of silently picking up real live data mid-test.
+  // Marks fresh data as having landed on mount and on every route/party
+  // switch (the reset above) — the rAF callback (not a synchronous setState
+  // in the effect body) matches the poll effect's own pattern of only ever
+  // updating this from a callback.
   useEffect(() => {
     if (isDebugMode) return;
-    const id = setInterval(() => router.refresh(), DATA_POLL_MS);
-    return () => clearInterval(id);
-  }, [router, isDebugMode]);
+    const id = requestAnimationFrame(() => setLastRefreshedAt(Date.now()));
+    return () => cancelAnimationFrame(id);
+  }, [navKey, isDebugMode]);
+
+  // Viewers were left to reload the page by hand to see new check-ins. Polls
+  // a lightweight JSON endpoint (/api/poll) instead of router.refresh() —
+  // that avoided re-fetching the whole RSC payload (route geometry,
+  // elevation profile — all static for the page view) just to pick up the
+  // two datasets that actually change during the event. Paused while the
+  // tab is hidden (Page Visibility API): a laptop left open for two days
+  // would otherwise poll thousands of times for a tab nobody's looking at.
+  // Becoming visible again polls immediately rather than waiting out the
+  // rest of the interval, so switching back to the tab shows fresh data
+  // right away. Skipped entirely under ?debugTime= so a debug session stays
+  // reproducible instead of silently picking up real live data mid-test.
+  useEffect(() => {
+    if (isDebugMode) return;
+
+    let cancelled = false;
+    async function poll() {
+      try {
+        const res = await fetch(`/api/poll?route=${activeRoute}`, { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data: { checkins?: Checkin[]; livePositions?: LivePositionRow[] } = await res.json();
+        if (cancelled) return;
+        if (data.checkins) setCheckins(data.checkins);
+        if (data.livePositions) setLivePositions(data.livePositions);
+        setLastRefreshedAt(Date.now());
+      } catch (err) {
+        console.error("AppShell: polling /api/poll failed", err);
+      }
+    }
+
+    let id: ReturnType<typeof setInterval> | null = null;
+    function start() {
+      if (id !== null) return;
+      poll();
+      id = setInterval(poll, DATA_POLL_MS);
+    }
+    function stop() {
+      if (id === null) return;
+      clearInterval(id);
+      id = null;
+    }
+    function handleVisibilityChange() {
+      if (document.hidden) stop();
+      else start();
+    }
+
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [activeRoute, isDebugMode]);
 
   // Detects a newly-arrived leg (for the active party) by diffing
   // checkinsByLeg's keys against the previous render — skipped on the very
@@ -168,18 +246,6 @@ export default function AppShell({
     const t = setTimeout(() => setNewArrival(null), TOAST_MS);
     return () => clearTimeout(t);
   }, [checkinsByLeg, legs]);
-
-  // Records when fresh data actually landed (mount, or a completed poll) —
-  // left null under ?debugTime=, since lastRefreshedAt would use the real
-  // wall clock while `now` is frozen on an arbitrary simulated instant,
-  // making "X geleden" meaningless relative to it. Watches the full,
-  // unfiltered checkins (any party's new data proves the poll is working),
-  // not just the active party's.
-  useEffect(() => {
-    if (isDebugMode) return;
-    const id = requestAnimationFrame(() => setLastRefreshedAt(Date.now()));
-    return () => cancelAnimationFrame(id);
-  }, [checkins, isDebugMode]);
 
   return (
     <main className={styles.shell}>

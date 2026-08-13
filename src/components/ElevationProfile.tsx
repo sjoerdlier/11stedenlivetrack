@@ -49,14 +49,21 @@ export default function ElevationProfile({ profile }: ElevationProfileProps) {
         preserveAspectRatio="none"
         className={styles.chart}
         role="img"
-        aria-label={`Hoogteprofiel: van ${Math.round(chart.minEle)} tot ${Math.round(chart.maxEle)} meter, ${Math.round(chart.gainM)} meter stijging`}
+        aria-label={`Hoogteprofiel: van ${Math.round(chart.minEle)} tot ${Math.round(chart.maxEle)} meter (hoogteverschil ${Math.round(chart.maxEle - chart.minEle)} meter), ${Math.round(chart.gainM)} meter stijging`}
       >
         <path d={chart.areaD} className={styles.area} />
         <path d={chart.lineD} className={styles.line} />
       </svg>
+      {/* The chart above stretches whatever range the data has to fill the
+          full SVG height, so a near-flat route can visually read as
+          mountainous. Spelling out the actual meter difference here (not
+          just the raw min/max a reader would otherwise have to subtract
+          themselves) is the reference point that keeps the scale honest,
+          without a full axis-and-gridline overhaul. */}
       <div className={styles.meta} aria-hidden>
         <span>
           {Math.round(chart.minEle)}–{Math.round(chart.maxEle)} m
+          <span className={styles.metaDelta}> (Δ{Math.round(chart.maxEle - chart.minEle)} m)</span>
         </span>
         <span>↑ {Math.round(chart.gainM)} m</span>
       </div>

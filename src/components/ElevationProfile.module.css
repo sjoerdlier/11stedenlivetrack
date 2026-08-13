@@ -34,3 +34,10 @@
     color: #6b6a61;
   }
 }
+
+/* Inherits .meta's color/size — just a touch lighter so the min–max range
+   stays the primary read and the explicit delta reads as a supporting
+   clarification next to it. */
+.metaDelta {
+  opacity: 0.85;
+}

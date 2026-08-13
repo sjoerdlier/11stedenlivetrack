@@ -116,6 +116,12 @@ export default function TopBar({
       {actual ? (
         <div className={styles.progress}>
           <span className={styles.progressText}>
+            {/* Mounts fresh the moment checkins flips from empty to
+                non-empty (this whole branch replaces the schedule-based one
+                below), so its one-shot CSS animation naturally fires right
+                at that switch and settles into a small persistent "this is
+                real check-in data, not the schedule" indicator. */}
+            <span className={styles.liveBadge}>Live</span>
             <span className={styles.progressFull}>
               {formatKm(actual.progress.km)} van {formatKm(totalKm)} ·{" "}
             </span>
@@ -132,7 +138,13 @@ export default function TopBar({
             {actual.paceKmh !== null && (
               <>
                 {" "}
-                · <span title={GAP_TITLE}>Tempo: {formatPaceKmh(actual.paceKmh)}</span>
+                ·{" "}
+                <span title={GAP_TITLE}>
+                  Tempo: {formatPaceKmh(actual.paceKmh)}
+                  <span className={styles.gapBadge} aria-hidden>
+                    ⛰
+                  </span>
+                </span>
               </>
             )}
             {actual.arrival && (
@@ -166,7 +178,11 @@ export default function TopBar({
           </span>
           {paceLabel && (
             <span className={styles.pace} title={GAP_TITLE}>
-              Gem. tempo: {paceLabel} (gepland)
+              Gem. tempo: {paceLabel}
+              <span className={styles.gapBadge} aria-hidden>
+                ⛰
+              </span>{" "}
+              (gepland)
             </span>
           )}
         </div>

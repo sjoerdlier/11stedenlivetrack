@@ -317,6 +317,22 @@ export default function TopBar({
             <span className={styles.actionLabel}>Doneren volgt nog</span>
           </span>
         )}
+
+        {/* This tracker is a companion to oogvoormaja.nl, where the full
+            story lives (Lowie & Björn walking the Elfstedentocht
+            blindfolded for OOG voor Maja/het Oogfonds) — a small, plain-text
+            pointer back there, deliberately not styled as another action
+            button. Independent of the NEXT_PUBLIC_DONATION_URL button
+            above: that donates directly, this links to the story. */}
+        <a
+          href="https://www.oogvoormaja.nl/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.storyLink}
+          aria-label="Het volledige verhaal en doneren op oogvoormaja.nl (opent in nieuw tabblad)"
+        >
+          Het volledige verhaal: oogvoormaja.nl
+        </a>
       </nav>
     </header>
   );

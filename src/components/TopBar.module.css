@@ -334,6 +334,29 @@
   filter: none;
 }
 
+/* Deliberately plain text, not another .action button — a quiet pointer
+   back to oogvoormaja.nl (the full story lives there), not a call to
+   action competing with Doneer/Live/Schema/Delen for attention. */
+.storyLink {
+  flex: none;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-2);
+}
+
+.storyLink:hover {
+  color: var(--db-text);
+}
+
+.storyLink:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
+}
+
 /* Below this, board + nav no longer comfortably share one row (a wide
    board — e.g. the live view's three-stat row plus a "(schatting o.b.v.
    gepland tempo)" note — would otherwise force the actions row to overflow

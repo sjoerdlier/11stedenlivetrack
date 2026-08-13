@@ -7,27 +7,21 @@
   overflow-y: auto;
   background: #fcfcfb;
   color: #0b0b0b;
-  border-right: 1px solid #e1e0d9;
+  border-right: 1px solid var(--color-border);
 }
 
 @media (prefers-color-scheme: dark) {
   .sidebar {
-    background: #161615;
+    background: var(--color-surface-dark);
     color: #ffffff;
-    border-right-color: #2c2c2a;
+    border-right-color: var(--color-border);
   }
 }
 
 .header {
   padding: 20px 30px 14px;
-  border-bottom: 1px solid #e1e0d9;
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 14px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .header {
-    border-bottom-color: #2c2c2a;
-  }
 }
 
 .title {
@@ -37,20 +31,12 @@
 }
 
 .hint {
-  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum; #52514e
-     (already used elsewhere for this same "secondary text" role) clears
-     it comfortably. It's too dark for the near-black dark background
-     though, so dark mode gets back the established #c3c2b7 counterpart
-     instead of inheriting this value. */
-  color: #52514e;
+  /* #898781 on #fcfcfb was 3.50:1, below the 4.5:1 AA text minimum;
+     --color-text-secondary (#52514e light / #c3c2b7 dark, already used
+     elsewhere for this same "secondary text" role) clears it comfortably. */
+  color: var(--color-text-secondary);
   font-size: 13px;
   margin-top: 2px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .hint {
-    color: #c3c2b7;
-  }
 }
 
 .elevationWrap {
@@ -104,7 +90,7 @@
     max-width: none;
     max-height: 84px;
     border-right: none;
-    border-top: 1px solid #e1e0d9;
+    border-top: 1px solid var(--color-border);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -6px 24px rgba(11, 11, 11, 0.18);
     transition: max-height 0.25s ease, height 0.25s ease;
@@ -114,7 +100,6 @@
 
   @media (prefers-color-scheme: dark) {
     .sidebar {
-      border-top-color: #2c2c2a;
       box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5);
     }
   }
@@ -130,14 +115,8 @@
     width: 40px;
     height: 4px;
     border-radius: 999px;
-    background: #e1e0d9;
+    background: var(--color-border);
     margin: 8px auto 0;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .handle {
-      background: #2c2c2a;
-    }
   }
 
   .header {
@@ -156,6 +135,9 @@
     display: block;
     flex: none;
     font-size: 13px;
+    /* Deliberately left off --color-text-secondary: this is a decorative
+       expand/collapse glyph, not body text subject to the 4.5:1 AA text
+       ratio, and the subtler tint reads better against the handle above it. */
     color: #898781;
     transition: transform 0.25s ease;
   }

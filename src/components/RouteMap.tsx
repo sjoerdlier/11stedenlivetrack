@@ -36,11 +36,29 @@ import styles from "./RouteMap.module.css";
 
 const INITIAL_ZOOM = 11;
 
+// Deliberately a plain literal, not var(--color-text-secondary): that token
+// gets a lighter dark-mode value (#c3c2b7), but this marker ring needs to
+// stay this exact charcoal against the map's tiles in both themes — Leaflet
+// isn't part of the page's light/dark cascade the way the sidebar text is.
 const MARKER_RING_COLOR = "#52514e";
 // The route line no longer follows leg status (that made most of the route
 // white/invisible); it's blue by default and turns green when a leg is
 // selected from the sidebar, so the click actually stands out.
-const ROUTE_BASE_COLOR = "#2a78d6";
+//
+// Reads --color-accent from the CSS custom property introduced in
+// globals.css rather than repeating the literal hex a 7th time — the token
+// has no dark-mode override (this line has always been the same blue in
+// both themes), so this resolves to the same "#2a78d6" as before. Falls
+// back to that literal for the (client-only, pre-mount) instant before the
+// stylesheet has painted.
+function readAccentColor(): string {
+  if (typeof window === "undefined") return "#2a78d6";
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-accent")
+    .trim();
+  return value || "#2a78d6";
+}
+const ROUTE_BASE_COLOR = readAccentColor();
 const ROUTE_SELECTED_COLOR = "#16a34a";
 
 const startFinishIcon = L.icon({

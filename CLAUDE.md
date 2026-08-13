@@ -12,12 +12,13 @@ npm run dev             # dev server, http://localhost:3000
 npm run build           # production build (next build)
 npm run lint            # eslint (eslint-config-next core-web-vitals + typescript)
 npx tsc --noEmit        # type check (no separate script for this)
+npx vitest run          # unit tests (60 tests across 7 files in src/lib/**)
 ```
 
-There is no test suite/framework in this repo. Treat `npx tsc --noEmit`, `npm run lint`,
-and `npm run build` as the verification bar for any change, plus a manual check in the
-browser for anything UI-facing — `npm run build` catches most issues but not visual/UX
-regressions.
+Treat `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `npx vitest run` as the
+verification bar for any change — run the last one whenever logic in `src/lib/**` is
+touched — plus a manual check in the browser for anything UI-facing: `npm run build`
+catches most issues but not visual/UX regressions.
 
 Requires `.env.local` (see `.env.example`) with `SUPABASE_URL` and `SUPABASE_ANON_KEY` at
 minimum — both `src/lib/legs.ts` and `src/lib/checkins.ts` throw immediately without them,

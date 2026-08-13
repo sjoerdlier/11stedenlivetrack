@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import RouteMapLoader from "@/components/RouteMapLoader";
 import PinScreenFixture from "./PinScreenFixture";
 import LoadError from "@/components/LoadError";
@@ -59,6 +60,15 @@ const mockElevationProfile: ElevationPoint[] = Array.from({ length: 41 }, (_, i)
 });
 
 export default function StyleguidePage() {
+  // Internal design-reference doc only — it was reachable in production with
+  // nothing but a `robots: noindex` meta tag (not an access control, just a
+  // request search engines don't have to honor) between it and anyone with
+  // the URL. Simplest guard that doesn't cost anything during development:
+  // 404 it out of existence once this is actually a production build.
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.hero}>

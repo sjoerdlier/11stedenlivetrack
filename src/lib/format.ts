@@ -97,6 +97,22 @@ export function formatScheduleDelta(delta: { minutes: number; band: "voor" | "op
   return `${sign}${Math.abs(delta.minutes)} min`;
 }
 
+const temperatureFormatter = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 });
+
+// Formats a temperature (°C) as "14°C" — whole degrees, nl-NL rounding
+// (only matters for the minus-sign placement, which Intl gets right for
+// negative values too).
+export function formatTemperatureC(value: number): string {
+  return `${temperatureFormatter.format(Math.round(value))}°C`;
+}
+
+const windFormatter = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 0 });
+
+// Formats a wind speed (km/u, as Open-Meteo returns it) as "18 km/u wind".
+export function formatWindKmh(value: number): string {
+  return `${windFormatter.format(Math.round(value))} km/u wind`;
+}
+
 // Formats how long ago `sinceMs` was, relative to `now`, as "zojuist" /
 // "12s geleden" / "3 minuten geleden" — for a "laatst bijgewerkt" freshness
 // indicator, not a precise duration, so it stays coarse on purpose.

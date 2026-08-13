@@ -11,7 +11,11 @@ import BeheerClient from "./BeheerClient";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return socialMetadata("Instellingen — Livetrack", "Garmin-links en check-in PIN beheren");
+  return {
+    ...socialMetadata("Instellingen — Livetrack", "Garmin-links en check-in PIN beheren"),
+    // PIN-gated admin screen — doesn't belong in search results.
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function BeheerPage() {

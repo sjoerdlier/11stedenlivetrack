@@ -22,10 +22,14 @@ interface InvoerPageProps {
 export async function generateMetadata({ searchParams }: InvoerPageProps): Promise<Metadata> {
   const { route } = await searchParams;
   const config = routeConfig(parseRouteSlug(route));
-  return socialMetadata(
-    `Invoer — ${config.pageTitle}`,
-    `Check-in invoeren voor de ${config.routeDescription}`,
-  );
+  return {
+    ...socialMetadata(
+      `Invoer — ${config.pageTitle}`,
+      `Check-in invoeren voor de ${config.routeDescription}`,
+    ),
+    // PIN-gated admin screen — doesn't belong in search results.
+    robots: { index: false, follow: false },
+  };
 }
 
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });

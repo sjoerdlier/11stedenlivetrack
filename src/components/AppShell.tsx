@@ -14,7 +14,6 @@ import { computeLegStatuses } from "@/lib/status";
 import { useSimulatedNow } from "@/lib/useSimulatedNow";
 import TopBar from "./TopBar";
 import RouteMapLoader from "./RouteMapLoader";
-import LiveTrackPanel from "./LiveTrackPanel";
 import NewCheckinToast from "./NewCheckinToast";
 import styles from "./AppShell.module.css";
 
@@ -64,7 +63,6 @@ export default function AppShell({
   // Same "earliest check-in per leg" pick as checkinTimes, but keeping the
   // whole record — LegCard reads .notitie/.invoerder off of it.
   const checkinsByLeg = useMemo(() => firstCheckinByLeg(partyCheckins), [partyCheckins]);
-  const [liveTrackOpen, setLiveTrackOpen] = useState(false);
   const [newArrival, setNewArrival] = useState<Leg | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
   // Same lazy-initializer pattern useSimulatedNow uses for ?debugTime= —
@@ -127,8 +125,7 @@ export default function AppShell({
         now={now}
         checkins={partyCheckins}
         checkinTimes={checkinTimes}
-        liveTrackOpen={liveTrackOpen}
-        onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
+        garminUrl={garminUrl}
       />
       <div className={styles.body}>
         <div className={styles.mapWrap}>
@@ -149,7 +146,6 @@ export default function AppShell({
             elevationProfile={elevationProfile}
           />
         </div>
-        <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} garminUrl={garminUrl} />
       </div>
     </div>
   );

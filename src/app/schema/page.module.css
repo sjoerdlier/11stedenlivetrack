@@ -72,6 +72,28 @@
   background: #f9f9f7;
 }
 
+/* Day-separator row (Zaterdag 29 augustus / Zondag 30 augustus) — a full-
+   width heading row breaking the table into calendar days, sticky while
+   scrolling on-screen so it's clear which day's rows are in view; print
+   ignores position:sticky entirely (nothing to stick to across pages), so
+   it just reads as a plain section heading on paper. */
+.dayRow th {
+  position: sticky;
+  top: 0;
+  background: #0b0b0b;
+  color: #ffffff;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: none;
+}
+
+.table tbody tr.dayRow {
+  background: #0b0b0b;
+}
+
 .plaats {
   font-weight: 700;
   white-space: nowrap;

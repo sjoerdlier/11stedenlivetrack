@@ -1,14 +1,10 @@
-.layout {
-  display: flex;
-  height: 100%;
-  width: 100%;
-}
-
+/* RouteMap's own root — sits inside AppShell's .mapWrap, which is the flex
+   item / positioning context now (LegSchedule moved out to be its sibling,
+   see AppShell.tsx), so this just fills whatever space .mapWrap gives it. */
 .mapArea {
   position: relative;
   height: 100%;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .map {

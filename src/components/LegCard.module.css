@@ -207,6 +207,17 @@
   color: var(--db-text-dim);
 }
 
+/* Voor/op/achter schema — color comes from the DELTA_COLOR token map at the
+   call site (voor/op/achter → --db-signal-green/--db-amber/--db-signal-red),
+   but the text itself ("+7 min" / "Op schema") already carries the same
+   meaning, so this never relies on color alone. */
+.deltaBadge {
+  display: inline-block;
+  margin-left: var(--sp-2);
+  font-weight: 700;
+  font-size: var(--fs-2xs);
+}
+
 .expectedLine {
   margin-top: var(--sp-2);
   font-family: var(--font-mono-family);

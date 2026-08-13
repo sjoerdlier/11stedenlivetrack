@@ -8,12 +8,13 @@ import type { Checkin } from "@/lib/checkins";
 import type { LivePositionRow } from "@/lib/livePositions";
 import type { ElevationPoint } from "@/lib/elevation";
 import type { RouteSlug } from "@/lib/routes";
+import type { WeatherSnapshot } from "@/lib/weather";
 import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import { computeLegStatuses } from "@/lib/status";
 import { useSimulatedNow } from "@/lib/useSimulatedNow";
 import TopBar from "./TopBar";
+import LegSchedule, { type SidebarTab } from "./LegSchedule";
 import RouteMapLoader from "./RouteMapLoader";
-import LiveTrackPanel from "./LiveTrackPanel";
 import NewCheckinToast from "./NewCheckinToast";
 import styles from "./AppShell.module.css";
 
@@ -22,6 +23,7 @@ const STATUS_REFRESH_MS = 30_000;
 // that would just hit the same cached Supabase read over and over.
 const DATA_POLL_MS = 20_000;
 const TOAST_MS = 6_000;
+const LEG_QUERY_PARAM = "leg";
 
 interface AppShellProps {
   activeRoute: RouteSlug;
@@ -32,6 +34,35 @@ interface AppShellProps {
   elevationProfile: ElevationPoint[];
   garminUrl: string | null;
   livePositions: LivePositionRow[];
+  weather: WeatherSnapshot | null;
+}
+
+// Reads the initially-selected leg from `?leg=<nr>` — same lazy-initializer,
+// SSR-safe pattern useSimulatedNow uses for `?debugTime=` (window is guarded,
+// read once at mount, not during the render body directly).
+function parseLegParam(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get(LEG_QUERY_PARAM);
+  if (!raw) return null;
+  const nr = Number(raw);
+  return Number.isFinite(nr) ? nr : null;
+}
+
+// Mirrors `selectedNr` into the URL as `?leg=<nr>` (or removes it) via plain
+// `history.replaceState` rather than Next's router — router.push/replace
+// treats a searchParams change as a real navigation (a fresh RSC request for
+// this page's server output), which is wasted work for what's purely local
+// UI state; a raw replaceState updates the address bar (so a "look, hij is
+// nu bij Bartlehiem" link can be copied) without re-fetching or re-rendering
+// anything server-side. No history entry either — this is a live selection
+// following the map/schedule, not a page the back button should step
+// through leg by leg.
+function setLegQueryParam(nr: number | null) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (nr === null) url.searchParams.delete(LEG_QUERY_PARAM);
+  else url.searchParams.set(LEG_QUERY_PARAM, String(nr));
+  window.history.replaceState(window.history.state, "", url);
 }
 
 export default function AppShell({
@@ -48,6 +79,7 @@ export default function AppShell({
   elevationProfile,
   garminUrl,
   livePositions: initialLivePositions,
+  weather,
 }: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const [checkins, setCheckins] = useState(initialCheckins);
@@ -60,7 +92,8 @@ export default function AppShell({
   const statuses = useMemo(() => computeLegStatuses(legs, now), [legs, now]);
   // TopBar/sidebar are scoped to whichever party the switcher has selected
   // (its own progress, pace, notes) — `checkins` itself stays unfiltered and
-  // goes to the map, which shows every party's live position at once.
+  // goes to the map (every party's live position at once) and the Updates
+  // tab (every party's timeline at once).
   const partyCheckins = useMemo(
     () => checkins.filter((c) => c.party === activeParty),
     [checkins, activeParty],
@@ -69,7 +102,6 @@ export default function AppShell({
   // Same "earliest check-in per leg" pick as checkinTimes, but keeping the
   // whole record — LegCard reads .notitie/.invoerder off of it.
   const checkinsByLeg = useMemo(() => firstCheckinByLeg(partyCheckins), [partyCheckins]);
-  const [liveTrackOpen, setLiveTrackOpen] = useState(false);
   const [newArrival, setNewArrival] = useState<Leg | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
   // Same lazy-initializer pattern useSimulatedNow uses for ?debugTime= —
@@ -95,6 +127,39 @@ export default function AppShell({
     setCheckins(initialCheckins);
     setLivePositions(initialLivePositions);
   }
+
+  // Selection state lives here (not in RouteMap, not in LegSchedule) so a
+  // click in either place drives the other — see selectLeg below. Deep-links
+  // via `?leg=<nr>` (see parseLegParam/setLegQueryParam): loading with
+  // `?leg=7` in the URL starts with etappe 7 already selected/expanded (and
+  // the mobile sheet already open, so the detail is actually visible).
+  const [selectedNr, setSelectedNr] = useState<number | null>(parseLegParam);
+  const [mobileExpanded, setMobileExpanded] = useState(() => parseLegParam() !== null);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("schema");
+
+  function selectLeg(nr: number | null) {
+    setSelectedNr(nr);
+    // A marker/segment tap on the map (mobile is a collapsed bottom sheet by
+    // default) needs to expand the sheet too, otherwise the detail the user
+    // just asked for gets scrolled to but stays invisible; re-setting this
+    // true from a schedule-originated click (already visible, since you had
+    // to be looking at the expanded sheet to click it) is a harmless no-op.
+    if (nr !== null) setMobileExpanded(true);
+  }
+
+  useEffect(() => {
+    setLegQueryParam(selectedNr);
+  }, [selectedNr]);
+
+  // Scrolls the selected leg's row into view within the (now sibling, not
+  // child-of-RouteMap) schedule list — fires for both map-originated and
+  // schedule-originated selections, and for the `?leg=` deep-link on mount.
+  useEffect(() => {
+    if (selectedNr === null) return;
+    document
+      .getElementById(`leg-row-${selectedNr}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [selectedNr]);
 
   // Marks fresh data as having landed on mount and on every route/party
   // switch (the reset above) — the rAF callback (not a synchronous setState
@@ -183,7 +248,17 @@ export default function AppShell({
   }, [checkinsByLeg, legs]);
 
   return (
-    <div className={styles.shell}>
+    <main className={styles.shell}>
+      {/* Skip link: invisible until it receives keyboard focus (first Tab
+          stop on the page), then jumps straight past the map to the
+          etappeschema sidebar — see #etappeschema on LegSchedule's root. */}
+      <a href="#etappeschema" className={styles.skipLink}>
+        Naar het etappeschema
+      </a>
+      {/* Visually hidden (not display:none, so it stays in the accessibility
+          tree) — the map itself has no visible page title, so this is the
+          only <h1> a screen reader user gets. */}
+      <h1 className={styles.srOnly}>11 Steden Livetrack — Lowie &amp; Björn</h1>
       <TopBar
         activeRoute={activeRoute}
         activeParty={activeParty}
@@ -193,30 +268,45 @@ export default function AppShell({
         now={now}
         checkins={partyCheckins}
         checkinTimes={checkinTimes}
-        liveTrackOpen={liveTrackOpen}
-        onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
+        garminUrl={garminUrl}
+        weather={weather}
       />
       <div className={styles.body}>
+        <LegSchedule
+          activeRoute={activeRoute}
+          activeParty={activeParty}
+          legs={legs}
+          effortLegs={effortLegs}
+          statuses={statuses}
+          checkinTimes={checkinTimes}
+          checkinsByLeg={checkinsByLeg}
+          checkins={checkins}
+          selectedNr={selectedNr}
+          onSelect={selectLeg}
+          mobileExpanded={mobileExpanded}
+          onToggleMobileExpanded={() => setMobileExpanded((v) => !v)}
+          activeTab={sidebarTab}
+          onTabChange={setSidebarTab}
+          now={now}
+          lastRefreshedAt={lastRefreshedAt}
+          elevationProfile={elevationProfile}
+        />
         <div className={styles.mapWrap}>
           {newArrival && <NewCheckinToast plaats={newArrival.start_plaats} />}
           <RouteMapLoader
             activeRoute={activeRoute}
-            activeParty={activeParty}
             start={start}
             legSegments={legSegments}
             effortLegs={effortLegs}
             statuses={statuses}
-            checkinTimes={checkinTimes}
-            checkinsByLeg={checkinsByLeg}
             checkins={checkins}
             livePositions={livePositions}
             now={now}
-            lastRefreshedAt={lastRefreshedAt}
-            elevationProfile={elevationProfile}
+            selectedNr={selectedNr}
+            onSelectLeg={selectLeg}
           />
         </div>
-        <LiveTrackPanel open={liveTrackOpen} onClose={() => setLiveTrackOpen(false)} garminUrl={garminUrl} />
       </div>
-    </div>
+    </main>
   );
 }

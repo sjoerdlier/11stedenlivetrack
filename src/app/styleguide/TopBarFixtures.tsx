@@ -6,16 +6,27 @@
 // Dev-only, reached via /styleguide (already noindex'd by the page's own
 // metadata export).
 
-import { useState } from "react";
 import TopBar from "@/components/TopBar";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
+import type { WeatherSnapshot } from "@/lib/weather";
 import { computeLegStatuses } from "@/lib/status";
 import { firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import styles from "./styleguide.module.css";
 
 const ROUTE = "11steden" as const;
 const PARTY = "team";
+
+// Fixed mock snapshot — WeatherStrip doesn't vary with the leg/check-in
+// state these fixtures otherwise sweep through, so every fixture below
+// shares this one value.
+const MOCK_WEATHER: WeatherSnapshot = {
+  temperatureC: 14,
+  windKmh: 18,
+  weatherCode: 3,
+  description: "bewolkt",
+  isDay: true,
+};
 
 function iso(base: string, hoursOffset: number): string {
   const d = new Date(base);
@@ -105,10 +116,10 @@ interface FixtureProps {
   legs: Leg[];
   now: number;
   checkins: Checkin[];
+  garminUrl?: string | null;
 }
 
-function Fixture({ label, legs, now, checkins }: FixtureProps) {
-  const [liveTrackOpen, setLiveTrackOpen] = useState(false);
+function Fixture({ label, legs, now, checkins, garminUrl = null }: FixtureProps) {
   const statuses = computeLegStatuses(legs, now);
   const checkinTimes = firstCheckinTimesByLeg(checkins);
   return (
@@ -124,8 +135,8 @@ function Fixture({ label, legs, now, checkins }: FixtureProps) {
           now={now}
           checkins={checkins}
           checkinTimes={checkinTimes}
-          liveTrackOpen={liveTrackOpen}
-          onToggleLiveTrack={() => setLiveTrackOpen((v) => !v)}
+          garminUrl={garminUrl}
+          weather={MOCK_WEATHER}
         />
       </div>
     </div>
@@ -187,6 +198,13 @@ export default function TopBarFixtures() {
           checkins={liveMidCheckins}
         />
         <Fixture label="Gefinisht" legs={finishedLegs} now={finishedNow} checkins={finishedCheckins} />
+        <Fixture
+          label="Met Garmin-link (achtervang) ingesteld via /beheer"
+          legs={scheduleLegs}
+          now={scheduleNow}
+          checkins={[]}
+          garminUrl="https://livetrack.garmin.com/session/example"
+        />
       </div>
     </section>
   );

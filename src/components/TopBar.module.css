@@ -19,6 +19,16 @@
 
 /* ---------- board panel (countdown / progress) ---------- */
 
+/* Wraps .board + WeatherStrip as .bar's single left-hand flex child, so the
+   weather line stays visually attached to the live status instead of
+   becoming a third item in .bar's space-between layout. */
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
 .board {
   display: flex;
   flex-direction: column;
@@ -108,6 +118,19 @@
   .liveTag {
     animation: none;
   }
+}
+
+/* "Voor/op/achter op schema" — the color comes from the DELTA_COLOR token
+   map at the call site (voor/op/achter -> --db-signal-green/--db-amber/
+   --db-signal-red), but the text itself ("+7 min" / "Op schema") already
+   carries the same meaning on its own, so this is never the only signal. */
+.deltaTag {
+  display: inline-flex;
+  align-self: flex-start;
+  font-family: var(--font-mono-family);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  font-weight: 700;
 }
 
 /* ---------- mono stat row ---------- */
@@ -282,18 +305,34 @@
   color: var(--db-ground);
 }
 
-/* The live-GPS-track toggle uses amber instead — it's the "lit segment"
-   for an actively-open live view, not a route/schedule selection. */
-.actionLive {
-  background: var(--db-amber);
-  border-color: var(--db-amber);
-  color: var(--db-amber-ink);
+/* Garmin LiveTrack fallback link — the site has its own live marker on the
+   map, so this only ever appears once an organizer has actually set a link
+   in /beheer, and deliberately reads as a minor secondary link (no border,
+   dimmer) rather than a primary action button like the ones above. Opens
+   the Garmin page in a new tab instead of an in-app overlay. */
+.garminLink {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--db-text-dim);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: var(--sp-2) var(--sp-1);
+  opacity: 0.75;
 }
 
-.actionLive:hover {
-  background: var(--db-amber);
-  filter: brightness(1.05);
-  color: var(--db-amber-ink);
+.garminLink:hover {
+  opacity: 1;
+  color: var(--db-text);
+}
+
+.garminLink:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
+  opacity: 1;
 }
 
 .donate {
@@ -332,6 +371,29 @@
 .donateTodo:hover {
   background: transparent;
   filter: none;
+}
+
+/* Deliberately plain text, not another .action button — a quiet pointer
+   back to oogvoormaja.nl (the full story lives there), not a call to
+   action competing with Doneer/Live/Schema/Delen for attention. */
+.storyLink {
+  flex: none;
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-2);
+}
+
+.storyLink:hover {
+  color: var(--db-text);
+}
+
+.storyLink:focus-visible {
+  outline: 2px solid var(--db-steel);
+  outline-offset: 1px;
 }
 
 /* Below this, board + nav no longer comfortably share one row (a wide

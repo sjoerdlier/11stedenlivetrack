@@ -10,8 +10,18 @@ export interface PartyConfig {
 // shares the same timeline. A route that's shared by more than one
 // independent group (see git history for the KAT100 routes, removed after
 // that race weekend ended) adds an entry with more than one party here.
+//
+// "11steden" is run by two people, each with their own check-ins/live
+// position but sharing the same schedule (`legs`) — Lowie van Eck and
+// Björn van Loon run the Elfstedentocht blindfolded together for OOG voor
+// Maja / het Oogfonds. `team` is kept as the existing party slug (real
+// check-in rows in Supabase already use it) rather than renamed to
+// `lowie`, which would silently orphan that data.
 export const PARTIES_BY_ROUTE: Record<RouteSlug, PartyConfig[]> = {
-  "11steden": [{ slug: "team", label: "Lowie", color: "#2a78d6" }],
+  "11steden": [
+    { slug: "team", label: "Lowie", color: "#c9498b" },
+    { slug: "bjorn", label: "Björn", color: "#3a9188" },
+  ],
 };
 
 export function partiesForRoute(route: RouteSlug): PartyConfig[] {

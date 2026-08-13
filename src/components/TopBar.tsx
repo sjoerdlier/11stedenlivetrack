@@ -246,10 +246,10 @@ export default function TopBar({
         ) : (
           <span
             className={`${styles.donate} ${styles.donateTodo}`}
-            title="NEXT_PUBLIC_DONATION_URL is niet ingesteld"
+            title="Doneren is hier binnenkort mogelijk"
           >
             <span aria-hidden>❤</span>
-            <span className={styles.actionLabel}>Doneer (TODO: url instellen)</span>
+            <span className={styles.actionLabel}>Doneren volgt nog</span>
           </span>
         )}
       </nav>

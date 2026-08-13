@@ -8,7 +8,7 @@ interface PinScreenProps {
   title?: string;
 }
 
-export default function PinScreen({ onSuccess, title = "Basiscamp invoer" }: PinScreenProps) {
+export default function PinScreen({ onSuccess, title = "Check-in invoer" }: PinScreenProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

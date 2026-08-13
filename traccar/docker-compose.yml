@@ -1,0 +1,25 @@
+services:
+  traccar:
+    image: traccar/traccar:latest
+    restart: unless-stopped
+    ports:
+      - "8082:8082" # web interface — only needed once, to register the device's IMEI
+      - "5023:5023" # GT06 protocol — see the main README's "Live GPS-tracking" section
+    environment:
+      CONFIG_USE_ENVIRONMENT_VARIABLES: "true"
+      CONFIG_GT06_PORT: "5023"
+      # Every decoded position gets POSTed straight to our own site, which
+      # translates it into the same shape the Android app already posts to
+      # /api/live (see src/app/api/live/traccar/route.ts in the main repo).
+      # Replace both placeholders below before starting this — see
+      # traccar/README.md for where the token comes from.
+      CONFIG_FORWARD_TYPE: "json"
+      CONFIG_FORWARD_URL: "https://YOUR-SITE/api/live/traccar?route=11steden&party=team"
+      CONFIG_FORWARD_HEADER: "Authorization: Bearer YOUR-LIVE-TOKEN"
+    volumes:
+      - traccar-data:/opt/traccar/data
+      - traccar-logs:/opt/traccar/logs
+
+volumes:
+  traccar-data:
+  traccar-logs:

@@ -58,15 +58,24 @@ const startFinishIcon = L.icon({
 });
 
 // A small pulsing dot for a party's estimated live position — deliberately
-// not a Leaflet CircleMarker, since those can't carry a CSS animation. The
-// pulse ring and animation live in RouteMap.module.css (with a
-// prefers-reduced-motion override); this just wires up the two layered
-// spans divIcon expects as an HTML string, tinted to that party's color so
-// two simultaneous parties stay visually distinct.
-function liveIconFor(color: string) {
+// not a Leaflet CircleMarker, since those can't carry a CSS animation/
+// transition. The pulse ring and animation live in RouteMap.module.css
+// (with a prefers-reduced-motion override); this just wires up the two
+// layered spans divIcon expects as an HTML string, tinted to that party's
+// color so two simultaneous parties stay visually distinct.
+//
+// isLive (real Android-tracker GPS) and the estimated fallback (interpolated
+// from pace + check-ins) get visibly different treatments — a solid filled
+// dot for confirmed GPS vs. a hollow dashed ring for an estimate — since the
+// only other signal (the tooltip's " · live GPS"/" · schatting" suffix)
+// isn't reachable on mobile without a hover state.
+function liveIconFor(color: string, isLive: boolean) {
+  const dotClass = isLive ? styles.liveDot : `${styles.liveDot} ${styles.liveDotEstimated}`;
+  const pulseClass = isLive ? styles.livePulse : `${styles.livePulse} ${styles.livePulseEstimated}`;
+  const dotStyle = isLive ? `background:${color}` : `border-color:${color}`;
   return L.divIcon({
     className: styles.liveIconWrap,
-    html: `<span class="${styles.livePulse}" style="background:${color}"></span><span class="${styles.liveDot}" style="background:${color}"></span>`,
+    html: `<span class="${pulseClass}" style="background:${color}"></span><span class="${dotClass}" style="${dotStyle}"></span>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });
@@ -352,7 +361,7 @@ export default function RouteMap({
             <Marker
               key={`live-${party.slug}`}
               position={position.position}
-              icon={liveIconFor(party.color)}
+              icon={liveIconFor(party.color, isLive)}
               zIndexOffset={1000}
             >
               <Tooltip direction="top" offset={[0, -10]}>

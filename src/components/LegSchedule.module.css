@@ -24,6 +24,17 @@
   margin-bottom: 14px;
 }
 
+/* .header is a role="button" tabIndex={0} div (toggles the mobile
+   bottom-sheet) — it stays in the tab order at every breakpoint even though
+   the toggle itself is only meaningful below 768px, so the focus ring isn't
+   scoped to that media query either. Matches invoer.module.css's
+   outline/offset convention; a negative offset keeps the ring inside the
+   sidebar's edge instead of getting clipped by its overflow/border-radius. */
+.header:focus-visible {
+  outline: 2px solid #2a78d6;
+  outline-offset: -2px;
+}
+
 @media (prefers-color-scheme: dark) {
   .header {
     border-bottom-color: #2c2c2a;

@@ -7,6 +7,7 @@ import LegScheduleFixture from "./LegScheduleFixture";
 import ElevationProfile from "@/components/ElevationProfile";
 import type { ElevationPoint } from "@/lib/elevation";
 import styles from "./styleguide.module.css";
+import TopBarFixtures from "./TopBarFixtures";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -124,6 +125,8 @@ export default function StyleguidePage() {
           ))}
         </div>
       </section>
+
+      <TopBarFixtures />
 
       <section className={styles.block}>
         <h2 className={styles.blockTitle}>Etappeschema — echte component</h2>

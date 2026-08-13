@@ -1,44 +1,168 @@
+/* The site's "kopstuk" — the departure-board hero. A left-hand board panel
+   (big Big Shoulders numeral + a row of mono stats, styleguide's hero
+   pattern) and a right-hand row of sharp-cornered action buttons, on the
+   --db-surface board face. */
+
 .bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  height: 56px;
+  gap: var(--sp-5);
   flex: none;
-  padding: 0 18px;
-  background: #fcfcfb;
-  color: #0b0b0b;
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--db-surface);
+  color: var(--db-text);
+  border-bottom: 1px solid var(--db-border);
   box-sizing: border-box;
+  font-family: var(--font-sans-family);
 }
 
-@media (prefers-color-scheme: dark) {
-  .bar {
-    background: var(--color-surface-dark);
-    color: #ffffff;
-    border-bottom-color: var(--color-border);
-  }
-}
+/* ---------- board panel (countdown / progress) ---------- */
 
-.progress {
+.board {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 5px;
+  gap: var(--sp-1);
   min-width: 0;
 }
 
-.progressText {
-  font-size: 13px;
+.panelMain {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.heroBlock {
+  display: flex;
+  align-items: baseline;
+  flex: none;
+}
+
+.heroNumber {
+  font-family: var(--font-display-family);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--db-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroPercent {
+  font-family: var(--font-display-family);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--db-text-dim);
+  margin-left: 1px;
+}
+
+.heroMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.heroLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-xs);
+  color: var(--db-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50vw;
+}
+
+/* Flags the moment TopBar swaps from the schedule-based progress view to
+   the check-in-derived one (see the `actual` branch in TopBar.tsx) — a
+   small persistent "Nu live" tag, with a one-shot ring pulse on mount so
+   the switch itself briefly draws the eye instead of happening silently. */
+.liveTag {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 1px 6px;
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--db-amber-ink);
+  background: var(--db-amber);
+  border-radius: var(--radius-sm);
+  animation: live-tag-flash 1.6s ease-out;
+}
+
+@keyframes live-tag-flash {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--db-amber) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--db-amber) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--db-amber) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveTag {
+    animation: none;
+  }
+}
+
+/* ---------- mono stat row ---------- */
+
+.statRow {
+  display: flex;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.statLabel {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--db-text-dim);
+}
+
+.statValue {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-sm);
   font-weight: 600;
+  color: var(--db-text);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
+.statNote {
+  font-weight: 400;
+  color: var(--db-text-dim);
+}
+
+/* Marks a "Tempo" figure as grade-adjusted (Minetti-based) — the title
+   tooltip on the wrapping element carries the full explanation, but that's
+   unreachable on mobile without a hover state, so this small mountain glyph
+   gives the same signal visually. */
+.gapBadge {
+  margin-left: 3px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+
 .milestone {
-  margin-left: 8px;
-  font-size: 11px;
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  color: #eb6834;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--db-amber);
   white-space: nowrap;
 }
 
@@ -54,103 +178,25 @@
   text-underline-offset: 2px;
 }
 
-.progressFull {
-  font-weight: 400;
-  color: var(--color-text-secondary);
-}
-
-.progressShort {
-  display: none;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-}
-
 .progressTrack {
   display: block;
-  width: 160px;
+  width: 180px;
   max-width: 40vw;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--color-border);
+  height: 6px;
+  background: var(--db-surface-2);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .progressFill {
   display: block;
   height: 100%;
-  background: var(--color-accent);
-  border-radius: 999px;
-  transition: width 0.4s ease;
+  background: var(--db-amber);
+  transition: width var(--motion-flip) var(--motion-ease);
 }
 
-/* Was its own #898781/#a3a29a pair (a third, undocumented variant of the
-   secondary-text gray) — consolidated onto the shared --color-text-secondary
-   token used by .progressFull/.progressShort/LegCard/LegSchedule above, per
-   the design audit's contrast pass. */
-.pace {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-/* Marks a "Tempo" figure as grade-adjusted (Minetti-based) — the title
-   tooltip on the wrapping element carries the full explanation, but that's
-   unreachable on mobile without a hover state, so this small mountain glyph
-   gives the same signal visually. */
-.gapBadge {
-  margin-left: 3px;
-  font-size: 10px;
-  opacity: 0.75;
-}
-
-/* Flags the moment TopBar swaps from the schedule-based progress view to
-   the check-in-derived one (see the `actual` branch in TopBar.tsx) — a
-   small persistent "Live" pill, with a one-shot ring pulse on mount so the
-   switch itself briefly draws the eye instead of happening silently. */
-.liveBadge {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 6px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #ffffff;
-  background: #2a78d6;
-  animation: live-badge-flash 1.6s ease-out;
-}
-
-@keyframes live-badge-flash {
-  0% {
-    box-shadow: 0 0 0 0 rgba(42, 120, 214, 0.55);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(42, 120, 214, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(42, 120, 214, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .liveBadge {
-    animation: none;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .pace {
-    color: #a3a29a;
-  }
-}
-
-@media (max-width: 640px) {
-  .pace {
-    display: none;
-  }
-}
+/* ---------- actions ---------- */
 
 /* flex: 1 1 auto + min-width: 0 lets this row actually shrink below its
    content's natural width on narrow screens (route switcher + 4 icon
@@ -161,7 +207,7 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
@@ -176,10 +222,10 @@
 .routeSwitch {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-right: 8px;
-  margin-right: 2px;
-  border-right: 1px solid var(--color-border);
+  gap: var(--sp-1);
+  padding-right: var(--sp-2);
+  margin-right: var(--sp-1);
+  border-right: 1px solid var(--db-border);
 }
 
 .partySwitchDot {
@@ -193,22 +239,23 @@
 .action {
   display: flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid var(--color-border);
+  gap: var(--sp-1);
+  border: 1px solid var(--db-border);
   background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
+  color: var(--db-text-dim);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  border-radius: 999px;
-  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .action:hover {
-  background: #0b0b0b0d;
+  background: var(--db-surface-2);
+  color: var(--db-text);
 }
 
 /* Matches the outline/offset convention already established in
@@ -217,90 +264,113 @@
    share this class. :focus-visible so the ring only shows for
    keyboard/assistive-tech navigation, not on every mouse click. */
 .action:focus-visible {
-  outline: 2px solid #2a78d6;
+  outline: 2px solid var(--db-steel);
   outline-offset: 1px;
 }
 
-.actionActive {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: #ffffff;
+/* Route/party selection — --db-steel is the token's own "selectie"
+   role, distinct from --db-amber's "live/actief/primaire CTA". */
+.actionSelected {
+  background: var(--db-steel);
+  border-color: var(--db-steel);
+  color: var(--db-ground);
 }
 
-.actionActive:hover {
-  background: #2568bd;
+.actionSelected:hover {
+  background: var(--db-steel);
+  filter: brightness(1.05);
+  color: var(--db-ground);
 }
 
-@media (prefers-color-scheme: dark) {
-  .action:hover {
-    background: #ffffff14;
-  }
+/* The live-GPS-track toggle uses amber instead — it's the "lit segment"
+   for an actively-open live view, not a route/schedule selection. */
+.actionLive {
+  background: var(--db-amber);
+  border-color: var(--db-amber);
+  color: var(--db-amber-ink);
+}
+
+.actionLive:hover {
+  background: var(--db-amber);
+  filter: brightness(1.05);
+  color: var(--db-amber-ink);
 }
 
 .donate {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-1);
   border: 1px solid transparent;
-  background: #eb6834;
-  color: #ffffff;
-  font: inherit;
-  font-size: 13px;
+  background: var(--db-amber);
+  color: var(--db-amber-ink);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
   font-weight: 700;
-  border-radius: 999px;
-  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-4);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .donate:hover {
-  background: #d95926;
+  filter: brightness(0.95);
 }
 
 .donate:focus-visible {
-  outline: 2px solid #2a78d6;
+  outline: 2px solid var(--db-steel);
   outline-offset: 1px;
 }
 
 .donateTodo {
   background: transparent;
-  /* #eb6834 text on this bar's #fcfcfb background is only 3.20:1 — below
-     the 4.5:1 AA text minimum. #c1440e keeps the same vivid-orange hue at
-     ~4.99:1. The old opacity:0.8 diluted whatever color sat here back
-     toward the light background (nearly reproducing #eb6834), which is why
-     it's dropped instead of kept for the "muted" look. */
-  border: 1px dashed #c1440e;
-  color: #c1440e;
+  border: 1px dashed var(--db-amber);
+  color: var(--db-amber);
   cursor: not-allowed;
 }
 
 .donateTodo:hover {
   background: transparent;
+  filter: none;
 }
 
-/* Dark mode's #161615 background already gave the original #eb6834 a
-   healthy 5.66:1 — restore it here since the darker light-mode color above
-   would only measure ~3.5:1 against that dark background. */
-@media (prefers-color-scheme: dark) {
-  .donateTodo {
-    border-color: #eb6834;
-    color: #eb6834;
+/* Below this, board + nav no longer comfortably share one row (a wide
+   board — e.g. the live view's three-stat row plus a "(schatting o.b.v.
+   gepland tempo)" note — would otherwise force the actions row to overflow
+   with no visible scroll affordance, silently hiding the donate button).
+   Stack them instead: board takes its own full-width row, actions its own
+   full-width (still horizontally scrollable) row below. */
+@media (max-width: 1024px) {
+  .bar {
+    flex-wrap: wrap;
+    row-gap: var(--sp-3);
+  }
+
+  .board {
+    flex: 1 1 100%;
+  }
+
+  .actions {
+    flex: 1 1 100%;
   }
 }
 
 @media (max-width: 640px) {
   .bar {
-    padding: 0 12px;
-    gap: 10px;
+    padding: var(--sp-2) var(--sp-3);
+    gap: var(--sp-3);
   }
 
-  .progressFull {
-    display: none;
+  .heroNumber {
+    font-size: var(--fs-xl);
   }
 
-  .progressShort {
-    display: inline;
+  .heroLabel {
+    max-width: 38vw;
+  }
+
+  .statRow {
+    gap: var(--sp-3);
   }
 
   .progressTrack {
@@ -314,6 +384,6 @@
   .action,
   .donate,
   .donateTodo {
-    padding: 8px;
+    padding: var(--sp-2);
   }
 }

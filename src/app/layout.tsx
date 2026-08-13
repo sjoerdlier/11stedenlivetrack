@@ -47,8 +47,8 @@ export const metadata: Metadata = {
 // of showing the browser's default color.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfb" },
-    { media: "(prefers-color-scheme: dark)", color: "#161615" },
+    { media: "(prefers-color-scheme: light)", color: "#fdfcf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#171b21" },
   ],
 };
 

@@ -266,6 +266,36 @@
   color: var(--db-text-dim);
 }
 
+/* ---------- TopBar fixtures ---------- */
+
+/* Breaks out of .page's centered 960px column — TopBar is a full-viewport-
+   width header in the real app, so the fixture gallery needs real desktop
+   width to be an honest preview instead of squeezing it artificially. */
+.fixtureGallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 0 var(--sp-6);
+  box-sizing: border-box;
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* TopBar renders full-bleed; a plain border (no padding/centering) keeps
+   the preview an honest edge-to-edge read instead of floating it in a
+   dashed, padded box like the smaller utility-surface fixtures below. */
+.topBarFrame {
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
 /* ---------- real LegSchedule fixture ---------- */
 
 .blockHint {

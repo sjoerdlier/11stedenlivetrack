@@ -1,33 +1,99 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   "Vertrekstaat" design system
+   ==========================================================================
+   The live data (times, pace, distances, status) is the site's reason for
+   existing, so it is the literal visual subject: every screen reads like a
+   departure board — dark board face, lit-amber active state, unlit/dim
+   states for what hasn't happened yet, tabular monospace for every number
+   that changes. Light mode is the same board read in daylight, not a
+   different theme bolted on: same structure, same roles, just re-lit.
 
-  /* Shared design tokens for the most-duplicated literal colors across
-     TopBar/LegCard/LegSchedule/RouteMap (see the design-audit PR for the
-     full file-by-file migration). Each token preserves the exact value(s)
-     it replaces — this is a centralization pass, not a restyle. */
-  --color-accent: #2a78d6;
-  /* Same accent hue, but lightened for *text* sitting directly on the dark
-     surface below — the plain --color-accent doesn't clear AA contrast for
-     text on #161615/#0a0a0a, so a few text-only spots (an active status
-     label, an "expected arrival" line, an address link) already used
-     #3987e5 in dark mode instead. --color-accent itself intentionally
-     keeps one constant value everywhere else (buttons, borders, chart
-     fills, the map route line never varied by theme). */
-  --color-accent-text: #2a78d6;
-  --color-text-secondary: #52514e;
-  --color-border: #e1e0d9;
-  --color-surface-dark: #161615;
+   Token roles (kept stable across light/dark — only the *values* flip):
+   --db-ground / --db-surface / --db-surface-2   background layers
+   --db-border                                    hairline rule
+   --db-text / --db-text-dim                      ink, primary vs. metadata
+   --db-amber                                      the lit segment — live/active/primary CTA
+   --db-steel                                      route/schedule identity — links, selection, route line
+   --db-signal-red / --db-signal-green            critical-now / done
+   -------------------------------------------------------------------------- */
+
+:root {
+  --background: #f4f1e6;
+  --foreground: #1c1f24;
+
+  --db-ground: #f4f1e6;
+  --db-surface: #fdfcf7;
+  --db-surface-2: #eeead9;
+  --db-border: #ddd6c0;
+  --db-text: #1c1f24;
+  --db-text-dim: #5b5f68;
+  --db-amber: #c97a12;
+  --db-amber-ink: #7a4c0b;
+  --db-steel: #2c5c8a;
+  --db-signal-red: #b8331f;
+  --db-signal-green: #1f7a4d;
+
+  /* Legacy token names kept as aliases so components migrate incrementally
+     rather than all at once — see redesign PRs per surface. Remove once
+     every consumer reads the --db-* tokens directly. */
+  --color-accent: var(--db-steel);
+  --color-accent-text: var(--db-steel);
+  --color-text-secondary: var(--db-text-dim);
+  --color-border: var(--db-border);
+  --color-surface-dark: #0e1116;
+
+  /* Type: display (hero numerals) / sans (UI text) / mono (every live figure) */
+  --font-display-family: var(--font-display), "Arial Narrow", sans-serif;
+  --font-sans-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  --font-mono-family: var(--font-mono), "SF Mono", Consolas, monospace;
+
+  --fs-2xs: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.5rem;
+  --fs-3xl: 3.5rem;
+
+  /* 4px rhythm */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+
+  /* The board is a grid of rectangular panels, not soft cards — radius is
+     used sparingly, only where something is genuinely interactive/tappable. */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  --motion-flip: 220ms;
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0e1116;
+    --foreground: #f2ede0;
 
-    --color-accent-text: #3987e5;
-    --color-text-secondary: #c3c2b7;
-    --color-border: #2c2c2a;
+    --db-ground: #0e1116;
+    --db-surface: #171b21;
+    --db-surface-2: #1f242c;
+    --db-border: #2b323c;
+    --db-text: #f2ede0;
+    --db-text-dim: #9aa0ab;
+    --db-amber: #f5a623;
+    --db-amber-ink: #2a1c04;
+    --db-steel: #7fa8d6;
+    --db-signal-red: #e5533d;
+    --db-signal-green: #4caf7d;
+
+    --color-surface-dark: var(--db-surface);
   }
 }
 
@@ -47,7 +113,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -66,5 +132,11 @@ a {
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-flip: 0ms;
   }
 }

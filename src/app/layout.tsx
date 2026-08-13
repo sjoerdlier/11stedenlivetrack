@@ -1,10 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Big_Shoulders, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// "Vertrekstaat" design system — three faces, one job each:
+// display for hero numerals (countdown/progress), sans for UI text, mono
+// (tabular figures) as the instrument face for every piece of live data.
+// Big Shoulders ships as one variable family (former "Display"/"Text" cuts
+// merged into an opsz axis) — the high static weights read as the display cut.
+const displayFont = Big_Shoulders({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["600", "700", "800"],
+});
+
+const sansFont = IBM_Plex_Sans({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const monoFont = IBM_Plex_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 // Needed to resolve the relative og:image/twitter:image URLs that the
@@ -40,7 +58,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="nl" className={geistSans.variable}>
+    <html
+      lang="nl"
+      className={`${displayFont.variable} ${sansFont.variable} ${monoFont.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

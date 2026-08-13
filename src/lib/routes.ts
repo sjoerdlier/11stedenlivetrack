@@ -16,7 +16,7 @@ export const ROUTES: RouteConfig[] = [
   {
     slug: "11steden",
     navLabel: "11 Steden",
-    pageTitle: "Lowie — 11Stedentocht",
+    pageTitle: "11Stedentocht",
     gpxFile: "route.gpx",
     startFinishPlaats: "Leeuwarden",
     routeDescription: "11Stedentocht wandelroute",

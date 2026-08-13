@@ -20,7 +20,7 @@ import {
   type LegStatus,
 } from "@/lib/status";
 import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
-import { partiesForRoute } from "@/lib/parties";
+import { partiesForRoute, partyConfig } from "@/lib/parties";
 import type { WeatherSnapshot } from "@/lib/weather";
 import WeatherStrip from "./WeatherStrip";
 import styles from "./TopBar.module.css";
@@ -113,7 +113,13 @@ export default function TopBar({
   const isFinished = actual !== null && actual.progress.percent >= 100;
 
   async function handleShare() {
-    const shareData = { title: config.pageTitle, url: window.location.href };
+    // Same "prefix with the party's label, but only when there's more than
+    // one to disambiguate" pattern as page.tsx's generateMetadata and
+    // LegSchedule's own title — sharing from Björn's view shouldn't read as
+    // Lowie's page.
+    const shareTitle =
+      parties.length > 1 ? `${partyConfig(activeRoute, activeParty).label} — ${config.pageTitle}` : config.pageTitle;
+    const shareData = { title: shareTitle, url: window.location.href };
     if (navigator.share) {
       try {
         await navigator.share(shareData);

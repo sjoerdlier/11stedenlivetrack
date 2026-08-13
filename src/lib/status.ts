@@ -3,10 +3,14 @@ import type { Leg } from "./legs";
 export type LegStatus = "voltooid" | "bezig" | "nog-te-gaan";
 
 // Shared between the map and the side-menu so both read the same system.
+// "nog-te-gaan" was pure white, which vanished against the light OSM tiles
+// and the card's near-white background (only a faint shadow ring hinted at
+// it). This warm light gray stays visually "not yet happened" while still
+// reading against both surfaces.
 export const STATUS_COLORS: Record<LegStatus, string> = {
   voltooid: "#9c9b93",
   bezig: "#2a78d6",
-  "nog-te-gaan": "#ffffff",
+  "nog-te-gaan": "#d8d6cb",
 };
 
 export const STATUS_LABELS: Record<LegStatus, string> = {

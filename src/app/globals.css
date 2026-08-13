@@ -1,12 +1,33 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Shared design tokens for the most-duplicated literal colors across
+     TopBar/LegCard/LegSchedule/RouteMap (see the design-audit PR for the
+     full file-by-file migration). Each token preserves the exact value(s)
+     it replaces — this is a centralization pass, not a restyle. */
+  --color-accent: #2a78d6;
+  /* Same accent hue, but lightened for *text* sitting directly on the dark
+     surface below — the plain --color-accent doesn't clear AA contrast for
+     text on #161615/#0a0a0a, so a few text-only spots (an active status
+     label, an "expected arrival" line, an address link) already used
+     #3987e5 in dark mode instead. --color-accent itself intentionally
+     keeps one constant value everywhere else (buttons, borders, chart
+     fills, the map route line never varied by theme). */
+  --color-accent-text: #2a78d6;
+  --color-text-secondary: #52514e;
+  --color-border: #e1e0d9;
+  --color-surface-dark: #161615;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    --color-accent-text: #3987e5;
+    --color-text-secondary: #c3c2b7;
+    --color-border: #2c2c2a;
   }
 }
 

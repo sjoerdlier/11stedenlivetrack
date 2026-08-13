@@ -26,11 +26,10 @@
   margin-top: 2px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: #898781;
-}
-
-@media (prefers-color-scheme: dark) {
-  .meta {
-    color: #6b6a61;
-  }
+  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum — this was
+     the one place that missed the --color-text-secondary contrast fix
+     already applied elsewhere (LegCard, LegSchedule). #6b6a61 in dark mode
+     had the same issue in spirit (an ad hoc gray never reconciled with the
+     shared #c3c2b7 dark counterpart), so both now use the same token. */
+  color: var(--color-text-secondary);
 }

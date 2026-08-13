@@ -8,15 +8,15 @@
   padding: 0 18px;
   background: #fcfcfb;
   color: #0b0b0b;
-  border-bottom: 1px solid #e1e0d9;
+  border-bottom: 1px solid var(--color-border);
   box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: dark) {
   .bar {
-    background: #161615;
+    background: var(--color-surface-dark);
     color: #ffffff;
-    border-bottom-color: #2c2c2a;
+    border-bottom-color: var(--color-border);
   }
 }
 
@@ -50,25 +50,13 @@
 
 .progressFull {
   font-weight: 400;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .progressFull {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .progressShort {
   display: none;
   font-weight: 400;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .progressShort {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .progressTrack {
@@ -77,27 +65,25 @@
   max-width: 40vw;
   height: 4px;
   border-radius: 999px;
-  background: #e1e0d9;
+  background: var(--color-border);
   overflow: hidden;
-}
-
-@media (prefers-color-scheme: dark) {
-  .progressTrack {
-    background: #2c2c2a;
-  }
 }
 
 .progressFill {
   display: block;
   height: 100%;
-  background: #2a78d6;
+  background: var(--color-accent);
   border-radius: 999px;
   transition: width 0.4s ease;
 }
 
+/* Was its own #898781/#a3a29a pair (a third, undocumented variant of the
+   secondary-text gray) — consolidated onto the shared --color-text-secondary
+   token used by .progressFull/.progressShort/LegCard/LegSchedule above, per
+   the design audit's contrast pass. */
 .pace {
   font-size: 12px;
-  color: #898781;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
@@ -140,13 +126,7 @@
   gap: 6px;
   padding-right: 8px;
   margin-right: 2px;
-  border-right: 1px solid #e1e0d9;
-}
-
-@media (prefers-color-scheme: dark) {
-  .routeSwitch {
-    border-right-color: #2c2c2a;
-  }
+  border-right: 1px solid var(--color-border);
 }
 
 .partySwitchDot {
@@ -161,7 +141,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #e1e0d9;
+  border: 1px solid var(--color-border);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -189,8 +169,8 @@
 }
 
 .actionActive {
-  background: #2a78d6;
-  border-color: #2a78d6;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: #ffffff;
 }
 
@@ -199,10 +179,6 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .action {
-    border-color: #2c2c2a;
-  }
-
   .action:hover {
     background: #ffffff14;
   }

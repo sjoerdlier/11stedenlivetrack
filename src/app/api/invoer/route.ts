@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       invoerder,
     });
   } catch (err) {
+    console.error("POST /api/invoer: insertCheckin failed", err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

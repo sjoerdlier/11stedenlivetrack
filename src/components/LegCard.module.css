@@ -57,7 +57,7 @@
 
 .active {
   opacity: 1;
-  border-left-color: #2a78d6;
+  border-left-color: var(--color-accent);
   background: #2a78d61a;
   box-shadow: 0 2px 10px rgba(42, 120, 214, 0.25);
 }
@@ -118,13 +118,7 @@
   flex: none;
   font-variant-numeric: tabular-nums;
   font-size: 13px;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .tijd {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .statusLabel {
@@ -134,23 +128,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .statusLabel {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .active .statusLabel {
-  color: #2a78d6;
-}
-
-@media (prefers-color-scheme: dark) {
-  .active .statusLabel {
-    color: #3987e5;
-  }
+  color: var(--color-accent-text);
 }
 
 .metaRow {
@@ -160,17 +142,11 @@
   margin-top: 4px;
   margin-left: 19px;
   font-size: 12px;
-  /* #898781 on #fcfcfb is 3.50:1, below the 4.5:1 AA text minimum; #52514e
-     clears it comfortably (same fix as LegSchedule's .hint). Too dark for
-     the near-black dark background, so dark mode keeps the established
-     #c3c2b7 counterpart below instead of inheriting this value. */
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .metaRow {
-    color: #c3c2b7;
-  }
+  /* #898781 on #fcfcfb was 3.50:1, below the 4.5:1 AA text minimum;
+     --color-text-secondary (#52514e light / #c3c2b7 dark) clears it
+     comfortably (same fix as LegSchedule's .hint) and is the shared token
+     for this "secondary text" role everywhere else in the card. */
+  color: var(--color-text-secondary);
 }
 
 .timingTable {
@@ -191,25 +167,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .timingTable thead th {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .timingTable tbody th {
   font-weight: 500;
-  color: #52514e;
+  color: var(--color-text-secondary);
   white-space: nowrap;
-}
-
-@media (prefers-color-scheme: dark) {
-  .timingTable tbody th {
-    color: #c3c2b7;
-  }
 }
 
 .timingTable td {
@@ -230,39 +194,21 @@
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #2a78d6;
-}
-
-@media (prefers-color-scheme: dark) {
-  .expectedLine {
-    color: #3987e5;
-  }
+  color: var(--color-accent-text);
 }
 
 .expectedBasis {
   margin-left: 5px;
   font-weight: 400;
   font-variant-numeric: normal;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .expectedBasis {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .stopLine {
   margin: 8px 0 0 19px;
   font-size: 12px;
   font-weight: 600;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .stopLine {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .buddyRow {
@@ -276,13 +222,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .buddyLabel {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .adres {
@@ -291,7 +231,7 @@
   gap: 6px;
   margin: 10px 0 0 19px;
   font-size: 13px;
-  color: #2a78d6;
+  color: var(--color-accent-text);
   text-decoration: none;
   width: fit-content;
 }
@@ -300,18 +240,12 @@
   text-decoration: underline;
 }
 
-@media (prefers-color-scheme: dark) {
-  .adres {
-    color: #3987e5;
-  }
-}
-
 .note {
   display: flex;
   gap: 8px;
   margin: 10px 0 0 19px;
   background: #2a78d61a;
-  border-left: 3px solid #2a78d6;
+  border-left: 3px solid var(--color-accent);
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 13px;
@@ -326,13 +260,7 @@
 .noteMeta {
   margin-top: 2px;
   font-size: 11px;
-  color: #52514e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .noteMeta {
-    color: #c3c2b7;
-  }
+  color: var(--color-text-secondary);
 }
 
 .warning {

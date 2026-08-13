@@ -25,12 +25,18 @@ interface TrkPt {
   ele?: number;
 }
 
+interface TrkSeg {
+  trkpt?: TrkPt | TrkPt[];
+}
+
 interface ParsedGpx {
   gpx?: {
     trk?: {
-      trkseg?: {
-        trkpt?: TrkPt | TrkPt[];
-      };
+      // fast-xml-parser only returns an array once there's more than one
+      // <trkseg> — a single-segment GPX (every export so far) parses
+      // trkseg as one bare object, not a one-element array, same reason
+      // trkpt is normalized below.
+      trkseg?: TrkSeg | TrkSeg[];
     };
   };
 }
@@ -40,20 +46,40 @@ export function loadRoute(gpxFile: string): RouteData {
   const parser = new XMLParser({ ignoreAttributes: false });
   const parsed = parser.parse(xml) as ParsedGpx;
 
-  const rawPoints = parsed.gpx?.trk?.trkseg?.trkpt;
-  const trkpts = Array.isArray(rawPoints)
-    ? rawPoints
-    : rawPoints
-      ? [rawPoints]
+  const rawSegments = parsed.gpx?.trk?.trkseg;
+  const segments: TrkSeg[] = Array.isArray(rawSegments)
+    ? rawSegments
+    : rawSegments
+      ? [rawSegments]
       : [];
 
-  const points: LatLng[] = trkpts.map((pt) => [
-    parseFloat(pt["@_lat"]),
-    parseFloat(pt["@_lon"]),
-  ]);
-  const elevations: (number | null)[] = trkpts.map((pt) =>
-    typeof pt.ele === "number" ? pt.ele : null,
-  );
+  // Concatenated in document order — a multi-segment GPX (e.g. exported
+  // with a pause/gap in recording) represents one continuous route split
+  // across <trkseg> elements, not several unrelated tracks, so every
+  // downstream consumer (segments.ts's forward index search, the
+  // elevation profile) expects one flat point list.
+  const trkpts: TrkPt[] = segments.flatMap((seg) => {
+    const rawPoints = seg.trkpt;
+    return Array.isArray(rawPoints) ? rawPoints : rawPoints ? [rawPoints] : [];
+  });
+
+  const points: LatLng[] = [];
+  const elevations: (number | null)[] = [];
+  for (const pt of trkpts) {
+    const lat = parseFloat(pt["@_lat"]);
+    const lon = parseFloat(pt["@_lon"]);
+    // A NaN coordinate here would otherwise flow silently into
+    // haversineMeters (producing NaN distances) and Leaflet (which drops
+    // or mis-renders NaN LatLngs) — fail loudly instead, since a malformed
+    // trackpoint means the GPX export itself is broken.
+    if (Number.isNaN(lat) || Number.isNaN(lon)) {
+      throw new Error(
+        `Ongeldig trackpoint in data/${gpxFile}: lat="${pt["@_lat"]}" lon="${pt["@_lon"]}"`,
+      );
+    }
+    points.push([lat, lon]);
+    elevations.push(typeof pt.ele === "number" ? pt.ele : null);
+  }
 
   if (points.length === 0) {
     throw new Error(`Geen trackpoints gevonden in data/${gpxFile}`);

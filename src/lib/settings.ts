@@ -19,6 +19,7 @@ export async function loadSettings(keys: string[]): Promise<Map<string, string>>
   const { data, error } = await client().from("settings").select("key, value").in("key", keys);
 
   if (error) {
+    console.error(`loadSettings([${keys.join(", ")}]): Supabase query failed`, error);
     throw new Error(`Kon instellingen niet laden uit Supabase: ${error.message}`);
   }
 
@@ -38,6 +39,7 @@ export async function saveSetting(key: string, value: string): Promise<void> {
   const { error } = await client().from("settings").upsert({ key, value, updated_at: new Date().toISOString() });
 
   if (error) {
+    console.error(`saveSetting(${key}): Supabase upsert failed`, error);
     throw new Error(`Kon instelling niet opslaan: ${error.message}`);
   }
 }

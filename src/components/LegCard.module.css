@@ -181,6 +181,16 @@
   font-weight: 600;
 }
 
+/* Marks the "Tempo" row as grade-adjusted (Minetti-based) — the row header's
+   title tooltip carries the full explanation, but that's unreachable on
+   mobile without a hover state, so this small mountain glyph gives the same
+   signal visually. */
+.gapBadge {
+  margin-left: 3px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+
 /* Distinguishes an unfilled "–" from a real value by weight, not by
    lowering contrast — a dimmer color here would just reintroduce the
    sub-4.5:1 text-contrast issue fixed earlier for this same muted-gray

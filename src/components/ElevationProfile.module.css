@@ -33,3 +33,10 @@
      shared #c3c2b7 dark counterpart), so both now use the same token. */
   color: var(--color-text-secondary);
 }
+
+/* Inherits .meta's color/size — just a touch lighter so the min–max range
+   stays the primary read and the explicit delta reads as a supporting
+   clarification next to it. */
+.metaDelta {
+  opacity: 0.85;
+}

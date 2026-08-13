@@ -87,6 +87,53 @@
   white-space: nowrap;
 }
 
+/* Marks a "Tempo" figure as grade-adjusted (Minetti-based) — the title
+   tooltip on the wrapping element carries the full explanation, but that's
+   unreachable on mobile without a hover state, so this small mountain glyph
+   gives the same signal visually. */
+.gapBadge {
+  margin-left: 3px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+/* Flags the moment TopBar swaps from the schedule-based progress view to
+   the check-in-derived one (see the `actual` branch in TopBar.tsx) — a
+   small persistent "Live" pill, with a one-shot ring pulse on mount so the
+   switch itself briefly draws the eye instead of happening silently. */
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  background: #2a78d6;
+  animation: live-badge-flash 1.6s ease-out;
+}
+
+@keyframes live-badge-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(42, 120, 214, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(42, 120, 214, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(42, 120, 214, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveBadge {
+    animation: none;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .pace {
     color: #a3a29a;

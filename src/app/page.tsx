@@ -64,6 +64,7 @@ export default async function Home({ searchParams }: HomeProps) {
       getCachedCheckins(activeRoute),
     ]);
   } catch (err) {
+    console.error(`Home(${activeRoute}): loading legs/checkins failed`, err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return <LoadError message={message} retryHref={`/?route=${activeRoute}`} />;
   }
@@ -78,7 +79,8 @@ export default async function Home({ searchParams }: HomeProps) {
   let garminUrl: string | null = null;
   try {
     garminUrl = await getCachedSetting(garminUrlSettingKey(activeRoute, activeParty));
-  } catch {
+  } catch (err) {
+    console.error(`Home(${activeRoute}): loading garminUrl setting failed`, err);
     garminUrl = null;
   }
 
@@ -88,7 +90,8 @@ export default async function Home({ searchParams }: HomeProps) {
   let livePositions: LivePositionRow[] = [];
   try {
     livePositions = await getCachedLivePositions(activeRoute);
-  } catch {
+  } catch (err) {
+    console.error(`Home(${activeRoute}): loading livePositions failed`, err);
     livePositions = [];
   }
 

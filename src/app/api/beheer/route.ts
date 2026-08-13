@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       await setPin(newPinRaw);
     }
   } catch (err) {
+    console.error("POST /api/beheer: saving settings/PIN failed", err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

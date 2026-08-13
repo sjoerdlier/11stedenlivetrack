@@ -29,6 +29,7 @@ export async function insertCheckin(checkin: NewCheckin): Promise<void> {
   const { error } = await supabase.from("checkins").insert(checkin);
 
   if (error) {
+    console.error(`insertCheckin(route=${checkin.route}, leg_nr=${checkin.leg_nr}): Supabase insert failed`, error);
     throw new Error(`Kon check-in niet opslaan: ${error.message}`);
   }
 }
@@ -53,6 +54,7 @@ export async function loadCheckins(route: RouteSlug): Promise<Checkin[]> {
     .order("tijdstip", { ascending: true });
 
   if (error) {
+    console.error(`loadCheckins(${route}): Supabase query failed`, error);
     throw new Error(`Kon check-ins niet laden uit Supabase: ${error.message}`);
   }
 

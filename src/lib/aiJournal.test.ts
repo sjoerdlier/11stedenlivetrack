@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildPartySnapshot, buildPrompt, generateJournalText, type JournalInput } from "./aiJournal";
+import { buildPartySnapshot, buildPrompt, generateJournalText, stripMarkdown, type JournalInput } from "./aiJournal";
 import type { Checkin } from "./checkins";
 import type { Leg } from "./legs";
 import type { PartyConfig } from "./parties";
@@ -121,6 +121,28 @@ describe("buildPrompt", () => {
       weather: null,
     };
     expect(buildPrompt(input)).toContain("UITSLUITEND de feiten hieronder");
+  });
+});
+
+describe("stripMarkdown", () => {
+  it("drops a leading markdown heading line entirely", () => {
+    expect(stripMarkdown("# Update 11Stedentocht\n\nLowie loopt goed.")).toBe("Lowie loopt goed.");
+  });
+
+  it("unwraps bold and italic markers without dropping the text", () => {
+    expect(stripMarkdown("Lowie loopt **goed** en *snel*.")).toBe("Lowie loopt goed en snel.");
+  });
+
+  it("strips leading bullet markers", () => {
+    expect(stripMarkdown("- Lowie loopt goed.\n- Björn ook.")).toBe("Lowie loopt goed. Björn ook.");
+  });
+
+  it("collapses multiple paragraphs into one flowing block of text", () => {
+    expect(stripMarkdown("Eerste alinea.\n\nTweede alinea.")).toBe("Eerste alinea. Tweede alinea.");
+  });
+
+  it("leaves already-plain text untouched", () => {
+    expect(stripMarkdown("Lowie loopt nu richting Sneek.")).toBe("Lowie loopt nu richting Sneek.");
   });
 });
 

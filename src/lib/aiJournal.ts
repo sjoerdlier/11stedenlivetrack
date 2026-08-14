@@ -95,7 +95,8 @@ export function buildPrompt(input: JournalInput): string {
     `Je schrijft een kort, gesproken update-verslag over de ${input.routeDescription}, een tocht van 204 km die Lowie van Eck en Björn van Loon geblinddoekt lopen voor OOG voor Maja / het Oogfonds.`,
     "Je publiek bestaat vooral uit blinde en slechtziende luisteraars die dit verslag laten voorlezen door een tekst-naar-spraak-stem — beschrijf dus alles in woorden, ga er nooit van uit dat iemand een kaart, grafiek of voortgangsbalk ziet.",
     "Gebruik UITSLUITEND de feiten hieronder. Verzin nooit een plaats, tijd, percentage of gebeurtenis die er niet letterlijk in staat. Ontbreekt iets, laat het dan gewoon weg in plaats van te gokken.",
-    "Schrijf vloeiend Nederlands, tegenwoordige tijd, ongeveer 100 tot 150 woorden. Geen opsomming en geen kopjes — lopende tekst, zoals een radioverslaggever het zou vertellen.",
+    "Schrijf vloeiend Nederlands, tegenwoordige tijd, ongeveer 100 tot 150 woorden, als één ononderbroken alinea zonder witregels — zoals een radioverslaggever het hardop zou vertellen.",
+    "Dit is platte tekst voor een tekst-naar-spraak-stem, geen geschreven document: gebruik GEEN markdown-opmaak. Dus geen titel, geen #-kopjes, geen sterretjes voor vet/cursief, geen opsommingstekens — anders spreekt de stem die tekens letterlijk uit.",
     "",
     "Feiten:",
   ];
@@ -139,6 +140,26 @@ export function buildPrompt(input: JournalInput): string {
   return lines.join("\n");
 }
 
+// Defensive cleanup for whatever markdown slips through despite the
+// prompt's "no markdown" instruction — a stray "#" or "**" read aloud
+// verbatim by a screen reader's voice would be jarring for exactly the
+// audience this page serves, so this is enforced in code rather than
+// trusted to the model alone. Also collapses the model's paragraph breaks
+// into one flowing block of text, matching the "één ononderbroken alinea"
+// instruction even when it isn't followed exactly.
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+.*$/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^[-*]\s+/gm, "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
 // Never throws — a missing API key or an Anthropic hiccup during a live
 // event shouldn't be able to take /update down, same contract as
 // loadWeather's callers. Returns null for "nothing to show right now"; the
@@ -162,7 +183,7 @@ export async function generateJournalText(input: JournalInput): Promise<string |
       .join("\n")
       .trim();
 
-    return text || null;
+    return stripMarkdown(text) || null;
   } catch (err) {
     console.error("generateJournalText: Anthropic API call failed", err);
     return null;

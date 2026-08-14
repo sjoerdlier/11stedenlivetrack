@@ -12,6 +12,10 @@ interface ReadAloudPanelProps {
   // voice, so it's preferred whenever available; null falls back to the
   // Web Speech API path exactly as before.
   audioSrc: string | null;
+  // Which Google voice produced audioSrc (e.g. "nl-NL-Wavenet-B") — shown
+  // in the ?debugVoices=1 panel so a report like "this sounds Flemish" can
+  // be checked against the real voice ID instead of guessed at.
+  voiceName: string | null;
 }
 
 type PlaybackState = "idle" | "speaking" | "paused" | "error";
@@ -23,7 +27,7 @@ type PlaybackState = "idle" | "speaking" | "paused" | "error";
 // voices, Apple's on-device voices) but the browser doesn't necessarily
 // pick the best one by default — pickBestDutchVoice steers towards it
 // instead of leaving that to chance.
-export default function ReadAloudPanel({ text, audioSrc }: ReadAloudPanelProps) {
+export default function ReadAloudPanel({ text, audioSrc, voiceName }: ReadAloudPanelProps) {
   const [playback, setPlayback] = useState<PlaybackState>("idle");
   // Same lazy-initializer pattern useSimulatedNow/AppShell's isDebugMode
   // use — computed once, SSR-safe (window is guarded, not read during the
@@ -231,7 +235,7 @@ export default function ReadAloudPanel({ text, audioSrc }: ReadAloudPanelProps) 
         <div className={styles.debugVoices}>
           <p className={styles.debugVoicesTitle}>
             {usingCloudAudio
-              ? "Cloudstem actief (Google Cloud TTS) — browserstemmen op dit apparaat:"
+              ? `Cloudstem actief (Google Cloud TTS, stem: ${voiceName ?? "onbekend"}) — browserstemmen op dit apparaat:`
               : `Beschikbare stemmen op dit apparaat (${allVoices.length}):`}
           </p>
           <ul className={styles.debugVoicesList}>

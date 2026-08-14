@@ -45,11 +45,13 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
   // beschikbaar" state instead of the whole page erroring out.
   let text: string | null = null;
   let audioSrc: string | null = null;
+  let voiceName: string | null = null;
   try {
     const result = await getCachedJournal(activeRoute);
     if (result) {
       text = result.text;
       audioSrc = result.audioBase64 ? `data:audio/mpeg;base64,${result.audioBase64}` : null;
+      voiceName = result.voiceName;
     }
   } catch (err) {
     console.error(`UpdatePage(${activeRoute}): generating AI journal failed`, err);
@@ -62,7 +64,7 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
       </div>
       <h1 className={styles.title}>Live update</h1>
       <p className={styles.subtitle}>{config.pageTitle}</p>
-      <ReadAloudPanel text={text} audioSrc={audioSrc} />
+      <ReadAloudPanel text={text} audioSrc={audioSrc} voiceName={voiceName} />
     </main>
   );
 }

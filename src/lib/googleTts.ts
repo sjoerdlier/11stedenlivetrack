@@ -20,9 +20,13 @@ export interface GoogleVoiceInfo {
 const PREFERRED_TIER_PATTERNS = [/neural2/i, /wavenet/i, /standard/i];
 
 // Pure selection logic, split out from the network call so it's testable
-// without mocking fetch.
+// without mocking fetch. Checks both languageCodes *and* the name's own
+// "nl-NL-" prefix (Google names every voice after its primary locale) —
+// belt-and-suspenders against ever handing back an nl-BE voice, since a
+// Flemish-sounding voice reaching a Dutch-speaking blind/low-vision visitor
+// is a real quality problem, not a cosmetic one.
 export function pickPreferredVoiceName(voices: readonly GoogleVoiceInfo[]): string | null {
-  const nlNl = voices.filter((v) => v.languageCodes.includes("nl-NL"));
+  const nlNl = voices.filter((v) => v.languageCodes.includes("nl-NL") && v.name.startsWith("nl-NL-"));
   if (nlNl.length === 0) return null;
 
   for (const pattern of PREFERRED_TIER_PATTERNS) {
@@ -42,10 +46,19 @@ async function fetchPreferredVoiceName(apiKey: string): Promise<string | null> {
   return pickPreferredVoiceName(data.voices ?? []);
 }
 
+export interface SynthesizedSpeech {
+  audioBase64: string;
+  // Exposed up through ReadAloudPanel's ?debugVoices=1 panel — the only way
+  // to actually confirm which specific Google voice produced a given clip,
+  // the same real-device-diagnosis approach that found the Android
+  // nl_NL/nl_BE tag bug in the browser-voice path.
+  voiceName: string;
+}
+
 // Never throws — a missing key, exhausted quota, or any Cloud TTS hiccup
 // falls back to the free browser voice, the same degrade-softly contract
 // generateJournalText already has around a missing ANTHROPIC_API_KEY.
-export async function synthesizeSpeech(text: string): Promise<string | null> {
+export async function synthesizeSpeech(text: string): Promise<SynthesizedSpeech | null> {
   const apiKey = process.env.GOOGLE_TTS_API_KEY;
   if (!apiKey) return null;
 
@@ -68,7 +81,8 @@ export async function synthesizeSpeech(text: string): Promise<string | null> {
     }
 
     const data = (await res.json()) as { audioContent?: string };
-    return data.audioContent ?? null;
+    if (!data.audioContent) return null;
+    return { audioBase64: data.audioContent, voiceName };
   } catch (err) {
     console.error("synthesizeSpeech: Cloud TTS call failed", err);
     return null;

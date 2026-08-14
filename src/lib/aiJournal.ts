@@ -234,6 +234,11 @@ export interface JournalResult {
   // GOOGLE_TTS_API_KEY isn't set or synthesis failed, in which case
   // ReadAloudPanel falls back to the free browser voice.
   audioBase64: string | null;
+  // Which Google voice produced audioBase64 (e.g. "nl-NL-Wavenet-B") —
+  // null whenever audioBase64 is. Surfaced in ?debugVoices=1 so a report
+  // like "this sounds Flemish" can be checked against the actual voice ID
+  // instead of guessed at.
+  voiceName: string | null;
 }
 
 // The full pipeline for one route: gather the same live data the rest of
@@ -288,6 +293,10 @@ export async function generateJournalForRoute(route: RouteSlug): Promise<Journal
   });
   if (!text) return null;
 
-  const audioBase64 = await synthesizeSpeech(text);
-  return { text, audioBase64 };
+  const synthesized = await synthesizeSpeech(text);
+  return {
+    text,
+    audioBase64: synthesized?.audioBase64 ?? null,
+    voiceName: synthesized?.voiceName ?? null,
+  };
 }

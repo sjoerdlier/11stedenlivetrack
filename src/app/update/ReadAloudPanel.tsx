@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pickBestDutchVoice } from "@/lib/voiceSelection";
 import styles from "./ReadAloudPanel.module.css";
 
 interface ReadAloudPanelProps {
@@ -10,16 +11,34 @@ interface ReadAloudPanelProps {
 type PlaybackState = "idle" | "speaking" | "paused" | "error";
 
 // Browser-native Web Speech API rather than a generated audio file — free,
-// no API key, no extra round-trip, and it picks up whatever Dutch voice
-// (and rate/pitch) the visitor's own device is already configured with,
-// which for someone who already relies on a screen reader is often the
-// voice they're used to rather than a one-size-fits-all synthesized clip.
+// no API key, no extra round-trip. Most devices already have a decent
+// Dutch voice installed (Chrome/Edge's online "Google" voices, Windows'
+// neural "(Natural)" voices, Apple's on-device voices) but the browser
+// doesn't necessarily pick the best one by default — pickBestDutchVoice
+// steers towards it instead of leaving that to chance.
 export default function ReadAloudPanel({ text }: ReadAloudPanelProps) {
   const [playback, setPlayback] = useState<PlaybackState>("idle");
   // Same lazy-initializer pattern useSimulatedNow/AppShell's isDebugMode
   // use — computed once, SSR-safe (window is guarded, not read during the
   // render body directly).
   const [supported] = useState(() => typeof window !== "undefined" && "speechSynthesis" in window);
+  // Covers browsers where getVoices() already has the full list on first
+  // call (Firefox, Safari) — Chrome, which populates it asynchronously,
+  // is covered by the voiceschanged listener below instead.
+  const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(() =>
+    typeof window !== "undefined" && "speechSynthesis" in window
+      ? pickBestDutchVoice(window.speechSynthesis.getVoices())
+      : null,
+  );
+
+  useEffect(() => {
+    if (!supported) return;
+    function updateVoice() {
+      setVoice(pickBestDutchVoice(window.speechSynthesis.getVoices()));
+    }
+    window.speechSynthesis.addEventListener("voiceschanged", updateVoice);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", updateVoice);
+  }, [supported]);
 
   useEffect(() => {
     // Stops the voice if this page unmounts mid-sentence (route change) —
@@ -36,6 +55,10 @@ export default function ReadAloudPanel({ text }: ReadAloudPanelProps) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "nl-NL";
+    // Falls back to the browser's own default nl-NL voice when none of
+    // the installed voices matched a preferred pattern (still correct,
+    // just not necessarily the best-sounding one available).
+    if (voice) utterance.voice = voice;
     utterance.onend = () => setPlayback("idle");
     utterance.onerror = (event) => {
       // "canceled"/"interrupted" fire on the *previous* utterance whenever

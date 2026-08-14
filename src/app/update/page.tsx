@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { generateJournalForRoute } from "@/lib/aiJournal";
+import { listNlNlVoiceNames } from "@/lib/googleTts";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
 import ReadAloudPanel from "./ReadAloudPanel";
 import styles from "./page.module.css";
@@ -21,7 +22,11 @@ export const dynamic = "force-dynamic";
 const getCachedJournal = unstable_cache(generateJournalForRoute, ["ai-journal"], { revalidate: 300 });
 
 interface UpdatePageProps {
-  searchParams: Promise<{ route?: string }>;
+  // voice: forces a specific Google TTS voice (see /lib/googleTts.ts) to A/B
+  // candidates against a "sounds Flemish" style report without a redeploy.
+  // debugVoices: also lists every available nl-NL voice name so a new
+  // candidate can be picked without guessing at what exists.
+  searchParams: Promise<{ route?: string; voice?: string; debugVoices?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: UpdatePageProps): Promise<Metadata> {
@@ -34,7 +39,7 @@ export async function generateMetadata({ searchParams }: UpdatePageProps): Promi
 }
 
 export default async function UpdatePage({ searchParams }: UpdatePageProps) {
-  const { route } = await searchParams;
+  const { route, voice, debugVoices } = await searchParams;
   const activeRoute = parseRouteSlug(route);
   const config = routeConfig(activeRoute);
 
@@ -47,7 +52,10 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
   let audioSrc: string | null = null;
   let voiceName: string | null = null;
   try {
-    const result = await getCachedJournal(activeRoute);
+    // ?voice=<name> forces a specific candidate voice — routed through the
+    // same cache, keyed on (route, voice) together, so it never disturbs
+    // the normal cached entry visitors without that param get.
+    const result = await getCachedJournal(activeRoute, voice);
     if (result) {
       text = result.text;
       audioSrc = result.audioBase64 ? `data:audio/mpeg;base64,${result.audioBase64}` : null;
@@ -57,6 +65,15 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
     console.error(`UpdatePage(${activeRoute}): generating AI journal failed`, err);
   }
 
+  let availableVoiceNames: string[] = [];
+  if (debugVoices) {
+    try {
+      availableVoiceNames = await listNlNlVoiceNames();
+    } catch (err) {
+      console.error(`UpdatePage(${activeRoute}): listing nl-NL voices failed`, err);
+    }
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.nav}>
@@ -64,7 +81,12 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
       </div>
       <h1 className={styles.title}>Live update</h1>
       <p className={styles.subtitle}>{config.pageTitle}</p>
-      <ReadAloudPanel text={text} audioSrc={audioSrc} voiceName={voiceName} />
+      <ReadAloudPanel
+        text={text}
+        audioSrc={audioSrc}
+        voiceName={voiceName}
+        availableVoiceNames={availableVoiceNames}
+      />
     </main>
   );
 }

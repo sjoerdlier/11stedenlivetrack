@@ -36,14 +36,33 @@ export function pickPreferredVoiceName(voices: readonly GoogleVoiceInfo[]): stri
   return nlNl[0].name;
 }
 
-async function fetchPreferredVoiceName(apiKey: string): Promise<string | null> {
+async function fetchNlNlVoices(apiKey: string): Promise<GoogleVoiceInfo[]> {
   const res = await fetch("https://texttospeech.googleapis.com/v1/voices?languageCode=nl-NL", {
     headers: { "X-Goog-Api-Key": apiKey },
   });
-  if (!res.ok) return null;
+  if (!res.ok) return [];
 
   const data = (await res.json()) as { voices?: GoogleVoiceInfo[] };
-  return pickPreferredVoiceName(data.voices ?? []);
+  return (data.voices ?? []).filter((v) => v.languageCodes.includes("nl-NL") && v.name.startsWith("nl-NL-"));
+}
+
+// Every installed nl-NL voice's name — not just the auto-picked one. Google
+// offers several voices per locale/tier and they don't all sound equally
+// "Netherlands Dutch" to a native ear (a real report: nl-NL-Wavenet-F came
+// across as Flemish-sounding despite genuinely being tagged nl-NL). Rather
+// than guess at a fix from a desk, this list is surfaced in ?debugVoices=1
+// so a specific candidate can be tried instantly via /update?voice=<name>
+// (see synthesizeSpeech's override param) — no redeploy needed to compare.
+export async function listNlNlVoiceNames(): Promise<string[]> {
+  const apiKey = process.env.GOOGLE_TTS_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const voices = await fetchNlNlVoices(apiKey);
+    return voices.map((v) => v.name).sort();
+  } catch (err) {
+    console.error("listNlNlVoiceNames: Cloud TTS call failed", err);
+    return [];
+  }
 }
 
 export interface SynthesizedSpeech {
@@ -58,12 +77,15 @@ export interface SynthesizedSpeech {
 // Never throws — a missing key, exhausted quota, or any Cloud TTS hiccup
 // falls back to the free browser voice, the same degrade-softly contract
 // generateJournalText already has around a missing ANTHROPIC_API_KEY.
-export async function synthesizeSpeech(text: string): Promise<SynthesizedSpeech | null> {
+// voiceNameOverride skips the auto-pick entirely (see /update?voice=<name>
+// in page.tsx) — used only to A/B a specific candidate voice on demand,
+// never part of the normal cached traffic path.
+export async function synthesizeSpeech(text: string, voiceNameOverride?: string): Promise<SynthesizedSpeech | null> {
   const apiKey = process.env.GOOGLE_TTS_API_KEY;
   if (!apiKey) return null;
 
   try {
-    const voiceName = await fetchPreferredVoiceName(apiKey);
+    const voiceName = voiceNameOverride ?? pickPreferredVoiceName(await fetchNlNlVoices(apiKey));
     if (!voiceName) return null;
 
     const res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {

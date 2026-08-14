@@ -16,6 +16,11 @@ interface ReadAloudPanelProps {
   // in the ?debugVoices=1 panel so a report like "this sounds Flemish" can
   // be checked against the real voice ID instead of guessed at.
   voiceName: string | null;
+  // Every nl-NL voice name Google actually offers (only populated by the
+  // server when ?debugVoices=1 is present) — lets a specific candidate be
+  // tried via /update?voice=<name>&debugVoices=1 without guessing at what
+  // exists or needing a redeploy.
+  availableVoiceNames: string[];
 }
 
 type PlaybackState = "idle" | "speaking" | "paused" | "error";
@@ -27,7 +32,7 @@ type PlaybackState = "idle" | "speaking" | "paused" | "error";
 // voices, Apple's on-device voices) but the browser doesn't necessarily
 // pick the best one by default — pickBestDutchVoice steers towards it
 // instead of leaving that to chance.
-export default function ReadAloudPanel({ text, audioSrc, voiceName }: ReadAloudPanelProps) {
+export default function ReadAloudPanel({ text, audioSrc, voiceName, availableVoiceNames }: ReadAloudPanelProps) {
   const [playback, setPlayback] = useState<PlaybackState>("idle");
   // Same lazy-initializer pattern useSimulatedNow/AppShell's isDebugMode
   // use — computed once, SSR-safe (window is guarded, not read during the
@@ -246,6 +251,22 @@ export default function ReadAloudPanel({ text, audioSrc, voiceName }: ReadAloudP
               </li>
             ))}
           </ul>
+          {availableVoiceNames.length > 0 && (
+            <>
+              <p className={styles.debugVoicesTitle}>
+                Alle nl-NL cloudstemmen — voeg <code>&amp;voice=&lt;naam&gt;</code> toe aan de URL om er een te
+                proberen:
+              </p>
+              <ul className={styles.debugVoicesList}>
+                {availableVoiceNames.map((name) => (
+                  <li key={name}>
+                    {name}
+                    {name === voiceName && " (huidige)"}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
     </div>

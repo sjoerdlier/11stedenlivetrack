@@ -250,8 +250,13 @@ export interface JournalResult {
 // a longer-lived unstable_cache keyed on route alone, so a burst of visitors
 // clicking "Lees voor" within a few minutes of each other shares one
 // Anthropic call and one Cloud TTS call instead of each paying for their
-// own.
-export async function generateJournalForRoute(route: RouteSlug): Promise<JournalResult | null> {
+// own. voiceNameOverride (see /update?voice=<name>) forces a specific
+// Google voice instead of the auto-picked one — only used to A/B a
+// candidate voice on demand, not part of normal traffic.
+export async function generateJournalForRoute(
+  route: RouteSlug,
+  voiceNameOverride?: string,
+): Promise<JournalResult | null> {
   const config = routeConfig(route);
   const parties = partiesForRoute(route);
   const now = Date.now();
@@ -293,7 +298,7 @@ export async function generateJournalForRoute(route: RouteSlug): Promise<Journal
   });
   if (!text) return null;
 
-  const synthesized = await synthesizeSpeech(text);
+  const synthesized = await synthesizeSpeech(text, voiceNameOverride);
   return {
     text,
     audioBase64: synthesized?.audioBase64 ?? null,

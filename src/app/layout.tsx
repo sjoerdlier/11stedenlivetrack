@@ -34,10 +34,20 @@ const monoFont = IBM_Plex_Mono({
 // this works out of the box; set the env var if that domain ever changes.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://11stedenlivetrack.vercel.app";
 
+// applicationName/appleWebApp.title control the installed-app label — on
+// Android that's manifest.ts's short_name, but iOS Safari's "Add to Home
+// Screen" reads apple-mobile-web-app-title instead of the manifest, so both
+// need to say the same thing or the two platforms show different labels.
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "11Stedentocht Live Track",
   description: "Kaart van de 11Stedentocht wandelroute (204 km)",
+  applicationName: "11 Steden Live Track",
+  appleWebApp: {
+    capable: true,
+    title: "11 Steden Live Track",
+    statusBarStyle: "default",
+  },
   twitter: {
     card: "summary_large_image",
   },

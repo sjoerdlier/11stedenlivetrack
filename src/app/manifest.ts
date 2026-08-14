@@ -8,7 +8,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Lowie & Björn — 11Stedentocht",
-    short_name: "11Stedentocht",
+    short_name: "11 Steden Live Track",
     description: "Live track van Lowie van Eck en Björn van Loon, die de Elfstedentocht geblinddoekt lopen voor OOG voor Maja / het Oogfonds.",
     start_url: "/",
     display: "standalone",

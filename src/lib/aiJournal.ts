@@ -32,6 +32,13 @@ export interface PartySnapshot {
   scheduleDelta: ScheduleDelta | null;
   arrival: EstimatedArrival | null;
   lastNote: string | null;
+  // Where they last checked in, and where they're headed next (null once
+  // that last check-in was the finish leg itself) — a place name is what
+  // the map's moving marker actually conveys to a sighted visitor. A raw
+  // percentage alone doesn't translate that; pairing it with "onderweg van
+  // X naar Y" does.
+  currentPlaats: string | null;
+  nextPlaats: string | null;
 }
 
 // Mirrors the same computation TopBar/LegSchedule already do per party
@@ -67,6 +74,20 @@ export function buildPartySnapshot(
     }
   }
 
+  // Same "latest reached leg" pick currentScheduleDelta makes internally,
+  // redone here to also read off its place name (and the leg right after
+  // it) rather than just its schedule delta.
+  let currentPlaats: string | null = null;
+  let nextPlaats: string | null = null;
+  let latestIndex = -1;
+  legs.forEach((leg, index) => {
+    if (checkinTimes.has(leg.nr) && index > latestIndex) latestIndex = index;
+  });
+  if (latestIndex !== -1) {
+    currentPlaats = legs[latestIndex].start_plaats;
+    nextPlaats = legs[latestIndex + 1]?.start_plaats ?? null;
+  }
+
   return {
     label: party.label,
     percent: progress.percent,
@@ -76,6 +97,8 @@ export function buildPartySnapshot(
     scheduleDelta,
     arrival,
     lastNote,
+    currentPlaats,
+    nextPlaats,
   };
 }
 
@@ -93,9 +116,12 @@ export interface JournalInput {
 export function buildPrompt(input: JournalInput): string {
   const lines: string[] = [
     `Je schrijft een kort, gesproken update-verslag over de ${input.routeDescription}, een tocht van 204 km die Lowie van Eck en Björn van Loon geblinddoekt lopen voor OOG voor Maja / het Oogfonds.`,
-    "Je publiek bestaat vooral uit blinde en slechtziende luisteraars die dit verslag laten voorlezen door een tekst-naar-spraak-stem — beschrijf dus alles in woorden, ga er nooit van uit dat iemand een kaart, grafiek of voortgangsbalk ziet.",
+    "Je publiek bestaat vooral uit blinde en slechtziende luisteraars die dit laten voorlezen door een tekst-naar-spraak-stem. Zij zien de kaart, de voortgangsbalk en de kleuren op de site niet — vertaal wat daar te zien zou zijn in woorden. Noem daarom bij voorkeur wáár iemand is (bij welke plaats, of onderweg van welke plaats naar welke plaats) in plaats van alleen een percentage — een percentage mag er ter ondersteuning bij, maar nooit als enige aanduiding van positie.",
+    "Gebruik nooit woorden die ervan uitgaan dat de luisteraar iets ziet, zoals \"hier is\", \"zoals je ziet\" of \"hierboven\".",
+    "Blijf strikt feitelijk en neutraal: beschrijf alleen wat meetbaar is, geef geen mening en overdrijf niet.",
     "Gebruik UITSLUITEND de feiten hieronder. Verzin nooit een plaats, tijd, percentage of gebeurtenis die er niet letterlijk in staat. Ontbreekt iets, laat het dan gewoon weg in plaats van te gokken.",
-    "Schrijf vloeiend Nederlands, tegenwoordige tijd, ongeveer 100 tot 150 woorden, als één ononderbroken alinea zonder witregels — zoals een radioverslaggever het hardop zou vertellen.",
+    "Vermijd tekst die aanvoelt als AI-gegenereerd: geen hype-bijvoeglijke naamwoorden (\"indrukwekkend\", \"bijzonder\", \"prachtig\", \"betekenisvol\", \"fascinerend\", \"uitzonderlijk\"), geen stijve overgangswoorden (\"echter\", \"bovendien\", \"daarentegen\", \"niet alleen ... maar ook\"), en geen samenvattende slotzin (\"kortom\", \"al met al\"). Schrijf direct en gewoon, zoals je het aan iemand naast je zou vertellen.",
+    "Schrijf vloeiend Nederlands, tegenwoordige tijd, ongeveer 100 tot 150 woorden, als één ononderbroken alinea zonder witregels.",
     "Dit is platte tekst voor een tekst-naar-spraak-stem, geen geschreven document: gebruik GEEN markdown-opmaak. Dus geen titel, geen #-kopjes, geen sterretjes voor vet/cursief, geen opsommingstekens — anders spreekt de stem die tekens letterlijk uit.",
     "",
     "Feiten:",
@@ -114,6 +140,11 @@ export function buildPrompt(input: JournalInput): string {
 
   for (const { party, snapshot } of input.parties) {
     if (!snapshot) continue;
+    if (snapshot.nextPlaats) {
+      lines.push(`- ${party.label} is onderweg van ${snapshot.currentPlaats} naar ${snapshot.nextPlaats}.`);
+    } else if (snapshot.currentPlaats) {
+      lines.push(`- ${party.label} heeft de finish bereikt, in ${snapshot.currentPlaats}.`);
+    }
     lines.push(
       `- ${party.label}: ${formatKm(snapshot.km)} afgelegd (${Math.round(snapshot.percent)}% van de route), nog ${formatKm(snapshot.remainingKm)} te gaan.`,
     );

@@ -59,6 +59,20 @@ describe("buildPartySnapshot", () => {
     expect(snapshot?.remainingKm).toBe(20);
   });
 
+  it("reads the last-reached and next place name off the leg list", () => {
+    const checkins: Checkin[] = [makeCheckin({ leg_nr: 2, tijdstip: "2026-08-08T09:00:00Z" })];
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now());
+    expect(snapshot?.currentPlaats).toBe("Sneek");
+    expect(snapshot?.nextPlaats).toBe("IJlst");
+  });
+
+  it("has no next place once the finish leg itself is reached", () => {
+    const checkins: Checkin[] = [makeCheckin({ leg_nr: 3, tijdstip: "2026-08-08T11:00:00Z" })];
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now());
+    expect(snapshot?.currentPlaats).toBe("IJlst");
+    expect(snapshot?.nextPlaats).toBeNull();
+  });
+
   it("picks the latest note among this party's check-ins", () => {
     const checkins: Checkin[] = [
       makeCheckin({ leg_nr: 1, tijdstip: "2026-08-08T07:00:00Z", notitie: "eerste" }),
@@ -97,6 +111,8 @@ describe("buildPrompt", () => {
             scheduleDelta: null,
             arrival: null,
             lastNote: null,
+            currentPlaats: null,
+            nextPlaats: null,
           },
         },
       ],
@@ -104,13 +120,53 @@ describe("buildPrompt", () => {
     };
     const prompt = buildPrompt(input);
     expect(prompt).toContain("Lowie: 20,0 km afgelegd (50% van de route), nog 20,0 km te gaan.");
-    // No pace/schedule/arrival/note facts were given — none of those lines
-    // should appear, since inventing a plausible-sounding one would be
-    // exactly the kind of hallucination this prompt exists to prevent.
+    // No pace/schedule/arrival/note/place facts were given — none of those
+    // lines should appear, since inventing a plausible-sounding one would
+    // be exactly the kind of hallucination this prompt exists to prevent.
     expect(prompt).not.toContain("tempo");
     expect(prompt).not.toContain("schema");
     expect(prompt).not.toContain("aankomst");
     expect(prompt).not.toContain("notitie");
+    expect(prompt).not.toContain("Lowie is onderweg");
+    expect(prompt).not.toContain("Lowie heeft de finish");
+  });
+
+  it("describes position by place name, not just a bare percentage", () => {
+    const input: JournalInput = {
+      routeDescription: "11Stedentocht wandelroute",
+      countdownDays: null,
+      parties: [
+        {
+          party: PARTY,
+          snapshot: {
+            label: "Lowie",
+            percent: 50,
+            km: 20,
+            remainingKm: 20,
+            paceKmh: null,
+            scheduleDelta: null,
+            arrival: null,
+            lastNote: null,
+            currentPlaats: "Sneek",
+            nextPlaats: "IJlst",
+          },
+        },
+      ],
+      weather: null,
+    };
+    expect(buildPrompt(input)).toContain("Lowie is onderweg van Sneek naar IJlst.");
+  });
+
+  it("instructs the model to avoid hype language and AI-sounding phrasing", () => {
+    const input: JournalInput = {
+      routeDescription: "11Stedentocht wandelroute",
+      countdownDays: null,
+      parties: [],
+      weather: null,
+    };
+    const prompt = buildPrompt(input);
+    expect(prompt).toContain("indrukwekkend");
+    expect(prompt).toContain("AI-gegenereerd");
   });
 
   it("instructs the model to only use the given facts", () => {

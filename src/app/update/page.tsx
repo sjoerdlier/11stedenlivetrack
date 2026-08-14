@@ -9,14 +9,16 @@ import styles from "./page.module.css";
 export const dynamic = "force-dynamic";
 
 // Wrapped again on top of generateJournalForRoute's own (already-cached)
-// data reads — this outer cache is what actually saves an Anthropic call:
-// a burst of visitors opening /update within a few minutes of each other
-// (e.g. right after a "check dit uit" share) all get the same generated
-// text instead of each triggering their own. 3 minutes is short enough to
-// stay well ahead of how often check-ins actually arrive during the event
-// (legs are roughly 1.5-3 hours apart on foot), so nobody hears a stale
-// update for long.
-const getCachedJournal = unstable_cache(generateJournalForRoute, ["ai-journal"], { revalidate: 180 });
+// data reads — this outer cache is what actually saves an Anthropic call
+// (and, when GOOGLE_TTS_API_KEY is set, a Cloud TTS call): a burst of
+// visitors opening /update within a few minutes of each other (e.g. right
+// after a "check dit uit" share) all get the same generated text and audio
+// instead of each triggering their own. 5 minutes is short enough to stay
+// well ahead of how often check-ins actually arrive during the event (legs
+// are roughly 1.5-3 hours apart on foot), so nobody hears a stale update for
+// long, while keeping both APIs' free-tier usage comfortably within quota
+// for a page that could see bursty live-event traffic.
+const getCachedJournal = unstable_cache(generateJournalForRoute, ["ai-journal"], { revalidate: 300 });
 
 interface UpdatePageProps {
   searchParams: Promise<{ route?: string }>;
@@ -36,17 +38,21 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
   const activeRoute = parseRouteSlug(route);
   const config = routeConfig(activeRoute);
 
-  // A missing ANTHROPIC_API_KEY or an Anthropic hiccup already resolves to
-  // null inside generateJournalForRoute — this try/catch only guards
-  // against the outer unstable_cache/Next machinery itself failing, so
-  // /update degrades to its own "niet beschikbaar" state instead of the
-  // whole page erroring out.
+  // A missing ANTHROPIC_API_KEY/GOOGLE_TTS_API_KEY or an API hiccup already
+  // resolves to null (text) / null (audio) inside generateJournalForRoute —
+  // this try/catch only guards against the outer unstable_cache/Next
+  // machinery itself failing, so /update degrades to its own "niet
+  // beschikbaar" state instead of the whole page erroring out.
   let text: string | null = null;
+  let audioSrc: string | null = null;
   try {
-    text = await getCachedJournal(activeRoute);
+    const result = await getCachedJournal(activeRoute);
+    if (result) {
+      text = result.text;
+      audioSrc = result.audioBase64 ? `data:audio/mpeg;base64,${result.audioBase64}` : null;
+    }
   } catch (err) {
     console.error(`UpdatePage(${activeRoute}): generating AI journal failed`, err);
-    text = null;
   }
 
   return (
@@ -56,7 +62,7 @@ export default async function UpdatePage({ searchParams }: UpdatePageProps) {
       </div>
       <h1 className={styles.title}>Live update</h1>
       <p className={styles.subtitle}>{config.pageTitle}</p>
-      <ReadAloudPanel text={text} />
+      <ReadAloudPanel text={text} audioSrc={audioSrc} />
     </main>
   );
 }

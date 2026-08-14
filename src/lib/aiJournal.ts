@@ -17,6 +17,7 @@ import { daysUntilStart, totalPlannedPaceKmh, totalRouteKm } from "./status";
 import { formatClockTime, formatKm, formatPaceKmh, formatScheduleDelta, formatTemperatureC, formatWindKmh } from "./format";
 import { routeConfig, type RouteSlug } from "./routes";
 import { getCachedCheckins, getCachedLegs, getCachedWeather } from "./cachedData";
+import { synthesizeSpeech } from "./googleTts";
 
 // Cheap/fast model — this is a short, low-stakes factual summary, not a
 // task that benefits from a larger model's extra reasoning.
@@ -227,16 +228,25 @@ export async function generateJournalText(input: JournalInput): Promise<string |
   }
 }
 
+export interface JournalResult {
+  text: string;
+  // Google Cloud TTS audio for `text`, base64-encoded MP3 — null when
+  // GOOGLE_TTS_API_KEY isn't set or synthesis failed, in which case
+  // ReadAloudPanel falls back to the free browser voice.
+  audioBase64: string | null;
+}
+
 // The full pipeline for one route: gather the same live data the rest of
-// the site already shows, then have it narrated. Reads through the shared
-// cachedData.ts loaders (same 20s/1800s cache buckets page.tsx and
-// /api/poll use) rather than hitting Supabase/Open-Meteo directly, so
-// generating a journal never pays for its own uncached round-trip. Callers
-// (see app/update/page.tsx) wrap this again in a longer-lived unstable_cache
-// keyed on route alone, so a burst of visitors clicking "Lees voor" within
-// a few minutes of each other shares one Anthropic call instead of each
-// paying for their own.
-export async function generateJournalForRoute(route: RouteSlug): Promise<string | null> {
+// the site already shows, have it narrated, then (best-effort) synthesized.
+// Reads through the shared cachedData.ts loaders (same 20s/1800s cache
+// buckets page.tsx and /api/poll use) rather than hitting Supabase/
+// Open-Meteo directly, so generating a journal never pays for its own
+// uncached round-trip. Callers (see app/update/page.tsx) wrap this again in
+// a longer-lived unstable_cache keyed on route alone, so a burst of visitors
+// clicking "Lees voor" within a few minutes of each other shares one
+// Anthropic call and one Cloud TTS call instead of each paying for their
+// own.
+export async function generateJournalForRoute(route: RouteSlug): Promise<JournalResult | null> {
   const config = routeConfig(route);
   const parties = partiesForRoute(route);
   const now = Date.now();
@@ -270,10 +280,14 @@ export async function generateJournalForRoute(route: RouteSlug): Promise<string 
     ),
   }));
 
-  return generateJournalText({
+  const text = await generateJournalText({
     routeDescription: config.routeDescription,
     countdownDays,
     parties: partySnapshots,
     weather,
   });
+  if (!text) return null;
+
+  const audioBase64 = await synthesizeSpeech(text);
+  return { text, audioBase64 };
 }

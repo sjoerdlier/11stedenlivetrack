@@ -279,6 +279,15 @@ export default function TopBar({
       </div>
 
       <nav className={styles.actions}>
+        {/* First action deliberately — /update's AI-geschreven journaal is
+            written primarily for blind/low-vision bezoekers, so this link
+            gets priority placement rather than being buried after the
+            route/party switchers. */}
+        <Link href={`/update?route=${activeRoute}`} className={styles.action} title="Live update laten voorlezen">
+          <span aria-hidden>🔊</span>
+          <span className={styles.actionLabel}>Voorlezen</span>
+        </Link>
+
         {ROUTES.length > 1 && (
           <div className={styles.routeSwitch} role="group" aria-label="Route">
             {ROUTES.map((r) => (

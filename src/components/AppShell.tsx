@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import { buildEffortLegs, type LegSegment } from "@/lib/segments";
@@ -249,9 +250,17 @@ export default function AppShell({
 
   return (
     <main className={styles.shell}>
-      {/* Skip link: invisible until it receives keyboard focus (first Tab
-          stop on the page), then jumps straight past the map to the
-          etappeschema sidebar — see #etappeschema on LegSchedule's root. */}
+      {/* Same visible-on-focus skip-link styling as the one below, but a
+          real navigation rather than an in-page anchor — /update's AI
+          journal is written primarily for blind/low-vision visitors, so it
+          gets the very first tab stop on the page rather than living only
+          as a button further down in TopBar's action row. */}
+      <Link href={`/update?route=${activeRoute}`} className={styles.skipLink}>
+        Live update voorlezen
+      </Link>
+      {/* Skip link: invisible until it receives keyboard focus, then jumps
+          straight past the map to the etappeschema sidebar — see
+          #etappeschema on LegSchedule's root. */}
       <a href="#etappeschema" className={styles.skipLink}>
         Naar het etappeschema
       </a>

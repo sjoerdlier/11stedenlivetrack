@@ -3,11 +3,11 @@ import { unstable_cache } from "next/cache";
 import AppShell from "@/components/AppShell";
 import LoadError from "@/components/LoadError";
 import { loadRoute, type LatLng } from "@/lib/gpx";
-import { loadLegs, type Leg } from "@/lib/legs";
+import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import type { LivePositionRow } from "@/lib/livePositions";
-import { getCachedCheckins, getCachedLivePositions } from "@/lib/cachedData";
-import { loadWeather, type WeatherSnapshot } from "@/lib/weather";
+import { getCachedLegs, getCachedCheckins, getCachedLivePositions, getCachedWeather } from "@/lib/cachedData";
+import type { WeatherSnapshot } from "@/lib/weather";
 import { buildLegSegments, type LegSegment } from "@/lib/segments";
 import { buildElevationProfile, type ElevationPoint } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
@@ -30,16 +30,10 @@ import { loadSetting } from "@/lib/settings";
 // cadence, so a poll never pays for its own uncached Supabase round-trip.
 export const dynamic = "force-dynamic";
 
-const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
-// getCachedCheckins/getCachedLivePositions now live in @/lib/cachedData,
-// shared with /api/poll — see that file's comment.
-// Open-Meteo, unlike the Supabase reads above, isn't something a viewer's
-// own poll should hammer every 20s — weather doesn't change that fast, and
-// this is a free API with no key. A much longer window (30 min, within the
-// "900-1800s" range other slow-changing context uses) still means everyone
-// checking during the event sees the same handful of API calls.
-const getCachedWeather = unstable_cache(loadWeather, ["weather"], { revalidate: 1800 });
+// getCachedLegs/getCachedCheckins/getCachedLivePositions/getCachedWeather
+// now live in @/lib/cachedData, shared with /api/poll and /update — see
+// that file's comment.
 
 interface RouteGeometry {
   start: LatLng;

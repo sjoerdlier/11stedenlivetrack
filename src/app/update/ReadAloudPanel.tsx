@@ -30,11 +30,24 @@ export default function ReadAloudPanel({ text }: ReadAloudPanelProps) {
       ? pickBestDutchVoice(window.speechSynthesis.getVoices())
       : null,
   );
+  // ?debugVoices=1 — same query-flag convention as ?debugTime= (see
+  // useSimulatedNow). The Web Speech API's actual voice list varies wildly
+  // by device/OS/browser in ways no amount of guessing from a desk
+  // reproduces, so this prints exactly what's installed instead — visit
+  // this URL on the device in question and read/screenshot the list back.
+  const [debugVoices] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugVoices"),
+  );
+  const [allVoices, setAllVoices] = useState<SpeechSynthesisVoice[]>(() =>
+    typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis.getVoices() : [],
+  );
 
   useEffect(() => {
     if (!supported) return;
     function updateVoice() {
-      setVoice(pickBestDutchVoice(window.speechSynthesis.getVoices()));
+      const voices = window.speechSynthesis.getVoices();
+      setVoice(pickBestDutchVoice(voices));
+      setAllVoices(voices);
     }
     window.speechSynthesis.addEventListener("voiceschanged", updateVoice);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", updateVoice);
@@ -150,6 +163,21 @@ export default function ReadAloudPanel({ text }: ReadAloudPanelProps) {
         {statusLabel}
       </span>
       <p className={styles.text}>{text}</p>
+      {debugVoices && (
+        <div className={styles.debugVoices}>
+          <p className={styles.debugVoicesTitle}>
+            Beschikbare stemmen op dit apparaat ({allVoices.length}):
+          </p>
+          <ul className={styles.debugVoicesList}>
+            {allVoices.map((v, i) => (
+              <li key={`${v.name}-${v.lang}-${i}`}>
+                {v.name} — {v.lang}
+                {voice === v && " (gekozen)"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

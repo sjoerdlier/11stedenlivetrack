@@ -98,6 +98,27 @@
   margin: 0 0 var(--sp-5);
 }
 
+.debugVoices {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px dashed var(--db-border);
+}
+
+.debugVoicesTitle {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-xs);
+  color: var(--db-text-dim);
+  margin: 0 0 var(--sp-2);
+}
+
+.debugVoicesList {
+  font-family: var(--font-mono-family);
+  font-size: var(--fs-2xs);
+  color: var(--db-text-dim);
+  margin: 0;
+  padding-left: var(--sp-4);
+}
+
 .srOnly {
   position: absolute;
   width: 1px;

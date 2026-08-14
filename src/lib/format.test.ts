@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatGeplandeTijd, formatPaceKmh, formatRelativeTime } from "./format";
+import { formatGeplandeTijd, formatPaceKmh, formatRelativeTime, formatTimeOnly } from "./format";
 
 describe("formatGeplandeTijd", () => {
   // Regression guard for the timezone bug found in the quality audit: a
@@ -23,6 +23,17 @@ describe("formatGeplandeTijd", () => {
 
   it("falls back to the raw string for an unparseable value instead of crashing", () => {
     expect(formatGeplandeTijd("niet-een-datum")).toBe("niet-een-datum");
+  });
+});
+
+describe("formatTimeOnly", () => {
+  it("converts a UTC instant to Europe/Amsterdam wall-clock time, no weekday", () => {
+    expect(formatTimeOnly(new Date("2026-08-08T05:00:00Z").getTime())).toBe("07:00");
+  });
+
+  it("returns null for non-finite input", () => {
+    expect(formatTimeOnly(NaN)).toBeNull();
+    expect(formatTimeOnly(Infinity)).toBeNull();
   });
 });
 

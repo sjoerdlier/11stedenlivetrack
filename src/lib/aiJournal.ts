@@ -9,12 +9,22 @@ import {
   computeActualProgress,
   currentScheduleDelta,
   estimateArrival,
+  estimateArrivalForecast,
   firstCheckinTimesByLeg,
+  type ArrivalForecast,
   type EstimatedArrival,
   type ScheduleDelta,
 } from "./actualProgress";
 import { daysUntilStart, totalPlannedPaceKmh, totalRouteKm } from "./status";
-import { formatClockTime, formatKm, formatPaceKmh, formatScheduleDelta, formatTemperatureC, formatWindKmh } from "./format";
+import {
+  formatClockTime,
+  formatKm,
+  formatPaceKmh,
+  formatScheduleDelta,
+  formatTemperatureC,
+  formatTimeOnly,
+  formatWindKmh,
+} from "./format";
 import { routeConfig, type RouteSlug } from "./routes";
 import { getCachedCheckins, getCachedLegs, getCachedWeather } from "./cachedData";
 import { synthesizeSpeech } from "./googleTts";
@@ -32,6 +42,11 @@ export interface PartySnapshot {
   paceKmh: number | null;
   scheduleDelta: ScheduleDelta | null;
   arrival: EstimatedArrival | null;
+  // A range instead of arrival's single instant, once enough legs have
+  // been walked to resample a real spread from (see
+  // estimateArrivalForecast) — null under the same "not enough data yet"
+  // condition that also leaves arrival.basis as "gepland".
+  arrivalForecast: ArrivalForecast | null;
   lastNote: string | null;
   // Where they last checked in, and where they're headed next (null once
   // that last check-in was the finish leg itself) — a place name is what
@@ -63,6 +78,7 @@ export function buildPartySnapshot(
   const remainingKm = Math.max(0, totalKm - progress.km);
   const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
   const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, partyCheckins.length);
+  const arrivalForecast = estimateArrivalForecast(legs, checkinTimes, now);
   const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
 
   let lastNote: string | null = null;
@@ -97,6 +113,7 @@ export function buildPartySnapshot(
     paceKmh,
     scheduleDelta,
     arrival,
+    arrivalForecast,
     lastNote,
     currentPlaats,
     nextPlaats,
@@ -161,7 +178,13 @@ export function buildPrompt(input: JournalInput): string {
     if (snapshot.scheduleDelta) {
       lines.push(`- ${party.label} loopt ${formatScheduleDelta(snapshot.scheduleDelta)} op het geplande schema.`);
     }
-    if (snapshot.arrival) {
+    if (snapshot.arrivalForecast) {
+      // A range instead of one falsely-precise instant — tell the model to
+      // say so as a range, not just pick the median and drop the spread.
+      lines.push(
+        `- Verwachte aankomst van ${party.label} bij de finish: rond ${formatClockTime(snapshot.arrivalForecast.median)}, ergens tussen ${formatTimeOnly(snapshot.arrivalForecast.earliest)} en ${formatTimeOnly(snapshot.arrivalForecast.latest)}.`,
+      );
+    } else if (snapshot.arrival) {
       lines.push(`- Verwachte aankomst van ${party.label} bij de finish: rond ${formatClockTime(snapshot.arrival.time)}.`);
     }
     if (snapshot.lastNote) {

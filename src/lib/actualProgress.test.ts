@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   currentScheduleDelta,
+  estimateArrivalForecast,
   estimateLegArrivals,
   estimateLegArrivalWindows,
   firstCheckinByLeg,
@@ -115,6 +116,62 @@ describe("estimateLegArrivalWindows", () => {
     expect(window!.earliest).toBeLessThan(window!.latest);
     expect(window!.earliest).toBeCloseTo(now + (10 / 11) * 60 * 60 * 1000, 0);
     expect(window!.latest).toBeCloseTo(now + (10 / 9) * 60 * 60 * 1000, 0);
+  });
+});
+
+describe("estimateArrivalForecast", () => {
+  // 6 legs, each 10km. Check-ins on legs 1-4 give 3 completed hops (nr1->2,
+  // 2->3, 3->4) to resample from; legs 4->5 and 5->6 (20km) remain.
+  const legs: Leg[] = [
+    makeLeg({ nr: 1, afstand_km: 10, cumulatief_start_km: 0 }),
+    makeLeg({ nr: 2, afstand_km: 10, cumulatief_start_km: 10 }),
+    makeLeg({ nr: 3, afstand_km: 10, cumulatief_start_km: 20 }),
+    makeLeg({ nr: 4, afstand_km: 10, cumulatief_start_km: 30 }),
+    makeLeg({ nr: 5, afstand_km: 10, cumulatief_start_km: 40 }),
+    makeLeg({ nr: 6, afstand_km: 0, cumulatief_start_km: 50 }),
+  ];
+  const H = 60 * 60 * 1000;
+
+  it("is null with fewer than 3 completed hops", () => {
+    const checkinTimes = new Map([[1, 0], [2, H]]);
+    expect(estimateArrivalForecast(legs, checkinTimes, H)).toBeNull();
+  });
+
+  it("is null once every leg has already been reached (nothing left to forecast)", () => {
+    const checkinTimes = new Map([[1, 0], [2, H], [3, 2 * H], [4, 3 * H], [5, 4 * H], [6, 5 * H]]);
+    expect(estimateArrivalForecast(legs, checkinTimes, 5 * H)).toBeNull();
+  });
+
+  it("collapses to a tight range when every observed pace has been identical", () => {
+    // 10km per hop each hour -> a steady 10 km/u for every resampled trial.
+    const checkinTimes = new Map([[1, 0], [2, H], [3, 2 * H], [4, 3 * H]]);
+    const now = 3 * H;
+    const forecast = estimateArrivalForecast(legs, checkinTimes, now);
+    expect(forecast).not.toBeNull();
+    expect(forecast!.sampleSize).toBe(3);
+    // 20km remaining at a guaranteed 10 km/u = exactly 2h from now.
+    const expected = now + 2 * H;
+    expect(forecast!.earliest).toBe(expected);
+    expect(forecast!.median).toBe(expected);
+    expect(forecast!.latest).toBe(expected);
+  });
+
+  it("widens the range when observed paces have varied a lot", () => {
+    // Hops at 10, 5, and 20 km/u — a real spread to resample from.
+    const checkinTimes = new Map([[1, 0], [2, H], [3, H + 2 * H], [4, H + 2 * H + 0.5 * H]]);
+    const now = H + 2 * H + 0.5 * H;
+    const forecast = estimateArrivalForecast(legs, checkinTimes, now);
+    expect(forecast).not.toBeNull();
+    expect(forecast!.earliest).toBeLessThan(forecast!.median);
+    expect(forecast!.median).toBeLessThan(forecast!.latest);
+  });
+
+  it("is deterministic for the same check-in data — no flicker on a plain refresh", () => {
+    const checkinTimes = new Map([[1, 0], [2, H], [3, H + 2 * H], [4, H + 2 * H + 0.5 * H]]);
+    const now = H + 2 * H + 0.5 * H;
+    const first = estimateArrivalForecast(legs, checkinTimes, now);
+    const second = estimateArrivalForecast(legs, checkinTimes, now);
+    expect(second).toEqual(first);
   });
 });
 

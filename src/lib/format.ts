@@ -22,6 +22,21 @@ export function formatClockTime(ms: number): string | null {
   return dutchClockFormatter.format(new Date(ms));
 }
 
+const dutchTimeOnlyFormatter = new Intl.DateTimeFormat("nl-NL", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Amsterdam",
+});
+
+// Formats a computed timestamp as just "18:32" — no weekday, for pairing
+// two of them side by side (e.g. an earliest–latest arrival range) without
+// repeating "za" twice, right under a headline figure that already carries
+// the day via formatClockTime.
+export function formatTimeOnly(ms: number): string | null {
+  if (!Number.isFinite(ms)) return null;
+  return dutchTimeOnlyFormatter.format(new Date(ms));
+}
+
 export function googleMapsUrl(lat: number, lon: number): string {
   return `https://maps.google.com/?q=${lat},${lon}`;
 }

@@ -118,6 +118,7 @@ describe("buildPrompt", () => {
             paceKmh: null,
             scheduleDelta: null,
             arrival: null,
+            arrivalForecast: null,
             lastNote: null,
             currentPlaats: "Sneek",
             nextPlaats: "IJlst",
@@ -144,6 +145,7 @@ describe("buildPrompt", () => {
             paceKmh: null,
             scheduleDelta: null,
             arrival: null,
+            arrivalForecast: null,
             lastNote: null,
             currentPlaats: null,
             nextPlaats: null,
@@ -180,6 +182,7 @@ describe("buildPrompt", () => {
             paceKmh: null,
             scheduleDelta: null,
             arrival: null,
+            arrivalForecast: null,
             lastNote: null,
             currentPlaats: "Sneek",
             nextPlaats: "IJlst",
@@ -189,6 +192,39 @@ describe("buildPrompt", () => {
       weather: null,
     };
     expect(buildPrompt(input)).toContain("Lowie is onderweg van Sneek naar IJlst.");
+  });
+
+  it("phrases the arrival as a range when a forecast is present, instead of one instant", () => {
+    const input: JournalInput = {
+      routeDescription: "11Stedentocht wandelroute",
+      countdownDays: null,
+      parties: [
+        {
+          party: PARTY,
+          snapshot: {
+            label: "Lowie",
+            percent: 50,
+            km: 20,
+            remainingKm: 20,
+            paceKmh: null,
+            scheduleDelta: null,
+            arrival: { time: new Date("2026-08-08T18:45:00Z").getTime(), basis: "actueel" },
+            arrivalForecast: {
+              earliest: new Date("2026-08-08T18:20:00Z").getTime(),
+              median: new Date("2026-08-08T18:45:00Z").getTime(),
+              latest: new Date("2026-08-08T19:15:00Z").getTime(),
+              sampleSize: 5,
+            },
+            lastNote: null,
+            currentPlaats: null,
+            nextPlaats: null,
+          },
+        },
+      ],
+      weather: null,
+    };
+    const prompt = buildPrompt(input);
+    expect(prompt).toContain("ergens tussen 20:20 en 21:15");
   });
 
   it("instructs the model to avoid hype language and AI-sounding phrasing", () => {

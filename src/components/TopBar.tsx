@@ -4,12 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
-import { formatClockTime, formatKm, formatPaceKmh, formatScheduleDelta } from "@/lib/format";
+import { formatClockTime, formatKm, formatPaceKmh, formatScheduleDelta, formatTimeOnly } from "@/lib/format";
 import {
   actualAveragePaceKmh,
   computeActualProgress,
   currentScheduleDelta,
   estimateArrival,
+  estimateArrivalForecast,
   type ScheduleDeltaBand,
 } from "@/lib/actualProgress";
 import {
@@ -97,11 +98,17 @@ export default function TopBar({
     const effortRemainingKm = Math.max(0, totalEffortKm - effortProgress.km);
     const paceKmh = actualAveragePaceKmh(checkinTimes, effortProgress.km, now);
     const arrival = estimateArrival(now, effortRemainingKm, paceKmh, plannedPaceKmh, checkins.length);
+    // A range instead of arrival's single falsely-precise instant, once
+    // there's enough completed-leg spread to resample from (see
+    // estimateArrivalForecast) — effortLegs again, same grade-adjusted
+    // reasoning as arrival/paceKmh above, since this is a pace-derived
+    // figure too.
+    const arrivalForecast = estimateArrivalForecast(effortLegs, checkinTimes, now);
     // "How far ahead/behind schedule is the walker *right now*" — keyed off
     // the real (unadjusted) legs, since geplande_tijd is a wall-clock time,
     // not a distance the grade adjustment would apply to.
     const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
-    return { progress, remainingKm, paceKmh, arrival, scheduleDelta };
+    return { progress, remainingKm, paceKmh, arrival, arrivalForecast, scheduleDelta };
   }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
 
   // The strongest conversion moment for the donation ask: Lowie has actually
@@ -196,11 +203,22 @@ export default function TopBar({
                 <span className={styles.stat}>
                   <span className={styles.statLabel}>Aankomst ±</span>
                   <span className={styles.statValue}>
-                    {formatClockTime(actual.arrival.time)}
+                    {formatClockTime(actual.arrivalForecast ? actual.arrivalForecast.median : actual.arrival.time)}
                     {actual.arrival.basis === "gepland" && (
                       <span className={styles.statNote}> (schatting o.b.v. gepland tempo)</span>
                     )}
                   </span>
+                  {/* A range beats a single falsely-precise instant — this
+                      only ever renders once enough legs have been walked to
+                      resample a real spread from (see
+                      estimateArrivalForecast's FORECAST_MIN_SAMPLES), so it
+                      never appears alongside the "gepland tempo" note above,
+                      which covers the opposite (too little data) case. */}
+                  {actual.arrivalForecast && (
+                    <span className={styles.statNote} title="Bandbreedte op basis van het tempo tot nu toe">
+                      {formatTimeOnly(actual.arrivalForecast.earliest)}–{formatTimeOnly(actual.arrivalForecast.latest)}
+                    </span>
+                  )}
                 </span>
               )}
             </div>

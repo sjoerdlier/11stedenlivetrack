@@ -173,6 +173,96 @@ export function estimateArrival(
   };
 }
 
+export interface ArrivalForecast {
+  earliest: number;
+  median: number;
+  latest: number;
+  // How many completed legs the forecast resampled from — surfaced so
+  // callers can show it as a rough confidence signal ("gebaseerd op 6
+  // etappes").
+  sampleSize: number;
+}
+
+const FORECAST_MIN_SAMPLES = 3;
+const FORECAST_TRIALS = 2000;
+
+// A tiny deterministic PRNG (mulberry32) rather than Math.random() — a real
+// random source would make the forecast jitter on every page refresh even
+// when nothing about the underlying check-in data actually changed, which
+// reads as broken rather than as a genuine range. Seeding from the
+// check-in data itself (below) means identical data always simulates the
+// same range, and it only shifts once real new check-ins arrive.
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function random() {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function percentile(sortedAscending: readonly number[], p: number): number {
+  const index = Math.min(sortedAscending.length - 1, Math.max(0, Math.floor(p * (sortedAscending.length - 1))));
+  return sortedAscending[index];
+}
+
+// A range of plausible finish times instead of one falsely-precise ETA
+// (see estimateArrival) — bootstrap-resamples the walker's own observed
+// per-leg paces across every remaining leg, rather than assuming a fixed
+// +/-margin or a normal distribution. A stretch that's gone consistently
+// even-paced narrows the range; one with wildly uneven legs (a long food
+// stop, a hard climb) widens it, because that unevenness is literally what
+// gets resampled from. Requires at least FORECAST_MIN_SAMPLES completed
+// legs — with fewer there isn't enough spread to resample from, and
+// callers should fall back to estimateArrival's single figure.
+export function estimateArrivalForecast(
+  legs: Leg[],
+  checkinTimes: Map<number, number>,
+  now: number,
+): ArrivalForecast | null {
+  const observedPaces: number[] = [];
+  for (let i = 1; i < legs.length; i++) {
+    const pace = actualLegPaceKmh(legs, checkinTimes, i);
+    if (pace !== null && pace > 0) observedPaces.push(pace);
+  }
+  if (observedPaces.length < FORECAST_MIN_SAMPLES) return null;
+
+  // Same "which legs are still ahead" condition computeActualProgress uses:
+  // leg i's own distance is still remaining whenever the next leg hasn't
+  // been checked into yet.
+  const remainingLegKm: number[] = [];
+  for (let i = 0; i < legs.length - 1; i++) {
+    const leg = legs[i];
+    const next = legs[i + 1];
+    if (leg.afstand_km !== null && !checkinTimes.has(next.nr)) {
+      remainingLegKm.push(leg.afstand_km);
+    }
+  }
+  if (remainingLegKm.length === 0) return null;
+
+  const seed = Array.from(checkinTimes.values()).reduce((sum, t) => (sum + Math.round(t)) % 2147483647, 0);
+  const random = mulberry32(seed || 1);
+
+  const trialFinishTimes: number[] = [];
+  for (let trial = 0; trial < FORECAST_TRIALS; trial++) {
+    let hours = 0;
+    for (const km of remainingLegKm) {
+      const pace = observedPaces[Math.floor(random() * observedPaces.length)];
+      hours += km / pace;
+    }
+    trialFinishTimes.push(now + hours * 60 * 60 * 1000);
+  }
+  trialFinishTimes.sort((a, b) => a - b);
+
+  return {
+    earliest: percentile(trialFinishTimes, 0.1),
+    median: percentile(trialFinishTimes, 0.5),
+    latest: percentile(trialFinishTimes, 0.9),
+    sampleSize: observedPaces.length,
+  };
+}
+
 // Projects an arrival time for every leg not yet reached, at the current
 // actual pace — "when will they get to *my* stop", not just the overall
 // finish ETA TopBar already shows. Empty until there are enough check-ins

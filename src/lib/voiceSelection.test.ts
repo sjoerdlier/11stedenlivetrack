@@ -38,4 +38,22 @@ describe("pickBestDutchVoice", () => {
     ];
     expect(pickBestDutchVoice(voices)?.name).toBe("Xander");
   });
+
+  it("still prefers nl-NL over nl-BE when the device reports Locale-style underscored tags", () => {
+    // Android's system TTS engine reports "nl_BE"/"nl_NL" instead of the
+    // BCP-47 "nl-BE"/"nl-NL" the spec calls for — a real device listed
+    // "Nederlands België" (nl_BE) before "Nederlands Nederland" (nl_NL),
+    // and without normalizing the separator this silently fell through to
+    // whichever came first in the list instead of ever matching "nl-nl".
+    const voices: VoiceLike[] = [
+      { name: "Nederlands België", lang: "nl_BE" },
+      { name: "Nederlands Nederland", lang: "nl_NL" },
+    ];
+    expect(pickBestDutchVoice(voices)?.name).toBe("Nederlands Nederland");
+  });
+
+  it("still detects a Dutch voice at all when its tag uses an underscore", () => {
+    const voices: VoiceLike[] = [{ name: "Nederlands Nederland", lang: "nl_NL" }];
+    expect(pickBestDutchVoice(voices)).not.toBeNull();
+  });
 });

@@ -95,6 +95,40 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("nog 3 dagen tot de start");
   });
 
+  it("instructs explaining what the update does once the tocht has started, only pre-start", () => {
+    const preStart = buildPrompt({
+      routeDescription: "11Stedentocht wandelroute",
+      countdownDays: 3,
+      parties: [{ party: PARTY, snapshot: null }],
+      weather: null,
+    });
+    expect(preStart).toContain("Leg kort uit wat deze update doet");
+
+    const duringTocht = buildPrompt({
+      routeDescription: "11Stedentocht wandelroute",
+      countdownDays: null,
+      parties: [
+        {
+          party: PARTY,
+          snapshot: {
+            label: "Lowie",
+            percent: 50,
+            km: 20,
+            remainingKm: 20,
+            paceKmh: null,
+            scheduleDelta: null,
+            arrival: null,
+            lastNote: null,
+            currentPlaats: "Sneek",
+            nextPlaats: "IJlst",
+          },
+        },
+      ],
+      weather: null,
+    });
+    expect(duringTocht).not.toContain("Leg kort uit wat deze update doet");
+  });
+
   it("includes only the facts actually present, never a placeholder for missing ones", () => {
     const input: JournalInput = {
       routeDescription: "11Stedentocht wandelroute",

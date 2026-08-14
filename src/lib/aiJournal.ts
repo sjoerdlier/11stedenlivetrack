@@ -131,6 +131,12 @@ export function buildPrompt(input: JournalInput): string {
     lines.push(
       `- De tocht is nog niet begonnen: nog ${input.countdownDays} ${input.countdownDays === 1 ? "dag" : "dagen"} tot de start.`,
     );
+    // Only worth explaining before the tocht starts — once it's underway,
+    // the update itself demonstrates what it does, so this line drops out
+    // (see the loop below, which only runs once a party has a snapshot).
+    lines.push(
+      "- Leg kort uit wat deze update doet zodra de tocht wel begonnen is: dan is hier steeds te horen tussen welke plaatsen Lowie en Björn onderweg zijn, hoeveel kilometer ze al gelopen hebben, hun tempo, of ze voor of achter op het schema liggen, en het weer onderweg.",
+    );
   }
 
   const anyStarted = input.parties.some(({ snapshot }) => snapshot !== null);

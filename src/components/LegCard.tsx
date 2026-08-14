@@ -20,6 +20,9 @@ interface LegCardProps {
   timing: LegTiming;
   checkin: Checkin | null;
   expectedArrival: number | null;
+  // Whether leg.loper applies to the party currently being viewed — see
+  // LegSchedule's showBuddy comment for why this isn't just `leg.loper`.
+  showBuddy: boolean;
   onToggle: () => void;
 }
 
@@ -51,6 +54,7 @@ export default function LegCard({
   timing,
   checkin,
   expectedArrival,
+  showBuddy,
   onToggle,
 }: LegCardProps) {
   const isCp = leg.cp_nummer !== null;
@@ -163,7 +167,7 @@ export default function LegCard({
               <div className={styles.stopLine}>Stop: {timing.stopMinutes} min (CP)</div>
             )}
 
-            {leg.loper && (
+            {showBuddy && leg.loper && (
               <div className={styles.buddyRow}>
                 <span className={styles.buddyLabel}>Buddy</span>
                 <BuddyBadge name={leg.loper} />

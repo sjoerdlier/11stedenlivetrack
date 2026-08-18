@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSql } from "@/lib/db";
+import { timingSafeStringEqual } from "@/lib/checkinAuth";
 
 // TEMPORARY — one-time migration from the old Supabase project to the new
 // Vercel Postgres (Neon) database. Creates the schema (idempotent —
@@ -11,14 +12,17 @@ import { getSql } from "@/lib/db";
 // has no reason to exist afterward, and it's the one place in the app that
 // still needs the old SUPABASE_URL/SUPABASE_ANON_KEY env vars.
 //
-// Gated by a token baked directly into this file rather than a separate env
-// var — simplest option for something this short-lived, and the token is
-// only useful for as long as this file exists at all.
-const MIGRATION_TOKEN = "81e0fea6113e4e679e5d948af8607f921013ebb3435b4ca0";
-
+// Gated by MIGRATE_DB_TOKEN, a one-off secret set temporarily in Vercel's
+// Environment Variables (never committed) — remove that var alongside this
+// whole route once the migration has run and been verified.
 export async function POST(request: Request) {
-  const token = request.headers.get("x-migration-token");
-  if (token !== MIGRATION_TOKEN) {
+  const expectedToken = process.env.MIGRATE_DB_TOKEN;
+  if (!expectedToken) {
+    return NextResponse.json({ ok: false, error: "MIGRATE_DB_TOKEN ontbreekt." }, { status: 500 });
+  }
+
+  const token = request.headers.get("x-migration-token") ?? "";
+  if (!timingSafeStringEqual(token, expectedToken)) {
     return NextResponse.json({ ok: false, error: "Niet geautoriseerd." }, { status: 401 });
   }
 

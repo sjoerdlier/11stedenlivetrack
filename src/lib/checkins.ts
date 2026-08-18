@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSql } from "./db";
 import type { RouteSlug } from "./routes";
 
 export interface NewCheckin {
@@ -18,19 +18,17 @@ export interface NewCheckin {
 export type Checkin = Omit<NewCheckin, "route">;
 
 export async function insertCheckin(checkin: NewCheckin): Promise<void> {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error("SUPABASE_URL en SUPABASE_ANON_KEY ontbreken. Zie .env.example.");
-  }
-
-  const supabase = createClient(url, key);
-  const { error } = await supabase.from("checkins").insert(checkin);
-
-  if (error) {
-    console.error(`insertCheckin(route=${checkin.route}, leg_nr=${checkin.leg_nr}): Supabase insert failed`, error);
-    throw new Error(`Kon check-in niet opslaan: ${error.message}`);
+  const sql = getSql();
+  try {
+    await sql`
+      insert into checkins (route, party, tijdstip, leg_nr, lat, lon, notitie, invoerder)
+      values (${checkin.route}, ${checkin.party}, ${checkin.tijdstip}, ${checkin.leg_nr},
+              ${checkin.lat}, ${checkin.lon}, ${checkin.notitie}, ${checkin.invoerder})
+    `;
+  } catch (err) {
+    console.error(`insertCheckin(route=${checkin.route}, leg_nr=${checkin.leg_nr}): query failed`, err);
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    throw new Error(`Kon check-in niet opslaan: ${message}`);
   }
 }
 
@@ -39,24 +37,18 @@ export async function insertCheckin(checkin: NewCheckin): Promise<void> {
 // from actual check-ins instead of the schedule. Empty before race day —
 // that's the expected starting state, not an error.
 export async function loadCheckins(route: RouteSlug): Promise<Checkin[]> {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error("SUPABASE_URL en SUPABASE_ANON_KEY ontbreken. Zie .env.example.");
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      select party, tijdstip, leg_nr, lat::float8 as lat, lon::float8 as lon, notitie, invoerder
+      from checkins
+      where route = ${route}
+      order by tijdstip asc
+    `) as Checkin[];
+    return rows;
+  } catch (err) {
+    console.error(`loadCheckins(${route}): query failed`, err);
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    throw new Error(`Kon check-ins niet laden uit de database: ${message}`);
   }
-
-  const supabase = createClient(url, key);
-  const { data, error } = await supabase
-    .from("checkins")
-    .select("party, tijdstip, leg_nr, lat, lon, notitie, invoerder")
-    .eq("route", route)
-    .order("tijdstip", { ascending: true });
-
-  if (error) {
-    console.error(`loadCheckins(${route}): Supabase query failed`, error);
-    throw new Error(`Kon check-ins niet laden uit Supabase: ${error.message}`);
-  }
-
-  return data ?? [];
 }

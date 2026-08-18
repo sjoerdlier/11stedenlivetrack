@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSql } from "./db";
 import type { RouteSlug } from "./routes";
 
 export interface Leg {
@@ -16,28 +16,26 @@ export interface Leg {
 }
 
 export async function loadLegs(route: RouteSlug): Promise<Leg[]> {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const sql = getSql();
 
-  if (!url || !key) {
-    throw new Error(
-      "SUPABASE_URL en SUPABASE_ANON_KEY ontbreken. Zie .env.example.",
-    );
+  try {
+    // numeric columns cast to float8: Postgres returns `numeric` as a
+    // string by default (to avoid precision loss on huge values), but
+    // every caller of loadLegs does arithmetic on these fields expecting
+    // real numbers — casting here keeps that contract intact.
+    const rows = (await sql`
+      select nr, start_plaats, afstand_km::float8 as afstand_km, loper,
+             cumulatief_start_km::float8 as cumulatief_start_km,
+             start_lat::float8 as start_lat, start_lon::float8 as start_lon,
+             geplande_tijd, cp_nummer, adres, bijzonderheden
+      from legs
+      where route = ${route}
+      order by nr asc
+    `) as Leg[];
+    return rows;
+  } catch (err) {
+    console.error(`loadLegs(${route}): query failed`, err);
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    throw new Error(`Kon legs niet laden uit de database: ${message}`);
   }
-
-  const supabase = createClient(url, key);
-  const { data, error } = await supabase
-    .from("legs")
-    .select(
-      "nr, start_plaats, afstand_km, loper, cumulatief_start_km, start_lat, start_lon, geplande_tijd, cp_nummer, adres, bijzonderheden",
-    )
-    .eq("route", route)
-    .order("nr", { ascending: true });
-
-  if (error) {
-    console.error(`loadLegs(${route}): Supabase query failed`, error);
-    throw new Error(`Kon legs niet laden uit Supabase: ${error.message}`);
-  }
-
-  return data ?? [];
 }

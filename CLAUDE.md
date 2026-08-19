@@ -20,20 +20,22 @@ verification bar for any change — run the last one whenever logic in `src/lib/
 touched — plus a manual check in the browser for anything UI-facing: `npm run build`
 catches most issues but not visual/UX regressions.
 
-Requires `.env.local` (see `.env.example`) with `SUPABASE_URL` and `SUPABASE_ANON_KEY` at
-minimum — both `src/lib/legs.ts` and `src/lib/checkins.ts` throw immediately without them,
-so the app won't run at all locally without a Supabase project. Optional env vars
-(`NEXT_PUBLIC_DONATION_URL`, `CHECKIN_PIN`) each degrade to a visible placeholder/disabled
-state when unset rather than crashing — that's intentional, not a bug to fix. `CHECKIN_PIN`
-is only a bootstrap fallback (see `/beheer` below) — once a PIN is set through the app it
-lives in Supabase and takes priority.
+Requires `.env.local` (see `.env.example`) with `DATABASE_URL` (or `POSTGRES_URL`) at
+minimum — every `src/lib/*.ts` data-access file throws immediately without it via
+`src/lib/db.ts`'s `getSql()`, so the app won't run at all locally without a Postgres
+database. In production this is Vercel Postgres (Neon under the hood, via the Storage
+tab's integration) — see `src/lib/db.ts`; nothing else in the app talks to Postgres
+directly. Optional env vars (`NEXT_PUBLIC_DONATION_URL`, `CHECKIN_PIN`) each degrade to a
+visible placeholder/disabled state when unset rather than crashing — that's intentional,
+not a bug to fix. `CHECKIN_PIN` is only a bootstrap fallback (see `/beheer` below) — once a
+PIN is set through the app it lives in the database and takes priority.
 
 ## Architecture
 
 Three data sources feed the app, combined once per request in `src/app/page.tsx`
 (`force-dynamic`, since two of the three are live): the GPX track (`data/route.gpx`,
-static file, parsed by `src/lib/gpx.ts`), the `legs` table in Supabase (the schedule —
-`src/lib/legs.ts`), and the `checkins` table in Supabase (real-world data entered via
+static file, parsed by `src/lib/gpx.ts`), the `legs` table (the schedule —
+`src/lib/legs.ts`), and the `checkins` table (real-world data entered via
 `/invoer` during the actual event — `src/lib/checkins.ts`). `src/lib/segments.ts` cuts the
 GPX track into one polyline per leg by walking forward through the track points from the
 previous leg's index — a plain nearest-point search would mis-snap at spots the route
@@ -89,7 +91,7 @@ logic and reads the current PIN hash via `src/lib/settings.ts` (falling back to 
 `/beheer` is the PIN-gated (same PIN, same cookie) settings screen for things an organizer
 needs to change without touching Vercel — currently each party's Garmin LiveTrack link
 (one per `(route, party)` pair, see `garminUrlSettingKey` in `src/lib/parties.ts`) and the
-check-in PIN itself. Both are stored as rows in the Supabase `settings` key/value table
+check-in PIN itself. Both are stored as rows in the `settings` key/value table
 (`src/lib/settings.ts`) and take effect immediately, no redeploy needed.
 
 Debug mode: `?debugTime=<ISO date>` on any URL freezes "now" for the whole app via

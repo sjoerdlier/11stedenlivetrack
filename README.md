@@ -11,7 +11,7 @@ alleen de **11Stedentocht** (204 km, komoot-export, 29–30 augustus, Lowie als
 onderwerp). Eerder testte een tijdelijke tweede/derde route (KAT100 Marathon
 Trail + Endurance Trail, augustus) de livetrack-flow voor een ander evenement;
 die zijn na afloop weer uit `ROUTES` gehaald (de historische legs/checkins
-staan nog in Supabase, alleen niet meer bereikbaar vanuit de app) — de
+staan nog in de database, alleen niet meer bereikbaar vanuit de app) — de
 route/party-machinerie zelf bleef generiek staan voor een volgende keer.
 
 ## Hoe het werkt
@@ -29,7 +29,7 @@ route/party-machinerie zelf bleef generiek staan voor een volgende keer.
   uit `routes.ts` mee.
 - `src/lib/legs.ts` — haalt alle legs (start_plaats, afstand_km, loper,
   geplande_tijd, cp_nummer, adres, bijzonderheden, start_lat/lon) server-side
-  op uit de Supabase-tabel `legs`, gefilterd op de actieve `route`.
+  op uit de `legs`-tabel, gefilterd op de actieve `route`.
   `afstand_km`/`loper` zijn nullable (de finish-rij is geen te lopen etappe).
 - `src/lib/segments.ts` — knipt de GPX-track in stukken per leg: zoekt voor elk
   leg-startpunt het dichtstbijzijnde trackpoint (voorwaarts vanaf het vorige leg,
@@ -44,7 +44,7 @@ route/party-machinerie zelf bleef generiek staan voor een volgende keer.
   labels — dezelfde module voedt zowel het side-menu als de kaart. Herberekent
   elke 30s (client-side klok).
 - `src/app/page.tsx` — server component (`force-dynamic`, want de legs-data komt
-  live uit Supabase) die de actieve route uit `?route=` haalt, de bijbehorende
+  live uit de database) die de actieve route uit `?route=` haalt, de bijbehorende
   GPX + legs + checkins combineert en doorgeeft aan `AppShell`.
   `generateMetadata` stelt hier ook de `<title>`/`description` per route in.
 - `src/lib/useSimulatedNow.ts` — client-clock hook (tick elke N ms), met
@@ -174,7 +174,7 @@ hoogtegecorrigeerd, geen platte km/u — een klimstuk laat het tempo dus niet ge
   duidelijk blijft welke stop je bekijkt tijdens het scrollen.
 - `src/components/LiveTrackPanel.tsx` — uit-/inklapbaar paneel naast de kaart
   met de Garmin LiveTrack-iframe. De link komt niet uit een env var maar uit
-  Supabase (`settings`-tabel, één per `(route, party)`), instelbaar via
+  de database (`settings`-tabel, één per `(route, party)`), instelbaar via
   `/beheer` — zie verderop. Zonder ingestelde link toont het paneel een
   placeholder in plaats van een kapotte iframe. Standaard dichtgeklapt
   (breedte 0, geen ruimte), togglebaar via de
@@ -192,7 +192,7 @@ hoogtegecorrigeerd, geen platte km/u — een klimstuk laat het tempo dus niet ge
 Garmin LiveTrack bleek geen toegankelijke API te hebben om iemand anders'
 sessie uit te lezen — daarom bestaat er een eigen, kleine pijplijn ernaast:
 
-- Supabase `live_positions`-tabel: één rij per `(route, party)`, alleen de
+- `live_positions`-tabel: één rij per `(route, party)`, alleen de
   laatst gerapporteerde positie (geen trackgeschiedenis).
 - `POST /api/live` (`src/app/api/live/route.ts`) — token-geauthenticeerd
   per `(route, party)`; zonder ingesteld token in `/beheer` is een party
@@ -230,11 +230,11 @@ eerdere tweede/derde route (KAT100) na afloop van dat evenement weer uit
   `navLabel` (routeswitcher-knop), `pageTitle`, `gpxFile`,
   `startFinishPlaats` en `routeDescription` (kaart-popup/metadata-tekst).
   Nieuwe route toevoegen = een entry aan `ROUTES` plus een GPX-bestand in
-  `data/` plus rijen in Supabase — verder hoeft nergens een route
+  `data/` plus rijen in de database — verder hoeft nergens een route
   hardcoded te worden, alle componenten lezen deze config. Route weer
   weghalen = precies andersom: de entry uit `ROUTES` (en eventueel uit
   `PARTIES_BY_ROUTE` in `parties.ts`), de bijbehorende GPX uit `data/` — de
-  Supabase-rijen (`legs`/`checkins`) kunnen gewoon blijven staan, die worden
+  bestaande rijen (`legs`/`checkins`) kunnen gewoon blijven staan, die worden
   simpelweg niet meer opgevraagd zodra er geen route meer naar verwijst.
 - De actieve route zit in de `?route=`-query-param (`11steden` is de
   default/fallback). `TopBar` rendert per route in `ROUTES` een knop die
@@ -242,7 +242,7 @@ eerdere tweede/derde route (KAT100) na afloop van dat evenement weer uit
   `/schema` en `/invoer` zodat je niet per pagina opnieuw hoeft te
   wisselen. Met maar één route in `ROUTES` is er dus ook maar één knop (of,
   afhankelijk van hoe dat gerenderd wordt, geen zichtbare switcher).
-- **Supabase**: `legs` en `checkins` hebben een `route`-kolom (`text`).
+- **Database**: `legs` en `checkins` hebben een `route`-kolom (`text`).
   `legs`' primary key is samengesteld — `(route, nr)`, niet alleen `nr` —
   en `checkins.leg_nr` verwijst via een samengestelde foreign key
   `(route, leg_nr) → legs(route, nr)`. Zonder die samenstelling zouden
@@ -261,7 +261,7 @@ Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
 4-cijferige PIN:
 
 - `src/lib/checkinAuth.ts` — de PIN zelf verlaat de server nooit. De actuele
-  PIN-hash komt uit de Supabase `settings`-tabel (ingesteld via `/beheer`,
+  PIN-hash komt uit de `settings`-tabel (ingesteld via `/beheer`,
   zie verderop), met de `CHECKIN_PIN`-env var als bootstrap-fallback zolang
   niemand via `/beheer` een PIN heeft gezet. `/api/invoer/verify` vergelijkt
   de ingevoerde PIN server-side en zet bij een match een **httpOnly** cookie
@@ -272,15 +272,15 @@ Basiscamp-invoerformulier voor als de Garmin LiveTrack uitvalt, achter een
   401 — geverifieerd met curl.
 - `src/app/invoer/page.tsx` — server component, leest de cookie zodat een
   al-geautoriseerde sessie na een reload niet opnieuw hoeft in te loggen.
-  Haalt legs op voor de dropdown; als Supabase daarbij faalt, blokkeert dat
+  Haalt legs op voor de dropdown; als dat daarbij faalt, blokkeert dat
   niet de PIN-poort zelf (legs-fout wordt pas zichtbaar in het formulier).
 - `PinScreen.tsx` / `CheckinForm.tsx` / `InvoerClient.tsx` — PIN-scherm, en
   daarna het formulier (tijdstip default nu, leg-dropdown, optioneel lat/lon,
   notitie, naam invoerder). Bij succesvol opslaan: bevestiging tonen, formulier
   volledig leegmaken voor de volgende invoer.
 - `src/lib/checkins.ts` — `insertCheckin` (insert) en `loadCheckins` (select,
-  gesorteerd op `tijdstip`) tegen de Supabase-tabel `checkins`, met de
-  bestaande anon key (zelfde patroon als `legs`/`loadLegs`). `loadCheckins`
+  gesorteerd op `tijdstip`) tegen de `checkins`-tabel (zelfde patroon als
+  `legs`/`loadLegs`). `loadCheckins`
   wordt op elke page-load in `src/app/page.tsx` aangeroepen en gevoed aan
   `AppShell` → `TopBar` + `LegSchedule`/`LegCard` (zie `actualProgress.ts`
   hierboven). Een lege tabel (vóór de racedag) is de normale staat, geen fout.
@@ -299,14 +299,15 @@ organisator zonder Vercel-toegang of redeploy twee dingen kan bijwerken:
   ververst, zodat die niet per ongeluk wordt uitgelogd door zijn eigen
   wijziging.
 
-Beide worden opgeslagen in de Supabase `settings`-tabel (`key`/`value`,
+Beide worden opgeslagen in de `settings`-tabel (`key`/`value`,
 `src/lib/settings.ts`) en zijn direct van kracht — geen redeploy nodig.
 `/invoer` linkt er met een klein "⚙ Instellingen"-linkje naar door.
 
 ### Dit testen zonder op de racedag te wachten
 
 Voeg testrijen toe aan `checkins` — via `/invoer` of
-rechtstreeks in de Supabase table editor — en herlaad `/`:
+rechtstreeks via je database-tool (bv. de SQL-editor in Neon's dashboard, of
+Vercel's Storage-tab) — en herlaad `/`:
 
 - **1 check-in** (bijv. leg 1, tijdstip nu): topbar schakelt over naar de
   echte statusbalk, maar "Afgelegd" blijft 0 km (er is nog geen leg *voltooid*)
@@ -325,7 +326,7 @@ rechtstreeks in de Supabase table editor — en herlaad `/`:
 **`checkins`-schema**: `route` (text, bijv. `'11steden'`), `tijdstip`
 (timestamptz), `leg_nr` (int, verwijst samen met `route` naar `legs`), `lat`/`lon`
 (numeric, nullable), `notitie` (text, nullable), `invoerder` (text). Wijkt je
-eigen tabel af, dan geeft de insert een duidelijke Supabase-foutmelding in het
+eigen tabel af, dan geeft de insert een duidelijke foutmelding in het
 formulier (geen silent failure), en is `src/lib/checkins.ts` de enige plek die
 moet worden aangepast.
 
@@ -349,25 +350,28 @@ RunnerFigure-PR**: die zal vermoedelijk een eigen tijd-simulatiemechanisme
 willen; dit bestand is bewust de plek waar dat samenkomt — een merge-conflict
 hier is te verwachten, niet iets om te vermijden.
 
-## Supabase
+## Database (Vercel Postgres / Neon)
 
-De `legs`-tabel wordt gelezen met de **anon/public key** (alleen leesrechten
-nodig, geen service role key). Nodig in `.env.local` (niet gecommit):
+Draaide eerder op Supabase, is verhuisd naar Vercel's eigen Postgres-storage
+(Neon onder de motorkap) — zie `src/lib/db.ts` (de enige plek die de
+connection string leest) en de vier kleine `src/lib/*.ts`-bestanden die er
+gewone SQL tegenaan gooien (`legs.ts`, `checkins.ts`, `settings.ts`,
+`livePositions.ts`). Nodig in `.env.local` (niet gecommit):
 
 ```bash
-SUPABASE_URL=https://jouw-project.supabase.co
-SUPABASE_ANON_KEY=jouw-anon-key
+DATABASE_URL=postgres://...
 ```
 
-Zie `.env.example`. Voor een Vercel-deploy zet je dezelfde twee variabelen in
-de project settings (Environment Variables) — zonder deze faalt de pagina met
-een duidelijke foutmelding.
+Zie `.env.example` — `POSTGRES_URL` werkt ook, als dat de naam is die jouw
+integratie-variant zet. Voor een Vercel-deploy: koppel de database aan het
+project via de **Storage**-tab (Create Database → Postgres); Vercel zet de
+env var dan automatisch, geen handmatige configuratie nodig.
 
-**Row Level Security**: `checkins` heeft zowel een insert- als een
-select-policy voor `anon`: insert voor `/api/invoer`, select zodat de
-kaart/sidebar het net ingevoerde check-in ook weer kan tonen — zonder die
-select-policy slaagt de insert wel, maar blijft de kaart 'm nooit tonen
-(stille failure, geen foutmelding).
+**Geen Row Level Security meer nodig**: dit is nu een gewone
+server-only Postgres-connectie (geen PostgREST-laag, geen anon-key-concept)
+— de connection string komt nooit bij de client, dus toegangscontrole zit
+puur in "wie heeft de env var", niet in database-policies. Simpeler dan de
+oude Supabase-opzet, niet iets om te compenseren.
 
 ## Donatieknop
 
@@ -396,7 +400,7 @@ Een tweede (of volgende) route toevoegen:
 1. GPX-bestand in `data/` zetten.
 2. Entry toevoegen aan `ROUTES` in `src/lib/routes.ts` (slug, labels,
    `gpxFile`, start/finish-tekst).
-3. Rijen voor die `route`-slug toevoegen aan de Supabase-tabel `legs` (zie
+3. Rijen voor die `route`-slug toevoegen aan de `legs`-tabel (zie
    "Meerdere routes" hierboven voor de samengestelde primary key).
 
 De routeswitcher in de topbar rendert automatisch een knop per entry in

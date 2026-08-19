@@ -10,6 +10,19 @@
   border-right: 1px solid var(--db-border);
 }
 
+/* Sticks header + tabs together to the top of .sidebar's scroll port —
+   same sticky-inside-scroll-container trick as .dayHeader below, just one
+   level up so the tab bar itself never scrolls out of view. Needs its own
+   background (matching .sidebar's) since content keeps scrolling underneath
+   it, and a z-index above .dayHeader's so a day separator slides under the
+   tab bar rather than painting over it. */
+.stickyTop {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--db-surface);
+}
+
 .header {
   padding: var(--sp-5) var(--sp-6) var(--sp-4);
   border-bottom: 1px solid var(--db-border);

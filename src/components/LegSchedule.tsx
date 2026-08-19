@@ -115,45 +115,51 @@ export default function LegSchedule({
       className={`${styles.sidebar} ${mobileExpanded ? styles.expanded : ""}`}
     >
       <div className={styles.handle} aria-hidden />
-      <div
-        className={styles.header}
-        onClick={onToggleMobileExpanded}
-        role="button"
-        tabIndex={0}
-        aria-expanded={mobileExpanded}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") onToggleMobileExpanded();
-        }}
-      >
-        <div>
-          <h2 className={styles.title}>{title}</h2>
-          <div className={styles.hint}>
-            {formatKm(totalRouteKm(legs))}, {legs.length} stops
-            {lastRefreshedAt !== null && ` · bijgewerkt ${formatRelativeTime(lastRefreshedAt, now)}`}
+      {/* Header + tabs stick together to the top of .sidebar's own scroll
+          port (same sticky-within-scroll-container pattern .dayHeader below
+          already uses) so the tab bar stays reachable while the Schema list
+          scrolls underneath it, instead of scrolling away with the content. */}
+      <div className={styles.stickyTop}>
+        <div
+          className={styles.header}
+          onClick={onToggleMobileExpanded}
+          role="button"
+          tabIndex={0}
+          aria-expanded={mobileExpanded}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") onToggleMobileExpanded();
+          }}
+        >
+          <div>
+            <h2 className={styles.title}>{title}</h2>
+            <div className={styles.hint}>
+              {formatKm(totalRouteKm(legs))}, {legs.length} stops
+              {lastRefreshedAt !== null && ` · bijgewerkt ${formatRelativeTime(lastRefreshedAt, now)}`}
+            </div>
           </div>
+          <span className={styles.chevron} aria-hidden>
+            ▲
+          </span>
         </div>
-        <span className={styles.chevron} aria-hidden>
-          ▲
-        </span>
-      </div>
 
-      <div className={styles.tabs} role="tablist" aria-label="Sidebar onderdelen">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            id={`tab-${tab.id}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={`panel-${tab.id}`}
-            tabIndex={activeTab === tab.id ? 0 : -1}
-            className={`${styles.tab} ${activeTab === tab.id ? styles.tabSelected : ""}`}
-            onClick={() => onTabChange(tab.id)}
-            onKeyDown={(e) => handleTabKeyDown(e, tab.id, onTabChange)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <div className={styles.tabs} role="tablist" aria-label="Sidebar onderdelen">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              id={`tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              className={`${styles.tab} ${activeTab === tab.id ? styles.tabSelected : ""}`}
+              onClick={() => onTabChange(tab.id)}
+              onKeyDown={(e) => handleTabKeyDown(e, tab.id, onTabChange)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div id="panel-schema" role="tabpanel" aria-labelledby="tab-schema" hidden={activeTab !== "schema"}>

@@ -353,7 +353,7 @@ export default function TopBar({
         )}
 
         <Link
-          href={`/schema?route=${activeRoute}`}
+          href={`/schema?route=${activeRoute}&party=${activeParty}`}
           target="_blank"
           className={styles.action}
           title="Printbaar schema"

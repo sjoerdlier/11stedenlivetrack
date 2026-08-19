@@ -6,6 +6,11 @@ export const BUDDY_COLORS: Record<string, string> = {
   Fynn: "#1baf7a",
   Sjoerd: "#eda100",
   Cecile: "#e87ba4",
+  Martijn: "#7c5cbf",
+  Sven: "#2fa4a1",
+  Lorenzo: "#c94f4f",
+  "Femke R.": "#7a9d3c",
+  "Femke B.": "#b0459c",
 };
 
 const FALLBACK_COLOR = "#9c9b93";

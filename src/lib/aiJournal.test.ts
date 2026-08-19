@@ -23,6 +23,7 @@ function makeLeg(overrides: Partial<Leg>): Leg {
     start_plaats: "Testplaats",
     afstand_km: 10,
     loper: "Testloper",
+    loper_bjorn: null,
     cumulatief_start_km: 0,
     start_lat: 0,
     start_lon: 0,

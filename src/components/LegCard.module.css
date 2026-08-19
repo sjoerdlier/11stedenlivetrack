@@ -250,6 +250,13 @@
   margin-top: var(--sp-3);
 }
 
+.buddyBadges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
 .buddyLabel {
   font-family: var(--font-mono-family);
   font-size: var(--fs-2xs);

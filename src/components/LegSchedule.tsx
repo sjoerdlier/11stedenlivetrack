@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from "react";
-import type { Leg } from "@/lib/legs";
+import { buddyForLeg, type Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import type { ElevationPoint } from "@/lib/elevation";
 import { computeLegTiming, estimateLegArrivals } from "@/lib/actualProgress";
@@ -98,12 +98,6 @@ export default function LegSchedule({
   const parties = partiesForRoute(activeRoute);
   const title =
     parties.length > 1 ? `${partyConfig(activeRoute, activeParty).label} — ${config.pageTitle}` : config.pageTitle;
-  // leg.loper ("buddy") is a single column on the shared legs table, filled
-  // in back when there was only one party — it's Lowie's buddy roster, not a
-  // per-party field. Showing it under Björn's view would misattribute
-  // Lowie's buddies to him, so it's only shown for the original party
-  // (parties[0]) until Björn has his own buddy data to add.
-  const showBuddy = activeParty === parties[0].slug;
 
   return (
     // id/tabIndex target the skip link in AppShell — tabIndex={-1} makes it
@@ -197,7 +191,7 @@ export default function LegSchedule({
                       timing={timing}
                       checkin={checkinsByLeg.get(leg.nr) ?? null}
                       expectedArrival={legArrivals.get(leg.nr) ?? null}
-                      showBuddy={showBuddy}
+                      buddy={buddyForLeg(leg, activeParty)}
                       onToggle={() => onSelect(isSelected ? null : leg.nr)}
                     />
                   );

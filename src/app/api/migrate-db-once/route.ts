@@ -1,20 +1,48 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { getSql } from "@/lib/db";
 import { timingSafeStringEqual } from "@/lib/checkinAuth";
 
-// TEMPORARY — one-time migration from the old Supabase project to the new
-// Vercel Postgres (Neon) database. Creates the schema (idempotent —
-// `create table if not exists`) and copies every row over (idempotent —
-// every insert is an upsert), so it's safe to call more than once, e.g. to
-// re-sync after fixing something. Delete this whole route once the
-// migration has run successfully and been verified on the real site — it
-// has no reason to exist afterward, and it's the one place in the app that
-// still needs the old SUPABASE_URL/SUPABASE_ANON_KEY env vars.
+// TEMPORARY — one-time seed of the new Vercel Postgres (Neon) database.
+// Originally written to copy data over from the old Supabase project, but
+// that project got repurposed for something else (renamed, schema replaced)
+// before this ever ran — so instead this seeds the `legs` schedule directly
+// from known-good values (reconstructed from this migration's own working
+// history, since it matches exactly what was last confirmed correct in the
+// old database). `checkins`/`settings`/`live_positions` start empty, same as
+// they were before race day anyway. Creates the schema (idempotent —
+// `create table if not exists`) and upserts every row (safe to re-run).
+// Delete this whole route once verified on the real site — it has no reason
+// to exist afterward.
 //
 // Gated by MIGRATE_DB_TOKEN, a one-off secret set temporarily in Vercel's
 // Environment Variables (never committed) — remove that var alongside this
-// whole route once the migration has run and been verified.
+// route once done.
+const LEGS_11STEDEN = [
+  { nr: 1, start_plaats: "Leeuwarden", afstand_km: 8.5, loper: "Nico", cumulatief_start_km: 0.0, start_lat: 53.202338, start_lon: 5.769497, geplande_tijd: "2026-08-29T05:00:00+00:00", cp_nummer: null, adres: "Elfstedenhal", bijzonderheden: null },
+  { nr: 2, start_plaats: "Weidum", afstand_km: 8.1, loper: "Fynn", cumulatief_start_km: 8.5, start_lat: 53.148236, start_lon: 5.745660, geplande_tijd: "2026-08-29T06:15:00+00:00", cp_nummer: null, adres: "P, de Vijf Sinnen, Hegedyk 2", bijzonderheden: null },
+  { nr: 3, start_plaats: "Daersum", afstand_km: 9, loper: "Nico", cumulatief_start_km: 16.6, start_lat: 53.090609, start_lon: 5.719029, geplande_tijd: "2026-08-29T07:45:00+00:00", cp_nummer: null, adres: "Rotonde bij minicamping De Wynmole, Harstawy 8, Daersum", bijzonderheden: null },
+  { nr: 4, start_plaats: "Sneek", afstand_km: 4, loper: "Nico", cumulatief_start_km: 25.6, start_lat: 53.030890, start_lon: 5.649651, geplande_tijd: "2026-08-29T09:00:00+00:00", cp_nummer: 1, adres: "Kanaalstraat 22, Sneek (parkeerplaats achter Argos)", bijzonderheden: null },
+  { nr: 5, start_plaats: "IJlst", afstand_km: 10, loper: "Fynn", cumulatief_start_km: 29.6, start_lat: 53.011244, start_lon: 5.625312, geplande_tijd: "2026-08-29T09:50:00+00:00", cp_nummer: 2, adres: "Poiesz IJlst", bijzonderheden: null },
+  { nr: 6, start_plaats: "Woudsend", afstand_km: 9.3, loper: "Nico", cumulatief_start_km: 39.6, start_lat: 52.941940, start_lon: 5.647539, geplande_tijd: "2026-08-29T11:30:00+00:00", cp_nummer: null, adres: "Bij rotonde Woudsend", bijzonderheden: null },
+  { nr: 7, start_plaats: "Sloten", afstand_km: 12.3, loper: "Fynn", cumulatief_start_km: 48.9, start_lat: 52.895938, start_lon: 5.646748, geplande_tijd: "2026-08-29T13:00:00+00:00", cp_nummer: 3, adres: "Voorstreek 120, Sloten", bijzonderheden: null },
+  { nr: 8, start_plaats: "Rijs", afstand_km: 12.7, loper: "Cecile", cumulatief_start_km: 61.2, start_lat: 52.864497, start_lon: 5.498301, geplande_tijd: "2026-08-29T14:45:00+00:00", cp_nummer: null, adres: "Snackbar it Hert, Leise Leane 1A, Rijs", bijzonderheden: null },
+  { nr: 9, start_plaats: "Stavoren", afstand_km: 8.7, loper: "Sjoerd", cumulatief_start_km: 73.9, start_lat: 52.886461, start_lon: 5.359594, geplande_tijd: "2026-08-29T17:00:00+00:00", cp_nummer: 4, adres: "Standbeeld het vrouwtje van Stavoren, Noord 18, Stavoren", bijzonderheden: null },
+  { nr: 10, start_plaats: "Hindeloopen", afstand_km: 7.3, loper: "Cecile", cumulatief_start_km: 82.6, start_lat: 52.939889, start_lon: 5.404043, geplande_tijd: "2026-08-29T18:30:00+00:00", cp_nummer: 5, adres: "Parkeerplak, Meenscharsweg 23-9, Hindeloopen", bijzonderheden: null },
+  { nr: 11, start_plaats: "Workum", afstand_km: 13.1, loper: "Sjoerd", cumulatief_start_km: 89.9, start_lat: 52.980673, start_lon: 5.445668, geplande_tijd: "2026-08-29T19:30:00+00:00", cp_nummer: 6, adres: "Schoolstraat 10-16, Workum", bijzonderheden: null },
+  { nr: 12, start_plaats: "Bolsward", afstand_km: 3, loper: "Cecile", cumulatief_start_km: 103.0, start_lat: 53.064119, start_lon: 5.519790, geplande_tijd: "2026-08-29T21:30:00+00:00", cp_nummer: 7, adres: "St Franciscusbasiliek, Grote Dijlakker 7, Bolsward", bijzonderheden: "geen lopers (officieel schema)" },
+  { nr: 13, start_plaats: "Witmarsum", afstand_km: 10.5, loper: "Cecile", cumulatief_start_km: 106.0, start_lat: 53.103637, start_lon: 5.472489, geplande_tijd: "2026-08-29T22:45:00+00:00", cp_nummer: null, adres: null, bijzonderheden: "geen lopers (officieel schema)" },
+  { nr: 14, start_plaats: "Harlingen", afstand_km: 7.5, loper: "Cecile", cumulatief_start_km: 116.5, start_lat: 53.171609, start_lon: 5.431231, geplande_tijd: "2026-08-30T00:30:00+00:00", cp_nummer: 8, adres: "Maritiem Instituut Harlingen, Almenumerweg 1", bijzonderheden: "geen lopers (officieel schema)" },
+  { nr: 15, start_plaats: "Franeker", afstand_km: 6.5, loper: "Sjoerd", cumulatief_start_km: 124.0, start_lat: 53.187273, start_lon: 5.550115, geplande_tijd: "2026-08-30T01:45:00+00:00", cp_nummer: 9, adres: "Cafe t Park, Harlingerweg 11, Franeker", bijzonderheden: "geen lopers (officieel schema)" },
+  { nr: 16, start_plaats: "Tzummarum", afstand_km: 10, loper: "Cecile", cumulatief_start_km: 130.5, start_lat: 53.236695, start_lon: 5.547887, geplande_tijd: "2026-08-30T02:45:00+00:00", cp_nummer: null, adres: "St Martinuskerk, Tsjerkepaed 1, Tzummarum", bijzonderheden: "geen lopers (officieel schema)" },
+  { nr: 17, start_plaats: "St. Anna Parochie", afstand_km: 14.5, loper: "Sjoerd", cumulatief_start_km: 140.5, start_lat: 53.276619, start_lon: 5.655616, geplande_tijd: "2026-08-30T04:30:00+00:00", cp_nummer: null, adres: "Den Staten Generaal, Statenweg 10, St. Anna Parochie", bijzonderheden: "geen lopers (officieel schema)" },
+  { nr: 18, start_plaats: "Finkum/Hijum", afstand_km: 6, loper: "Martijn", cumulatief_start_km: 155.0, start_lat: 53.291145, start_lon: 5.765535, geplande_tijd: "2026-08-30T05:30:00+00:00", cp_nummer: null, adres: "Hijum (station Finkum)", bijzonderheden: null },
+  { nr: 19, start_plaats: "Bartlehiem", afstand_km: 15, loper: "Martijn", cumulatief_start_km: 161.0, start_lat: 53.276238, start_lon: 5.834029, geplande_tijd: "2026-08-30T07:00:00+00:00", cp_nummer: null, adres: "Westkade bruggetje, Bartlehiem", bijzonderheden: null },
+  { nr: 20, start_plaats: "Dokkum", afstand_km: 14, loper: "Sjoerd", cumulatief_start_km: 176.0, start_lat: 53.323674, start_lon: 5.997955, geplande_tijd: "2026-08-30T09:00:00+00:00", cp_nummer: 10, adres: "Keerpunt Elfstedentocht, Dokkum", bijzonderheden: null },
+  { nr: 21, start_plaats: "Bartlehiem", afstand_km: 10, loper: "Martijn", cumulatief_start_km: 190.0, start_lat: 53.276112, start_lon: 5.841448, geplande_tijd: "2026-08-30T11:00:00+00:00", cp_nummer: null, adres: "Grutte Pier brouwerij, Bartlehiem 23", bijzonderheden: null },
+  { nr: 22, start_plaats: "Lekkum", afstand_km: 5, loper: "Sjoerd", cumulatief_start_km: 200.0, start_lat: 53.223951, start_lon: 5.820648, geplande_tijd: "2026-08-30T12:15:00+00:00", cp_nummer: null, adres: "Kantine Sportveld, Buorren 2, Lekkum", bijzonderheden: "Let op: route loopt nu nog langs Westkade, mogelijk wijziging naar Oostkade i.v.m. campertoegang (post staat ook op Oostoever)" },
+  { nr: 23, start_plaats: "Leeuwarden (finish)", afstand_km: null, loper: null, cumulatief_start_km: 202, start_lat: 53.202339, start_lon: 5.769475, geplande_tijd: "2026-08-30T13:15:00+00:00", cp_nummer: 11, adres: "Elfstedenhal", bijzonderheden: null },
+];
+
 export async function POST(request: Request) {
   const expectedToken = process.env.MIGRATE_DB_TOKEN;
   if (!expectedToken) {
@@ -26,14 +54,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Niet geautoriseerd." }, { status: 401 });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ ok: false, error: "SUPABASE_URL/SUPABASE_ANON_KEY ontbreken." }, { status: 500 });
-  }
-  const supabase = createClient(supabaseUrl, supabaseKey);
   const sql = getSql();
-
   const log: string[] = [];
 
   try {
@@ -88,13 +109,11 @@ export async function POST(request: Request) {
     `;
     log.push("schema klaar");
 
-    const { data: legs, error: legsErr } = await supabase.from("legs").select("*");
-    if (legsErr) throw new Error(`legs ophalen uit Supabase: ${legsErr.message}`);
-    for (const leg of legs ?? []) {
+    for (const leg of LEGS_11STEDEN) {
       await sql`
         insert into legs (route, nr, start_plaats, afstand_km, loper, cumulatief_start_km,
                            start_lat, start_lon, geplande_tijd, cp_nummer, adres, bijzonderheden)
-        values (${leg.route}, ${leg.nr}, ${leg.start_plaats}, ${leg.afstand_km}, ${leg.loper},
+        values ('11steden', ${leg.nr}, ${leg.start_plaats}, ${leg.afstand_km}, ${leg.loper},
                 ${leg.cumulatief_start_km}, ${leg.start_lat}, ${leg.start_lon}, ${leg.geplande_tijd},
                 ${leg.cp_nummer}, ${leg.adres}, ${leg.bijzonderheden})
         on conflict (route, nr) do update set
@@ -105,43 +124,7 @@ export async function POST(request: Request) {
           adres = excluded.adres, bijzonderheden = excluded.bijzonderheden
       `;
     }
-    log.push(`legs: ${legs?.length ?? 0} rijen`);
-
-    const { data: checkins, error: checkinsErr } = await supabase.from("checkins").select("*");
-    if (checkinsErr) throw new Error(`checkins ophalen uit Supabase: ${checkinsErr.message}`);
-    for (const c of checkins ?? []) {
-      await sql`
-        insert into checkins (id, created_at, tijdstip, leg_nr, lat, lon, notitie, invoerder, route, party)
-        values (${c.id}, ${c.created_at}, ${c.tijdstip}, ${c.leg_nr}, ${c.lat}, ${c.lon},
-                ${c.notitie}, ${c.invoerder}, ${c.route}, ${c.party})
-        on conflict (id) do nothing
-      `;
-    }
-    log.push(`checkins: ${checkins?.length ?? 0} rijen`);
-
-    const { data: settings, error: settingsErr } = await supabase.from("settings").select("*");
-    if (settingsErr) throw new Error(`settings ophalen uit Supabase: ${settingsErr.message}`);
-    for (const s of settings ?? []) {
-      await sql`
-        insert into settings (key, value, updated_at)
-        values (${s.key}, ${s.value}, ${s.updated_at})
-        on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at
-      `;
-    }
-    log.push(`settings: ${settings?.length ?? 0} rijen`);
-
-    const { data: livePositions, error: livePositionsErr } = await supabase.from("live_positions").select("*");
-    if (livePositionsErr) throw new Error(`live_positions ophalen uit Supabase: ${livePositionsErr.message}`);
-    for (const p of livePositions ?? []) {
-      await sql`
-        insert into live_positions (route, party, lat, lon, recorded_at, received_at)
-        values (${p.route}, ${p.party}, ${p.lat}, ${p.lon}, ${p.recorded_at}, ${p.received_at})
-        on conflict (route, party) do update set
-          lat = excluded.lat, lon = excluded.lon,
-          recorded_at = excluded.recorded_at, received_at = excluded.received_at
-      `;
-    }
-    log.push(`live_positions: ${livePositions?.length ?? 0} rijen`);
+    log.push(`legs: ${LEGS_11STEDEN.length} rijen geseed`);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return NextResponse.json({ ok: false, error: message, log }, { status: 500 });

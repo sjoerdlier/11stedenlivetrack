@@ -20,9 +20,11 @@ interface LegCardProps {
   timing: LegTiming;
   checkin: Checkin | null;
   expectedArrival: number | null;
-  // Whether leg.loper applies to the party currently being viewed — see
-  // LegSchedule's showBuddy comment for why this isn't just `leg.loper`.
-  showBuddy: boolean;
+  // Already resolved to the party currently being viewed — see
+  // legs.ts's buddyForLeg. Can be a comma-separated list of names (Björn
+  // sometimes has two buddies on the same stretch), split into one badge
+  // each below.
+  buddy: string | null;
   onToggle: () => void;
 }
 
@@ -54,9 +56,15 @@ export default function LegCard({
   timing,
   checkin,
   expectedArrival,
-  showBuddy,
+  buddy,
   onToggle,
 }: LegCardProps) {
+  const buddyNames = buddy
+    ? buddy
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean)
+    : [];
   const isCp = leg.cp_nummer !== null;
   // "compact" only gates the detail panel below the summary line — the
   // summary itself (stad/tijd/tempo/status) is always shown, unchanged
@@ -167,10 +175,14 @@ export default function LegCard({
               <div className={styles.stopLine}>Stop: {timing.stopMinutes} min (CP)</div>
             )}
 
-            {showBuddy && leg.loper && (
+            {buddyNames.length > 0 && (
               <div className={styles.buddyRow}>
                 <span className={styles.buddyLabel}>Buddy</span>
-                <BuddyBadge name={leg.loper} />
+                <span className={styles.buddyBadges}>
+                  {buddyNames.map((name) => (
+                    <BuddyBadge key={name} name={name} />
+                  ))}
+                </span>
               </div>
             )}
 

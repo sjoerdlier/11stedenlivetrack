@@ -22,6 +22,23 @@ import { LIVE_POSITION_MAX_AGE_MS } from "./liveMarker";
 const PACE_WINDOW_MS = 90 * 60 * 1000;
 const MINUTE_MS = 60_000;
 
+// A fix whose nearest route point is still this far away is more likely a
+// GPS glitch (multipath, a bad read from the gps666.net bridge — this is a
+// reverse-engineered, unofficial API, not vetted hardware) than a genuine
+// detour this far off a marked route with a guide. Generous enough to allow
+// a real stop at a checkpoint building just off the line.
+const MAX_OFF_ROUTE_METERS = 1500;
+// A fix implying ground speed above this between it and the last *accepted*
+// fix is treated as a bad reading rather than real movement — well above any
+// sustained walking pace, but low enough to catch a multi-km GPS jump. Both
+// this and MAX_OFF_ROUTE_METERS exist because a single bad fix would
+// otherwise permanently corrupt the trail: nearestPointIndexForward only
+// ever searches forward from where the previous fix landed (see its own
+// comment for why — the route revisits some spots), so one wildly-wrong
+// "forward" snap would push that search boundary past every subsequent
+// good fix, with no way back.
+const MAX_PLAUSIBLE_SPEED_KMH = 25;
+
 // How far back page.tsx/api/poll fetch a party's live_positions trail for —
 // comfortably wider than PACE_WINDOW_MS so a pace can always be computed
 // from a full window's worth of fixes, without pulling the whole event's
@@ -175,20 +192,37 @@ export function computeLiveTrackProgress(
   if (points.length === 0) return null;
 
   // Walks the trail chronologically, each fix's nearest-point search
-  // starting where the previous one landed — the same forward-only
-  // disambiguation the route itself needs for spots it visits twice (e.g.
-  // Bartlehiem), applied here to a live GPS trail instead of a known leg
-  // boundary.
+  // starting where the previous *accepted* one landed — the same
+  // forward-only disambiguation the route itself needs for spots it visits
+  // twice (e.g. Bartlehiem), applied here to a live GPS trail instead of a
+  // known leg boundary. A fix that lands implausibly far from the route, or
+  // implies an implausible speed since the last accepted fix, is skipped
+  // entirely (fromIdx/prevKm/prevTime don't advance) rather than accepted —
+  // see MAX_OFF_ROUTE_METERS/MAX_PLAUSIBLE_SPEED_KMH's comments for why a
+  // single bad fix can't be allowed to move the search boundary.
   let fromIdx = 0;
   let latestIdx = 0;
+  let prevTime: number | null = null;
+  let prevKm: number | null = null;
   const times: number[] = [];
   const effortKmAtFix: number[] = [];
   for (const fix of history) {
     const t = new Date(fix.recordedAt).getTime();
     if (Number.isNaN(t)) continue;
+
     const idx = nearestPointIndexForward(points, [fix.lat, fix.lon], fromIdx);
+    if (haversineMeters([fix.lat, fix.lon], points[idx]) > MAX_OFF_ROUTE_METERS) continue;
+
+    const fixKm = km[idx];
+    if (prevTime !== null && prevKm !== null) {
+      const hours = (t - prevTime) / (1000 * 60 * 60);
+      if (hours > 0 && Math.abs(fixKm - prevKm) / hours > MAX_PLAUSIBLE_SPEED_KMH) continue;
+    }
+
     fromIdx = idx;
     latestIdx = idx;
+    prevTime = t;
+    prevKm = fixKm;
     times.push(t);
     effortKmAtFix.push(effortKm[idx]);
   }

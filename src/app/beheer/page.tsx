@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { CHECKIN_COOKIE, currentPinHash, isAuthorized } from "@/lib/checkinAuth";
 import { loadSettings } from "@/lib/settings";
-import { allRouteParties, garminUrlSettingKey, liveTokenSettingKey } from "@/lib/parties";
+import { allRouteParties, garminUrlSettingKey, liveTokenSettingKey, trackerStatusKey } from "@/lib/parties";
 import { socialMetadata } from "@/lib/routes";
+import { getCachedLivePositions } from "@/lib/cachedData";
+import type { LivePositionRow } from "@/lib/livePositions";
 import BeheerClient from "./BeheerClient";
 
 // Same reasoning as /invoer: this page reads the PIN-session cookie, which
@@ -38,6 +40,25 @@ export default async function BeheerPage() {
     loadError = err instanceof Error ? err.message : "Kon instellingen niet laden.";
   }
 
+  // Doesn't fail the whole page on error, same as garminUrls/liveTokens
+  // above — a live-position read hiccup shouldn't block seeing/editing
+  // settings, and TrackerStatus reads each entry as "no positions loaded",
+  // no different from a tracker that genuinely hasn't reported yet.
+  const trackerPositions: Record<string, LivePositionRow | null> = {};
+  const routes = [...new Set(routeParties.map((rp) => rp.route))];
+  try {
+    const positionsByRoute = await Promise.all(routes.map((route) => getCachedLivePositions(route)));
+    routes.forEach((route, i) => {
+      const positions = positionsByRoute[i];
+      for (const { party } of routeParties.filter((rp) => rp.route === route)) {
+        trackerPositions[trackerStatusKey(route, party.slug)] =
+          positions.find((p) => p.party === party.slug) ?? null;
+      }
+    });
+  } catch (err) {
+    console.error("BeheerPage: loading live positions for TrackerStatus failed", err);
+  }
+
   return (
     <BeheerClient
       initialAuthorized={authorized}
@@ -46,6 +67,7 @@ export default async function BeheerPage() {
       liveTokens={liveTokens}
       pinIsSet={pinIsSet}
       loadError={loadError}
+      initialTrackerPositions={trackerPositions}
     />
   );
 }

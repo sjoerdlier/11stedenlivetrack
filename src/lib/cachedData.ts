@@ -1,8 +1,11 @@
 import { unstable_cache } from "next/cache";
-import { loadLegs } from "./legs";
+import { loadLegs, type Leg } from "./legs";
 import { loadCheckins } from "./checkins";
 import { loadLivePositions, loadLivePositionHistory } from "./livePositions";
 import { loadWeather } from "./weather";
+import { loadRoute, type LatLng } from "./gpx";
+import { buildLegSegments, type LegSegment } from "./segments";
+import { buildElevationProfile, type ElevationPoint } from "./elevation";
 
 // Shared between page.tsx (the initial SSR render), /api/poll (AppShell's
 // lightweight background refresh — see AppShell.tsx's poll effect), and
@@ -29,3 +32,31 @@ export const getCachedLivePositionHistory = unstable_cache(
 // "900-1800s" range other slow-changing context uses) still means everyone
 // checking during the event sees the same handful of API calls.
 export const getCachedWeather = unstable_cache(loadWeather, ["weather"], { revalidate: 1800 });
+
+export interface RouteGeometry {
+  start: LatLng;
+  legSegments: LegSegment[];
+  elevationProfile: ElevationPoint[];
+}
+
+// Moved here from page.tsx so aiJournal.ts can share it too — liveTrackProgress.ts
+// needs legSegments to project GPS fixes onto the route, and /update (the AI
+// journal) shouldn't have to re-parse the 556KB GPX file and redo the RDP/
+// Minetti walks page.tsx already pays for. loadRoute() re-parses that file,
+// and buildLegSegments()/buildElevationProfile() re-run RDP simplification
+// and the grade-adjusted-cost walk over all ~204km of it — none of that is
+// cheap, so it's wrapped the same way as the Supabase reads above, on the
+// same 20s window, keyed on `legs` too (not just the gpx file) since a
+// schedule edit shifts where each leg's segment starts.
+export const getCachedRouteGeometry = unstable_cache(
+  async (gpxFile: string, legs: Leg[]): Promise<RouteGeometry> => {
+    const { points, elevations, start } = loadRoute(gpxFile);
+    return {
+      start,
+      legSegments: buildLegSegments(points, elevations, legs),
+      elevationProfile: buildElevationProfile(points, elevations),
+    };
+  },
+  ["route-geometry"],
+  { revalidate: 20 },
+);

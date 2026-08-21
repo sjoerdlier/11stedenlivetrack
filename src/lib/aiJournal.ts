@@ -15,6 +15,8 @@ import {
   type EstimatedArrival,
   type ScheduleDelta,
 } from "./actualProgress";
+import { computeLiveTrackProgress, historySinceIso, type LiveTrackProgress } from "./liveTrackProgress";
+import { buildEffortLegs } from "./segments";
 import { daysUntilStart, totalPlannedPaceKmh, totalRouteKm } from "./status";
 import {
   formatClockTime,
@@ -26,7 +28,13 @@ import {
   formatWindKmh,
 } from "./format";
 import { routeConfig, type RouteSlug } from "./routes";
-import { getCachedCheckins, getCachedLegs, getCachedWeather } from "./cachedData";
+import {
+  getCachedCheckins,
+  getCachedLegs,
+  getCachedLivePositionHistory,
+  getCachedRouteGeometry,
+  getCachedWeather,
+} from "./cachedData";
 import { synthesizeSpeech } from "./googleTts";
 
 // Cheap/fast model — this is a short, low-stakes factual summary, not a
@@ -57,30 +65,45 @@ export interface PartySnapshot {
   nextPlaats: string | null;
 }
 
-// Mirrors the same computation TopBar/LegSchedule already do per party
-// (computeActualProgress + actualAveragePaceKmh + estimateArrival +
-// currentScheduleDelta) — kept here rather than imported as one combined
-// helper since nothing else needs exactly this bundle. null before that
-// party's first check-in, the same "not started yet" signal the rest of
-// the site uses.
-export function buildPartySnapshot(
-  party: PartyConfig,
+// GPS gives a continuous km, not a discrete "reached leg" the way a
+// check-in does — this is that km's equivalent of "onderweg van X naar Y"
+// (see buildPrompt), the place-name pair the prompt needs regardless of
+// source. Legs assumed sorted by nr, cumulatief_start_km ascending.
+function placesForKm(legs: Leg[], km: number): { currentPlaats: string | null; nextPlaats: string | null } {
+  let currentIndex = -1;
+  legs.forEach((leg, index) => {
+    if (leg.cumulatief_start_km <= km) currentIndex = index;
+  });
+  if (currentIndex === -1) return { currentPlaats: null, nextPlaats: null };
+  return {
+    currentPlaats: legs[currentIndex].start_plaats,
+    nextPlaats: legs[currentIndex + 1]?.start_plaats ?? null,
+  };
+}
+
+// The check-in path's own place-name pick: the most recently *reached* leg
+// (a real, confirmed arrival), not an interpolated km. Deliberately not
+// placesForKm here — computeActualProgress only credits a leg's distance
+// once the *next* leg has a check-in, so a check-in landing directly on the
+// finish leg (skipping the usual one-leg-at-a-time credit) would under-report
+// progress.km and misplace this by a leg. Reading checkinTimes directly
+// avoids that entirely.
+function placesForCheckins(
   legs: Leg[],
-  partyCheckins: Checkin[],
-  totalKm: number,
-  plannedPaceKmh: number | null,
-  now: number,
-): PartySnapshot | null {
-  if (partyCheckins.length === 0) return null;
+  checkinTimes: Map<number, number>,
+): { currentPlaats: string | null; nextPlaats: string | null } {
+  let latestIndex = -1;
+  legs.forEach((leg, index) => {
+    if (checkinTimes.has(leg.nr) && index > latestIndex) latestIndex = index;
+  });
+  if (latestIndex === -1) return { currentPlaats: null, nextPlaats: null };
+  return {
+    currentPlaats: legs[latestIndex].start_plaats,
+    nextPlaats: legs[latestIndex + 1]?.start_plaats ?? null,
+  };
+}
 
-  const checkinTimes = firstCheckinTimesByLeg(partyCheckins);
-  const progress = computeActualProgress(legs, checkinTimes);
-  const remainingKm = Math.max(0, totalKm - progress.km);
-  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
-  const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, partyCheckins.length);
-  const arrivalForecast = estimateArrivalForecast(legs, checkinTimes, now);
-  const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
-
+function lastNoteFrom(partyCheckins: Checkin[]): string | null {
   let lastNote: string | null = null;
   let lastNoteTime = -Infinity;
   for (const c of partyCheckins) {
@@ -90,20 +113,57 @@ export function buildPartySnapshot(
       lastNote = c.notitie;
     }
   }
+  return lastNote;
+}
 
-  // Same "latest reached leg" pick currentScheduleDelta makes internally,
-  // redone here to also read off its place name (and the leg right after
-  // it) rather than just its schedule delta.
-  let currentPlaats: string | null = null;
-  let nextPlaats: string | null = null;
-  let latestIndex = -1;
-  legs.forEach((leg, index) => {
-    if (checkinTimes.has(leg.nr) && index > latestIndex) latestIndex = index;
-  });
-  if (latestIndex !== -1) {
-    currentPlaats = legs[latestIndex].start_plaats;
-    nextPlaats = legs[latestIndex + 1]?.start_plaats ?? null;
+// GPS is the primary source now (see liveTrackProgress.ts) — check-ins are
+// the fallback for whenever a party's tracker hasn't reported yet or has
+// gone stale, same merge TopBar does. `lastNote` always comes from
+// check-ins regardless of source (GPS carries no text), since it's the only
+// place a walker/crew member can leave a note at all. null (both here and
+// below) before *anything* — no fresh GPS and no check-in yet — has
+// happened for this party, the same "not started yet" signal the rest of
+// the site uses.
+export function buildPartySnapshot(
+  party: PartyConfig,
+  legs: Leg[],
+  partyCheckins: Checkin[],
+  totalKm: number,
+  plannedPaceKmh: number | null,
+  now: number,
+  liveTrackProgress: LiveTrackProgress | null,
+): PartySnapshot | null {
+  if (liveTrackProgress === null && partyCheckins.length === 0) return null;
+
+  const lastNote = lastNoteFrom(partyCheckins);
+
+  if (liveTrackProgress) {
+    const { currentPlaats, nextPlaats } = placesForKm(legs, liveTrackProgress.progress.km);
+    return {
+      label: party.label,
+      percent: liveTrackProgress.progress.percent,
+      km: liveTrackProgress.progress.km,
+      remainingKm: liveTrackProgress.remainingKm,
+      paceKmh: liveTrackProgress.paceKmh,
+      scheduleDelta: liveTrackProgress.scheduleDelta,
+      arrival: liveTrackProgress.arrival,
+      // GPS mode has no resampled range to offer — see liveTrackProgress.ts
+      // for why that's a deliberate scope-trim, same as TopBar's own merge.
+      arrivalForecast: null,
+      lastNote,
+      currentPlaats,
+      nextPlaats,
+    };
   }
+
+  const checkinTimes = firstCheckinTimesByLeg(partyCheckins);
+  const progress = computeActualProgress(legs, checkinTimes);
+  const remainingKm = Math.max(0, totalKm - progress.km);
+  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, partyCheckins.length);
+  const arrivalForecast = estimateArrivalForecast(legs, checkinTimes, now);
+  const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
+  const { currentPlaats, nextPlaats } = placesForCheckins(legs, checkinTimes);
 
   return {
     label: party.label,
@@ -301,6 +361,29 @@ export async function generateJournalForRoute(
     }
   }
 
+  // GPS-derived progress per party (see liveTrackProgress.ts) — the primary
+  // source buildPartySnapshot reaches for, with check-ins as its fallback.
+  // A geometry/history load failure just means every party falls back to
+  // check-ins, same as a missing/stale tracker does — not worth failing the
+  // whole journal over.
+  const liveTrackProgressByParty = new Map<string, LiveTrackProgress | null>();
+  try {
+    const { legSegments } = await getCachedRouteGeometry(config.gpxFile, legs);
+    const effortLegs = buildEffortLegs(legSegments);
+    const sinceIso = historySinceIso(now);
+    await Promise.all(
+      parties.map(async (party) => {
+        const history = await getCachedLivePositionHistory(route, party.slug, sinceIso);
+        liveTrackProgressByParty.set(
+          party.slug,
+          computeLiveTrackProgress(legs, legSegments, effortLegs, history, now),
+        );
+      }),
+    );
+  } catch (err) {
+    console.error(`generateJournalForRoute(${route}): loading live track progress failed`, err);
+  }
+
   const partySnapshots = parties.map((party) => ({
     party,
     snapshot: buildPartySnapshot(
@@ -310,6 +393,7 @@ export async function generateJournalForRoute(
       totalKm,
       plannedPaceKmh,
       now,
+      liveTrackProgressByParty.get(party.slug) ?? null,
     ),
   }));
 

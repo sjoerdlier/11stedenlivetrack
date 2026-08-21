@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import AppShell from "@/components/AppShell";
 import LoadError from "@/components/LoadError";
-import { loadRoute, type LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import type { LivePositionRow } from "@/lib/livePositions";
@@ -11,11 +10,10 @@ import {
   getCachedCheckins,
   getCachedLivePositions,
   getCachedLivePositionHistory,
+  getCachedRouteGeometry,
   getCachedWeather,
 } from "@/lib/cachedData";
 import type { WeatherSnapshot } from "@/lib/weather";
-import { buildLegSegments, type LegSegment } from "@/lib/segments";
-import { buildElevationProfile, type ElevationPoint } from "@/lib/elevation";
 import { parseRouteSlug, routeConfig, socialMetadata, type RouteSlug } from "@/lib/routes";
 import { parsePartySlug, partiesForRoute, partyConfig, garminUrlSettingKey } from "@/lib/parties";
 import { loadSetting } from "@/lib/settings";
@@ -38,36 +36,9 @@ import { historySinceIso } from "@/lib/liveTrackProgress";
 export const dynamic = "force-dynamic";
 
 const getCachedSetting = unstable_cache(loadSetting, ["settings"], { revalidate: 20 });
-// getCachedLegs/getCachedCheckins/getCachedLivePositions/getCachedWeather
-// now live in @/lib/cachedData, shared with /api/poll and /update — see
-// that file's comment.
-
-interface RouteGeometry {
-  start: LatLng;
-  legSegments: LegSegment[];
-  elevationProfile: ElevationPoint[];
-}
-
-// loadRoute() re-parses a 556KB GPX file and buildLegSegments()/
-// buildElevationProfile() re-run RDP simplification and the Minetti
-// grade-adjusted-cost walk over all ~204km of it — none of that is cheap,
-// and unlike the Supabase reads above it was running on *every* request
-// with no caching at all. Wrapped the same way, on the same 20s window, so
-// a burst of requests (or AppShell's poll) shares one computation instead
-// of each paying for its own. Keyed on `legs` too (not just the gpx file),
-// since a schedule edit shifts where each leg's segment starts.
-const getCachedRouteGeometry = unstable_cache(
-  async (gpxFile: string, legs: Leg[]): Promise<RouteGeometry> => {
-    const { points, elevations, start } = loadRoute(gpxFile);
-    return {
-      start,
-      legSegments: buildLegSegments(points, elevations, legs),
-      elevationProfile: buildElevationProfile(points, elevations),
-    };
-  },
-  ["route-geometry"],
-  { revalidate: 20 },
-);
+// getCachedLegs/getCachedCheckins/getCachedLivePositions/getCachedRouteGeometry/
+// getCachedWeather now live in @/lib/cachedData, shared with /api/poll and
+// /update — see that file's comment.
 
 // A plain module-level helper (not the page component itself) so
 // Date.now() — needed to bucket the cache-friendly "since" window, see

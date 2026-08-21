@@ -4,13 +4,34 @@ import { CHECKIN_COOKIE, currentPinHash, isAuthorized } from "@/lib/checkinAuth"
 import { loadSettings } from "@/lib/settings";
 import { allRouteParties, garminUrlSettingKey, liveTokenSettingKey, trackerStatusKey } from "@/lib/parties";
 import { socialMetadata } from "@/lib/routes";
-import { getCachedLivePositions } from "@/lib/cachedData";
+import { getCachedLivePositionHistory } from "@/lib/cachedData";
+import { historySinceIso, TRACKER_DASHBOARD_HISTORY_HOURS } from "@/lib/liveTrackProgress";
 import type { LivePositionRow } from "@/lib/livePositions";
+import type { RouteSlug } from "@/lib/routes";
+import type { PartyConfig } from "@/lib/parties";
 import BeheerClient from "./BeheerClient";
 
 // Same reasoning as /invoer: this page reads the PIN-session cookie, which
 // is per-visitor, so it can't be ISR-cached.
 export const dynamic = "force-dynamic";
+
+// A plain module-level helper (not the page component itself) so
+// Date.now() — needed for historySinceIso's cache-friendly bucketing —
+// isn't called directly inside BeheerPage's body; the react-hooks purity
+// rule flags impure calls like Date.now() in a component's own render, even
+// a server component's (same reasoning as page.tsx's loadLiveTrackHistory).
+async function loadTrackerHistory(
+  routeParties: { route: RouteSlug; party: PartyConfig }[],
+): Promise<Record<string, LivePositionRow[]>> {
+  const sinceIso = historySinceIso(Date.now(), TRACKER_DASHBOARD_HISTORY_HOURS * 60 * 60 * 1000);
+  const entries = await Promise.all(
+    routeParties.map(async ({ route, party }) => {
+      const history = await getCachedLivePositionHistory(route, party.slug, sinceIso);
+      return [trackerStatusKey(route, party.slug), history] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -42,21 +63,14 @@ export default async function BeheerPage() {
 
   // Doesn't fail the whole page on error, same as garminUrls/liveTokens
   // above — a live-position read hiccup shouldn't block seeing/editing
-  // settings, and TrackerStatus reads each entry as "no positions loaded",
-  // no different from a tracker that genuinely hasn't reported yet.
-  const trackerPositions: Record<string, LivePositionRow | null> = {};
-  const routes = [...new Set(routeParties.map((rp) => rp.route))];
+  // settings, and TrackerStatus/TrackerMap read a missing entry as "no
+  // positions loaded", no different from a tracker that genuinely hasn't
+  // reported yet.
+  let trackerHistory: Record<string, LivePositionRow[]> = {};
   try {
-    const positionsByRoute = await Promise.all(routes.map((route) => getCachedLivePositions(route)));
-    routes.forEach((route, i) => {
-      const positions = positionsByRoute[i];
-      for (const { party } of routeParties.filter((rp) => rp.route === route)) {
-        trackerPositions[trackerStatusKey(route, party.slug)] =
-          positions.find((p) => p.party === party.slug) ?? null;
-      }
-    });
+    trackerHistory = await loadTrackerHistory(routeParties);
   } catch (err) {
-    console.error("BeheerPage: loading live positions for TrackerStatus failed", err);
+    console.error("BeheerPage: loading live position history for TrackerStatus failed", err);
   }
 
   return (
@@ -67,7 +81,7 @@ export default async function BeheerPage() {
       liveTokens={liveTokens}
       pinIsSet={pinIsSet}
       loadError={loadError}
-      initialTrackerPositions={trackerPositions}
+      initialTrackerHistory={trackerHistory}
     />
   );
 }

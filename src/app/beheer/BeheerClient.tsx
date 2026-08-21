@@ -16,7 +16,7 @@ interface BeheerClientProps {
   liveTokens: Record<string, string>;
   pinIsSet: boolean;
   loadError: string | null;
-  initialTrackerPositions: Record<string, LivePositionRow | null>;
+  initialTrackerHistory: Record<string, LivePositionRow[]>;
 }
 
 export default function BeheerClient({
@@ -26,7 +26,7 @@ export default function BeheerClient({
   liveTokens,
   pinIsSet,
   loadError,
-  initialTrackerPositions,
+  initialTrackerHistory,
 }: BeheerClientProps) {
   const [authorized, setAuthorized] = useState(initialAuthorized);
 
@@ -34,7 +34,7 @@ export default function BeheerClient({
     <main className={styles.page}>
       {authorized ? (
         <div className={styles.stack}>
-          <TrackerStatus routeParties={routeParties} initialPositions={initialTrackerPositions} />
+          <TrackerStatus routeParties={routeParties} initialHistory={initialTrackerHistory} />
           <SettingsForm
             routeParties={routeParties}
             initialGarminUrls={garminUrls}

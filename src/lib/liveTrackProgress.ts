@@ -42,8 +42,20 @@ const MAX_PLAUSIBLE_SPEED_KMH = 25;
 // How far back page.tsx/api/poll fetch a party's live_positions trail for —
 // comfortably wider than PACE_WINDOW_MS so a pace can always be computed
 // from a full window's worth of fixes, without pulling the whole event's
-// trail (hundreds of rows over 32 hours) on every poll.
+// trail (hundreds of rows over 32 hours) on every poll. This is the default
+// for the progress-engine's own use (TopBar/AppShell); /beheer's tracker
+// dashboard asks historySinceIso for a much wider window instead (see
+// TRACKER_DASHBOARD_HISTORY_HOURS below) since it's showing the actual
+// travelled trail on a map, not deriving a short-term pace.
 export const LIVE_TRACK_HISTORY_WINDOW_MS = 4 * 60 * 60 * 1000;
+
+// /beheer's tracker dashboard (status rows + trail map) wants to see the
+// whole of a stability test — e.g. a multi-hour walk, or a 24h
+// no-charger battery test — not just the trailing pace window. 24h keeps a
+// full day-long test visible while still bounding the query during the real
+// 32-hour event, where an unbounded "since the tracker was first turned on"
+// would grow to hundreds of rows.
+export const TRACKER_DASHBOARD_HISTORY_HOURS = 24;
 
 // getCachedLivePositionHistory's "since" argument, rounded down to the same
 // 20s bucket the surrounding unstable_cache revalidate window uses — a raw
@@ -51,11 +63,13 @@ export const LIVE_TRACK_HISTORY_WINDOW_MS = 4 * 60 * 60 * 1000;
 // call, so every poll (from every viewer) would miss the cache and hit
 // Supabase directly, defeating the point of wrapping it in unstable_cache at
 // all. Bucketing means concurrent requests within the same 20s window share
-// one cached read.
+// one cached read. `windowMs` defaults to the progress-engine's own window;
+// pass a wider one (see TRACKER_DASHBOARD_HISTORY_HOURS) for a caller that
+// wants more history than a pace calculation needs.
 const HISTORY_CACHE_BUCKET_MS = 20_000;
 
-export function historySinceIso(now: number): string {
-  const bucketed = Math.floor((now - LIVE_TRACK_HISTORY_WINDOW_MS) / HISTORY_CACHE_BUCKET_MS) * HISTORY_CACHE_BUCKET_MS;
+export function historySinceIso(now: number, windowMs: number = LIVE_TRACK_HISTORY_WINDOW_MS): string {
+  const bucketed = Math.floor((now - windowMs) / HISTORY_CACHE_BUCKET_MS) * HISTORY_CACHE_BUCKET_MS;
   return new Date(bucketed).toISOString();
 }
 

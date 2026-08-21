@@ -17,6 +17,12 @@ import { historySinceIso } from "@/lib/liveTrackProgress";
 // repeat requests within the same 20s window cheap.
 export const dynamic = "force-dynamic";
 
+// Clamped so a stray/hostile query param can't force an unbounded
+// live_positions scan — 48h comfortably covers the widest legitimate ask
+// (TRACKER_DASHBOARD_HISTORY_HOURS's 24h battery/stability tests) with room
+// to spare, without allowing "since the beginning of time".
+const MAX_HISTORY_HOURS = 48;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const route = parseRouteSlug(searchParams.get("route") ?? undefined);
@@ -24,13 +30,26 @@ export async function GET(request: Request) {
   // effect); the map-only checkins/livePositions poll predates party
   // filtering and doesn't need it.
   const party = searchParams.get("party");
+  // Optional, only meaningful alongside `party` — widens the history window
+  // beyond liveTrackProgress.ts's own pace-calculation default (see
+  // LIVE_TRACK_HISTORY_WINDOW_MS) for a caller that wants more of the trail,
+  // like /beheer's TrackerStatus dashboard (see TRACKER_DASHBOARD_HISTORY_HOURS).
+  const historyHoursParam = Number(searchParams.get("historyHours"));
+  const historyWindowMs =
+    Number.isFinite(historyHoursParam) && historyHoursParam > 0
+      ? Math.min(historyHoursParam, MAX_HISTORY_HOURS) * 60 * 60 * 1000
+      : undefined;
 
   try {
     const [checkins, livePositions, livePositionHistory] = await Promise.all([
       getCachedCheckins(route),
       getCachedLivePositions(route),
       party
-        ? getCachedLivePositionHistory(route, parsePartySlug(route, party), historySinceIso(Date.now()))
+        ? getCachedLivePositionHistory(
+            route,
+            parsePartySlug(route, party),
+            historySinceIso(Date.now(), historyWindowMs),
+          )
         : Promise.resolve(undefined),
     ]);
     return NextResponse.json({ checkins, livePositions, livePositionHistory });

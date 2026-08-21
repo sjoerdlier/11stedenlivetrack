@@ -249,3 +249,62 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* /beheer's authorized view: TrackerStatus stacked above SettingsForm,
+   both sharing .formWrap's panel look. */
+
+.stack {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.trackerList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trackerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+}
+
+.trackerLabel {
+  font-weight: 600;
+  min-width: 5.5em;
+}
+
+.trackerAgo {
+  color: var(--db-text-dim);
+}
+
+.trackerDotFresh,
+.trackerDotStale,
+.trackerDotNone {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trackerDotFresh {
+  background: var(--db-signal-green);
+}
+
+.trackerDotStale {
+  background: var(--db-signal-red);
+}
+
+.trackerDotNone {
+  background: var(--db-text-dim);
+  opacity: 0.5;
+}

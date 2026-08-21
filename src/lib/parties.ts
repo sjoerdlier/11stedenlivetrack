@@ -62,3 +62,11 @@ export function liveTokenSettingKey(route: RouteSlug, partySlug: string): string
 export function allRouteParties(): { route: RouteSlug; party: PartyConfig }[] {
   return ROUTES.flatMap((r) => partiesForRoute(r.slug).map((party) => ({ route: r.slug, party })));
 }
+
+// A stable key for "this (route, party) pair's tracker status" — shared
+// between /beheer's server component (which loads the initial snapshot) and
+// TrackerStatus (the client component that polls for fresh ones), so both
+// sides address the same row the same way.
+export function trackerStatusKey(route: RouteSlug, partySlug: string): string {
+  return `${route}:${partySlug}`;
+}

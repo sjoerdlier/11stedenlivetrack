@@ -1,0 +1,25 @@
+name: CI
+
+# No traditional `main` in this repo (see CLAUDE.md — check `git remote
+# show origin` for the actual integration branch), and branch names churn
+# per feature — so this runs on every push and every pull request rather
+# than naming specific branches, which would silently stop covering work
+# the moment a differently-named branch became the target.
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build

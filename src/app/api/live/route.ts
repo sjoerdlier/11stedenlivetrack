@@ -51,5 +51,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 
+  // The only log line on the success path — otherwise a working tracker is
+  // invisible in Vercel's runtime logs, since those only ever show explicit
+  // console output, not silent successes.
+  console.log(`POST /api/live: saved position for (${route}, ${party}) at ${lat},${lon}`);
+
   return NextResponse.json({ ok: true });
 }

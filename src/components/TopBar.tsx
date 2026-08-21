@@ -11,13 +11,18 @@ import {
   currentScheduleDelta,
   estimateArrival,
   estimateArrivalForecast,
+  type ArrivalForecast,
+  type EstimatedArrival,
+  type ScheduleDelta,
   type ScheduleDeltaBand,
 } from "@/lib/actualProgress";
+import type { LiveTrackProgress } from "@/lib/liveTrackProgress";
 import {
   computeProgress,
   daysUntilStart,
   totalPlannedPaceKmh,
   totalRouteKm,
+  type Progress,
   type LegStatus,
 } from "@/lib/status";
 import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
@@ -35,6 +40,12 @@ interface TopBarProps {
   now: number;
   checkins: Checkin[];
   checkinTimes: Map<number, number>;
+  // GPS-derived progress/pace/ETA for the active party (see
+  // liveTrackProgress.ts) — the primary source for the board below once it's
+  // non-null. Check-in-derived figures (computed further down from
+  // `checkins`/`checkinTimes`) are the fallback for whenever this is null:
+  // no tracker attached yet, or its last fix has gone stale.
+  liveTrackProgress: LiveTrackProgress | null;
   // Purely a fallback: the site has its own live marker on the map (real GPS
   // via /api/live, with a check-in-based estimate as fallback), so a Garmin
   // LiveTrack link is only worth surfacing at all once it's actually set in
@@ -67,6 +78,7 @@ export default function TopBar({
   now,
   checkins,
   checkinTimes,
+  liveTrackProgress,
   garminUrl,
   weather,
 }: TopBarProps) {
@@ -89,8 +101,9 @@ export default function TopBar({
   // countdown / planned-progress display below is unchanged. `progress`
   // (real km, shown as-is) and `effortProgress` (grade-adjusted, only fed
   // into pace/ETA math) are deliberately two separate computations — see
-  // buildEffortLegs.
-  const actual = useMemo(() => {
+  // buildEffortLegs. This is the *fallback* board now — see `actual` below,
+  // which prefers GPS-derived figures whenever they're available.
+  const checkinActual = useMemo(() => {
     if (checkins.length === 0) return null;
     const progress = computeActualProgress(legs, checkinTimes);
     const effortProgress = computeActualProgress(effortLegs, checkinTimes);
@@ -110,6 +123,29 @@ export default function TopBar({
     const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
     return { progress, remainingKm, paceKmh, arrival, arrivalForecast, scheduleDelta };
   }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
+
+  // The board TopBar actually renders: GPS (liveTrackProgress) whenever it's
+  // available — the whole point of tracking Lowie's own device is to not
+  // depend on someone hand-logging a check-in at every one of 23 legs — with
+  // the check-in-derived board above as the fallback for whenever GPS hasn't
+  // reported yet or has gone stale (see liveTrackProgress.ts's header).
+  // arrivalForecast (a resampled range) is GPS-mode's one deliberate gap: a
+  // continuous GPS position doesn't have discrete per-leg paces to resample
+  // from the way check-ins do, so that field just stays null there and the
+  // single-instant `arrival` carries the ETA instead.
+  const actual: {
+    progress: Progress;
+    remainingKm: number;
+    paceKmh: number | null;
+    arrival: EstimatedArrival | null;
+    arrivalForecast: ArrivalForecast | null;
+    scheduleDelta: ScheduleDelta | null;
+    source: "gps" | "checkin";
+  } | null = useMemo(() => {
+    if (liveTrackProgress) return { ...liveTrackProgress, arrivalForecast: null, source: "gps" };
+    if (checkinActual) return { ...checkinActual, source: "checkin" };
+    return null;
+  }, [liveTrackProgress, checkinActual]);
 
   // The strongest conversion moment for the donation ask: Lowie has actually
   // finished, not just "the tocht is scheduled to be over". `actual` is only
@@ -167,7 +203,16 @@ export default function TopBar({
                 <span className={styles.heroPercent}>%</span>
               </div>
               <div className={styles.heroMeta}>
-                <span className={styles.liveTag}>Nu live</span>
+                <span className={styles.liveTag}>
+                  Nu live
+                  {/* GPS is the primary source now (see liveTrackProgress.ts)
+                      — this only shows up while falling back to check-ins,
+                      so a viewer knows the figures are as fresh as the last
+                      manual check-in, not the tracker. */}
+                  {actual.source === "checkin" && (
+                    <span className={styles.statNote}> (o.b.v. inchecks)</span>
+                  )}
+                </span>
                 {actual.scheduleDelta && (
                   <span
                     className={styles.deltaTag}

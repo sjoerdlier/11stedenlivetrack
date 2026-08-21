@@ -6,13 +6,20 @@ import { loadRoute, type LatLng } from "@/lib/gpx";
 import type { Leg } from "@/lib/legs";
 import type { Checkin } from "@/lib/checkins";
 import type { LivePositionRow } from "@/lib/livePositions";
-import { getCachedLegs, getCachedCheckins, getCachedLivePositions, getCachedWeather } from "@/lib/cachedData";
+import {
+  getCachedLegs,
+  getCachedCheckins,
+  getCachedLivePositions,
+  getCachedLivePositionHistory,
+  getCachedWeather,
+} from "@/lib/cachedData";
 import type { WeatherSnapshot } from "@/lib/weather";
 import { buildLegSegments, type LegSegment } from "@/lib/segments";
 import { buildElevationProfile, type ElevationPoint } from "@/lib/elevation";
-import { parseRouteSlug, routeConfig, socialMetadata } from "@/lib/routes";
+import { parseRouteSlug, routeConfig, socialMetadata, type RouteSlug } from "@/lib/routes";
 import { parsePartySlug, partiesForRoute, partyConfig, garminUrlSettingKey } from "@/lib/parties";
 import { loadSetting } from "@/lib/settings";
+import { historySinceIso } from "@/lib/liveTrackProgress";
 
 // Route-level ISR (dropping force-dynamic, adding `revalidate`) was tried
 // first but rejected: without force-dynamic, Next tries to prerender this
@@ -61,6 +68,15 @@ const getCachedRouteGeometry = unstable_cache(
   ["route-geometry"],
   { revalidate: 20 },
 );
+
+// A plain module-level helper (not the page component itself) so
+// Date.now() — needed to bucket the cache-friendly "since" window, see
+// historySinceIso — isn't called directly inside Home's body; the
+// react-hooks purity rule flags impure calls like Date.now() in a
+// component's own render, even a server component's.
+async function loadLiveTrackHistory(route: RouteSlug, party: string) {
+  return getCachedLivePositionHistory(route, party, historySinceIso(Date.now()));
+}
 
 interface HomeProps {
   searchParams: Promise<{ route?: string; party?: string }>;
@@ -122,6 +138,17 @@ export default async function Home({ searchParams }: HomeProps) {
     livePositions = [];
   }
 
+  // The active party's own trail — liveTrackProgress.ts's input for TopBar's
+  // GPS-derived progress/pace/ETA. Same "empty is a normal pre-tracking
+  // state" reasoning as livePositions above.
+  let liveTrackHistory: LivePositionRow[] = [];
+  try {
+    liveTrackHistory = await loadLiveTrackHistory(activeRoute, activeParty);
+  } catch (err) {
+    console.error(`Home(${activeRoute}): loading liveTrackHistory failed`, err);
+    liveTrackHistory = [];
+  }
+
   // Weather context for whoever's tracking the walk — loadWeather() already
   // never throws (any Open-Meteo hiccup resolves to null there), this
   // try/catch just matches the same defensive shape every other optional
@@ -144,6 +171,7 @@ export default async function Home({ searchParams }: HomeProps) {
       elevationProfile={elevationProfile}
       garminUrl={garminUrl}
       livePositions={livePositions}
+      liveTrackHistory={liveTrackHistory}
       weather={weather}
     />
   );

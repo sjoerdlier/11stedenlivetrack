@@ -140,6 +140,7 @@ function Fixture({ label, legs, now, checkins, garminUrl = null }: FixtureProps)
           now={now}
           checkins={checkins}
           checkinTimes={checkinTimes}
+          liveTrackProgress={null}
           garminUrl={garminUrl}
           weather={MOCK_WEATHER}
         />

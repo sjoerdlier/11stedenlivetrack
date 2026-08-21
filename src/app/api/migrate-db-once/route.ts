@@ -124,6 +124,15 @@ export async function POST(request: Request) {
         primary key (route, party)
       )
     `;
+    // live_positions started as "one row per (route, party), upserted" —
+    // just the latest fix, no trail. liveTrackProgress.ts needs the trail
+    // (to derive distance/pace from GPS alone, without a check-in per leg),
+    // so this widens the primary key to keep every fix instead of
+    // overwriting it. Safe to re-run: dropping a constraint that's already
+    // gone, or adding one that's already there, both no-op via IF EXISTS /
+    // a fresh CREATE TABLE having already used the new key.
+    await sql`alter table live_positions drop constraint if exists live_positions_pkey`;
+    await sql`alter table live_positions add primary key (route, party, recorded_at)`;
     log.push("schema klaar");
 
     for (const leg of LEGS_11STEDEN) {

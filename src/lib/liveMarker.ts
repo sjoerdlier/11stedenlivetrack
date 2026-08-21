@@ -38,14 +38,21 @@ export interface LivePosition {
   legNr: number;
 }
 
-// A live_positions row (see livePositions.ts) is reported by the Android
-// tracker app roughly every 30s. Anything older than this is treated as a
-// tracker that's stopped reporting — dead battery, app closed, no signal —
-// so the map falls back to estimateLivePosition instead of showing a dot
-// that's stuck. Uses the absolute difference (not just now - recordedAt) so
-// a few seconds of clock skew between the phone and the server doesn't
-// wrongly mark a fresh reading as stale.
-export const LIVE_POSITION_MAX_AGE_MS = 3 * 60 * 1000;
+// A live_positions row (see livePositions.ts) can come from the Android
+// tracker app (roughly every 30s) or from Lowie's standalone GPS tracker,
+// bridged in via gps666.net — that device only reports every ~4-15 minutes
+// in practice (observed under its "Common modes" setting), far sparser than
+// the phone app. This threshold has to cover the slower source too, since
+// it's now the primary mechanism for a walker without a phone (see
+// liveTrackProgress.ts's header) — 20 minutes gives a couple of missed
+// fixes' worth of slack before falling back to an estimate, without staying
+// "live" for so long that a genuinely dead tracker still reads as current.
+// Shared with liveTrackProgress.ts so the map dot and the progress/pace/ETA
+// board go stale at the same moment, not two different ones. Uses the
+// absolute difference (not just now - recordedAt) so a few seconds of clock
+// skew between the source and the server doesn't wrongly mark a fresh
+// reading as stale.
+export const LIVE_POSITION_MAX_AGE_MS = 20 * 60 * 1000;
 
 export function isLivePositionFresh(recordedAt: string, now: number): boolean {
   const recordedMs = new Date(recordedAt).getTime();

@@ -12,6 +12,7 @@ import type { RouteSlug } from "@/lib/routes";
 import type { WeatherSnapshot } from "@/lib/weather";
 import { firstCheckinByLeg, firstCheckinTimesByLeg } from "@/lib/actualProgress";
 import { computeLegStatuses } from "@/lib/status";
+import { computeLiveTrackProgress } from "@/lib/liveTrackProgress";
 import { useSimulatedNow } from "@/lib/useSimulatedNow";
 import TopBar from "./TopBar";
 import LegSchedule, { type SidebarTab } from "./LegSchedule";
@@ -35,6 +36,12 @@ interface AppShellProps {
   elevationProfile: ElevationPoint[];
   garminUrl: string | null;
   livePositions: LivePositionRow[];
+  // The active party's own recent live_positions trail — separate from
+  // `livePositions` above (unfiltered, latest-per-party, feeds the map's
+  // dots) because liveTrackProgress.ts needs a whole window of history for
+  // one party, not just everyone's latest fix. See liveTrackProgress.ts's
+  // header for why GPS drives TopBar's progress/pace/ETA now.
+  liveTrackHistory: LivePositionRow[];
   weather: WeatherSnapshot | null;
 }
 
@@ -80,11 +87,13 @@ export default function AppShell({
   elevationProfile,
   garminUrl,
   livePositions: initialLivePositions,
+  liveTrackHistory: initialLiveTrackHistory,
   weather,
 }: AppShellProps) {
   const now = useSimulatedNow(STATUS_REFRESH_MS);
   const [checkins, setCheckins] = useState(initialCheckins);
   const [livePositions, setLivePositions] = useState(initialLivePositions);
+  const [liveTrackHistory, setLiveTrackHistory] = useState(initialLiveTrackHistory);
   const legs = useMemo(() => legSegments.map((s) => s.leg), [legSegments]);
   // Grade-adjusted stand-in for `legs`, fed to pace/ETA math only — see
   // buildEffortLegs. `legs` itself (real km) still drives anything that
@@ -103,6 +112,14 @@ export default function AppShell({
   // Same "earliest check-in per leg" pick as checkinTimes, but keeping the
   // whole record — LegCard reads .notitie/.invoerder off of it.
   const checkinsByLeg = useMemo(() => firstCheckinByLeg(partyCheckins), [partyCheckins]);
+  // GPS-derived progress/pace/ETA for the active party — null whenever GPS
+  // can't drive the board yet (no fixes, or the newest one has gone stale),
+  // in which case TopBar falls back to its own check-in-derived figures. See
+  // liveTrackProgress.ts's header for why this is the primary mechanism now.
+  const liveTrackProgress = useMemo(
+    () => computeLiveTrackProgress(legs, legSegments, effortLegs, liveTrackHistory, now),
+    [legs, legSegments, effortLegs, liveTrackHistory, now],
+  );
   const [newArrival, setNewArrival] = useState<Leg | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
   // Same lazy-initializer pattern useSimulatedNow uses for ?debugTime= —
@@ -127,6 +144,7 @@ export default function AppShell({
     setPrevNavKey(navKey);
     setCheckins(initialCheckins);
     setLivePositions(initialLivePositions);
+    setLiveTrackHistory(initialLiveTrackHistory);
   }
 
   // Selection state lives here (not in RouteMap, not in LegSchedule) so a
@@ -189,12 +207,17 @@ export default function AppShell({
     let cancelled = false;
     async function poll() {
       try {
-        const res = await fetch(`/api/poll?route=${activeRoute}`, { cache: "no-store" });
+        const res = await fetch(`/api/poll?route=${activeRoute}&party=${activeParty}`, { cache: "no-store" });
         if (!res.ok || cancelled) return;
-        const data: { checkins?: Checkin[]; livePositions?: LivePositionRow[] } = await res.json();
+        const data: {
+          checkins?: Checkin[];
+          livePositions?: LivePositionRow[];
+          livePositionHistory?: LivePositionRow[];
+        } = await res.json();
         if (cancelled) return;
         if (data.checkins) setCheckins(data.checkins);
         if (data.livePositions) setLivePositions(data.livePositions);
+        if (data.livePositionHistory) setLiveTrackHistory(data.livePositionHistory);
         setLastRefreshedAt(Date.now());
       } catch (err) {
         console.error("AppShell: polling /api/poll failed", err);
@@ -225,7 +248,7 @@ export default function AppShell({
       stop();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [activeRoute, isDebugMode]);
+  }, [activeRoute, activeParty, isDebugMode]);
 
   // Detects a newly-arrived leg (for the active party) by diffing
   // checkinsByLeg's keys against the previous render — skipped on the very
@@ -277,6 +300,7 @@ export default function AppShell({
         now={now}
         checkins={partyCheckins}
         checkinTimes={checkinTimes}
+        liveTrackProgress={liveTrackProgress}
         garminUrl={garminUrl}
         weather={weather}
       />

@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { loadLegs } from "./legs";
 import { loadCheckins } from "./checkins";
-import { loadLivePositions } from "./livePositions";
+import { loadLivePositions, loadLivePositionHistory } from "./livePositions";
 import { loadWeather } from "./weather";
 
 // Shared between page.tsx (the initial SSR render), /api/poll (AppShell's
@@ -14,6 +14,15 @@ import { loadWeather } from "./weather";
 export const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 export const getCachedCheckins = unstable_cache(loadCheckins, ["checkins"], { revalidate: 20 });
 export const getCachedLivePositions = unstable_cache(loadLivePositions, ["live_positions"], { revalidate: 20 });
+// One party's recent trail — liveTrackProgress.ts's primary input. Keyed
+// separately from getCachedLivePositions above (distinct key array) since
+// this wraps a different function with a different argument shape (route,
+// party, sinceIso rather than just route).
+export const getCachedLivePositionHistory = unstable_cache(
+  loadLivePositionHistory,
+  ["live_positions", "history"],
+  { revalidate: 20 },
+);
 // Open-Meteo, unlike the Supabase reads above, isn't something a viewer's
 // own poll should hammer every 20s — weather doesn't change that fast, and
 // this is a free API with no key. A much longer window (30 min, within the

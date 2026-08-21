@@ -128,11 +128,55 @@ export async function POST(request: Request) {
     // just the latest fix, no trail. liveTrackProgress.ts needs the trail
     // (to derive distance/pace from GPS alone, without a check-in per leg),
     // so this widens the primary key to keep every fix instead of
-    // overwriting it. Safe to re-run: dropping a constraint that's already
-    // gone, or adding one that's already there, both no-op via IF EXISTS /
-    // a fresh CREATE TABLE having already used the new key.
-    await sql`alter table live_positions drop constraint if exists live_positions_pkey`;
+    // overwriting it.
+    //
+    // A prior version of this migration assumed the existing constraint was
+    // named `live_positions_pkey` (Postgres' default for an inline
+    // `primary key (...)` in CREATE TABLE) and dropped it by that literal
+    // name. That table predates this route, though — it was created
+    // directly against Supabase back when the live-GPS pipeline first
+    // shipped (see PR #14), not via this file's own `create table if not
+    // exists` above (a no-op once the table already existed) — so its real
+    // constraint name was never actually verified, only assumed. Running
+    // this against production reported `{"ok":true}` (both ALTERs
+    // "succeeded" — a name-mismatched DROP CONSTRAINT IF EXISTS silently
+    // no-ops rather than erroring) but `/api/live` kept failing afterward
+    // with "no unique or exclusion constraint matching the ON CONFLICT
+    // specification" — meaning the add never actually took effect, most
+    // likely because the real constraint had a different name and something
+    // about it (or a leftover duplicate) kept the new one from landing
+    // cleanly. Looking up the *actual* current primary-key constraint name
+    // from pg_constraint and dropping that dynamically removes the guess
+    // entirely; the before/after log lines make the real state visible in
+    // the response instead of trusting another blind ALTER to have worked.
+    const pkBefore = (await sql`
+      select conname from pg_constraint
+      where conrelid = 'live_positions'::regclass and contype = 'p'
+    `) as { conname: string }[];
+    log.push(`live_positions PK voor migratie: ${pkBefore[0]?.conname ?? "(geen)"}`);
+
+    if (pkBefore[0]?.conname) {
+      await sql`
+        do $$
+        declare
+          pk_name text := (
+            select conname from pg_constraint
+            where conrelid = 'live_positions'::regclass and contype = 'p'
+          );
+        begin
+          if pk_name is not null then
+            execute format('alter table live_positions drop constraint %I', pk_name);
+          end if;
+        end $$;
+      `;
+    }
     await sql`alter table live_positions add primary key (route, party, recorded_at)`;
+
+    const pkAfter = (await sql`
+      select conname, pg_get_constraintdef(oid) as def from pg_constraint
+      where conrelid = 'live_positions'::regclass and contype = 'p'
+    `) as { conname: string; def: string }[];
+    log.push(`live_positions PK na migratie: ${pkAfter[0]?.conname ?? "(geen)"} ${pkAfter[0]?.def ?? ""}`);
     log.push("schema klaar");
 
     for (const leg of LEGS_11STEDEN) {

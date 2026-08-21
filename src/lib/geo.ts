@@ -75,6 +75,26 @@ export function gradeAdjustedKm(points: LatLng[], elevations: (number | null)[])
   return km;
 }
 
+// Nearest track point to `query`, searching only forward from `fromIdx` —
+// same reasoning as segments.ts's findTrackIndex: the route re-visits the
+// same area more than once (Bartlehiem), so an unrestricted nearest-neighbor
+// search could snap a live GPS fix to the wrong pass. Walking a chronological
+// trail of fixes forward (each one searching from where the previous one
+// landed) keeps that disambiguation correct without needing to know which
+// leg a fix belongs to ahead of time, the way findTrackIndex's caller does.
+export function nearestPointIndexForward(points: LatLng[], query: LatLng, fromIdx: number): number {
+  let bestIdx = fromIdx;
+  let bestDist = Infinity;
+  for (let i = fromIdx; i < points.length; i++) {
+    const d = haversineMeters(query, points[i]);
+    if (d < bestDist) {
+      bestDist = d;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
 // Ramer-Douglas-Peucker line simplification. Drops points that sit within
 // `toleranceMeters` of the straight line between their neighbors, keeping
 // the route's shape intact while cutting point count substantially — a

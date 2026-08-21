@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { parseRouteSlug } from "@/lib/routes";
-import { getCachedCheckins, getCachedLivePositions } from "@/lib/cachedData";
+import { parsePartySlug } from "@/lib/parties";
+import { getCachedCheckins, getCachedLivePositions, getCachedLivePositionHistory } from "@/lib/cachedData";
+import { historySinceIso } from "@/lib/liveTrackProgress";
 
 // Lightweight JSON companion to the full-page SSR load in page.tsx — polled
 // by AppShell (see its poll effect) instead of router.refresh(), so a
@@ -18,13 +20,20 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const route = parseRouteSlug(searchParams.get("route") ?? undefined);
+  // Optional — only AppShell's TopBar-driving poll passes this (see its poll
+  // effect); the map-only checkins/livePositions poll predates party
+  // filtering and doesn't need it.
+  const party = searchParams.get("party");
 
   try {
-    const [checkins, livePositions] = await Promise.all([
+    const [checkins, livePositions, livePositionHistory] = await Promise.all([
       getCachedCheckins(route),
       getCachedLivePositions(route),
+      party
+        ? getCachedLivePositionHistory(route, parsePartySlug(route, party), historySinceIso(Date.now()))
+        : Promise.resolve(undefined),
     ]);
-    return NextResponse.json({ checkins, livePositions });
+    return NextResponse.json({ checkins, livePositions, livePositionHistory });
   } catch (err) {
     console.error(`GET /api/poll(${route}): loading checkins/livePositions failed`, err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";

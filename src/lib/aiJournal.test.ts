@@ -3,6 +3,7 @@ import { buildPartySnapshot, buildPrompt, generateJournalText, stripMarkdown, ty
 import type { Checkin } from "./checkins";
 import type { Leg } from "./legs";
 import type { PartyConfig } from "./parties";
+import type { LiveTrackProgress } from "./liveTrackProgress";
 
 function makeCheckin(overrides: Partial<Checkin>): Checkin {
   return {
@@ -43,9 +44,21 @@ const LEGS: Leg[] = [
   makeLeg({ nr: 3, start_plaats: "IJlst", afstand_km: null, loper: null, cumulatief_start_km: 40 }),
 ];
 
+function makeLiveTrackProgress(overrides: Partial<LiveTrackProgress>): LiveTrackProgress {
+  return {
+    progress: { km: 20, percent: 50 },
+    remainingKm: 20,
+    paceKmh: 5,
+    arrival: null,
+    scheduleDelta: null,
+    lastFixAt: Date.now(),
+    ...overrides,
+  };
+}
+
 describe("buildPartySnapshot", () => {
-  it("returns null before this party's first check-in", () => {
-    expect(buildPartySnapshot(PARTY, LEGS, [], 40, 10, Date.now())).toBeNull();
+  it("returns null with neither a live GPS fix nor a check-in yet", () => {
+    expect(buildPartySnapshot(PARTY, LEGS, [], 40, 10, Date.now(), null)).toBeNull();
   });
 
   it("computes progress/pace from real check-in timestamps", () => {
@@ -53,7 +66,7 @@ describe("buildPartySnapshot", () => {
       makeCheckin({ leg_nr: 2, tijdstip: "2026-08-08T09:00:00Z" }),
     ];
     const now = new Date("2026-08-08T09:00:00Z").getTime();
-    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, now);
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, now, null);
     expect(snapshot).not.toBeNull();
     expect(snapshot?.km).toBe(20);
     expect(snapshot?.percent).toBe(50);
@@ -62,14 +75,14 @@ describe("buildPartySnapshot", () => {
 
   it("reads the last-reached and next place name off the leg list", () => {
     const checkins: Checkin[] = [makeCheckin({ leg_nr: 2, tijdstip: "2026-08-08T09:00:00Z" })];
-    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now());
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now(), null);
     expect(snapshot?.currentPlaats).toBe("Sneek");
     expect(snapshot?.nextPlaats).toBe("IJlst");
   });
 
   it("has no next place once the finish leg itself is reached", () => {
     const checkins: Checkin[] = [makeCheckin({ leg_nr: 3, tijdstip: "2026-08-08T11:00:00Z" })];
-    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now());
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now(), null);
     expect(snapshot?.currentPlaats).toBe("IJlst");
     expect(snapshot?.nextPlaats).toBeNull();
   });
@@ -79,8 +92,39 @@ describe("buildPartySnapshot", () => {
       makeCheckin({ leg_nr: 1, tijdstip: "2026-08-08T07:00:00Z", notitie: "eerste" }),
       makeCheckin({ leg_nr: 2, tijdstip: "2026-08-08T09:00:00Z", notitie: "recentste" }),
     ];
-    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now());
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now(), null);
     expect(snapshot?.lastNote).toBe("recentste");
+  });
+
+  it("prefers GPS-derived progress over check-ins when both are present", () => {
+    const checkins: Checkin[] = [makeCheckin({ leg_nr: 1, tijdstip: "2026-08-08T07:00:00Z" })];
+    const liveTrackProgress = makeLiveTrackProgress({ progress: { km: 35, percent: 87.5 }, remainingKm: 5 });
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now(), liveTrackProgress);
+    expect(snapshot?.km).toBe(35);
+    expect(snapshot?.percent).toBe(87.5);
+    // Km 35 falls within leg 3 (starts at km 40? no — leg 3 starts at 40,
+    // leg 2 at 20) — so this should read as still on leg 2's stretch,
+    // heading toward leg 3 (IJlst), not wherever the stale check-in was.
+    expect(snapshot?.currentPlaats).toBe("Sneek");
+    expect(snapshot?.nextPlaats).toBe("IJlst");
+  });
+
+  it("returns a snapshot from GPS alone, with no check-in at all yet", () => {
+    const liveTrackProgress = makeLiveTrackProgress({ progress: { km: 5, percent: 12.5 } });
+    const snapshot = buildPartySnapshot(PARTY, LEGS, [], 40, 10, Date.now(), liveTrackProgress);
+    expect(snapshot).not.toBeNull();
+    expect(snapshot?.currentPlaats).toBe("Leeuwarden");
+    expect(snapshot?.nextPlaats).toBe("Sneek");
+    expect(snapshot?.lastNote).toBeNull();
+  });
+
+  it("still surfaces a check-in note even while GPS drives the numbers", () => {
+    const checkins: Checkin[] = [
+      makeCheckin({ leg_nr: 1, tijdstip: "2026-08-08T07:00:00Z", notitie: "voelt goed" }),
+    ];
+    const liveTrackProgress = makeLiveTrackProgress({});
+    const snapshot = buildPartySnapshot(PARTY, LEGS, checkins, 40, 10, Date.now(), liveTrackProgress);
+    expect(snapshot?.lastNote).toBe("voelt goed");
   });
 });
 

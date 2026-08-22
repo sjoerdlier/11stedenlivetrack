@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { computeLiveTrackProgress } from "./liveTrackProgress";
+import {
+  computeLiveTrackProgress,
+  historySinceIso,
+  parseHistoryWindowMs,
+  LIVE_TRACK_HISTORY_WINDOW_MS,
+} from "./liveTrackProgress";
 import { LIVE_POSITION_MAX_AGE_MS } from "./liveMarker";
 import type { Leg } from "./legs";
 import type { LegSegment } from "./segments";
@@ -135,5 +140,75 @@ describe("computeLiveTrackProgress", () => {
     expect(result?.scheduleDelta).not.toBeNull();
     expect(result!.scheduleDelta!.minutes).toBeCloseTo(30, 0);
     expect(result!.scheduleDelta!.band).toBe("achter");
+  });
+
+  it("has no arrival forecast with fewer than 3 observed pace samples", () => {
+    const history = [fix([0, 0], T0), fix([0.05, 0], T0 + 30 * 60 * 1000)];
+    const now = T0 + 30 * 60 * 1000;
+    const result = computeLiveTrackProgress(legs, legSegments, effortLegs, history, now);
+    expect(result?.arrivalForecast).toBeNull();
+  });
+
+  it("resamples a plausible arrival range once there are enough observed paces", () => {
+    // Four fixes, three intervals (== FORECAST_MIN_SAMPLES), each covering
+    // 5km in 20 minutes -- a steady 15 km/h, so every bootstrap trial should
+    // land on exactly the same total, not just a plausible-looking range.
+    const history = [
+      fix([0, 0], T0),
+      fix([0.05, 0], T0 + 20 * 60 * 1000),
+      fix([0.1, 0], T0 + 40 * 60 * 1000),
+      fix([0.15, 0], T0 + 60 * 60 * 1000), // km 15 of 20 -- 5km still remaining
+    ];
+    const now = T0 + 60 * 60 * 1000;
+    const result = computeLiveTrackProgress(legs, legSegments, effortLegs, history, now);
+    expect(result?.arrivalForecast).not.toBeNull();
+    const forecast = result!.arrivalForecast!;
+    expect(forecast.sampleSize).toBe(3);
+    // 5km remaining at a steady 15 km/h -> 20 minutes, and since every
+    // observed pace was identical, the whole resampled range collapses to
+    // that same instant.
+    const expected = now + 20 * 60 * 1000;
+    expect(forecast.median).toBeCloseTo(expected, -2);
+    expect(forecast.earliest).toBeCloseTo(expected, -2);
+    expect(forecast.latest).toBeCloseTo(expected, -2);
+  });
+});
+
+describe("historySinceIso", () => {
+  const now = new Date("2026-08-29T12:00:00Z").getTime();
+
+  it("defaults to LIVE_TRACK_HISTORY_WINDOW_MS back from now", () => {
+    const expected = new Date(now - LIVE_TRACK_HISTORY_WINDOW_MS).toISOString();
+    expect(historySinceIso(now)).toBe(expected);
+  });
+
+  it("uses a wider window when one is passed explicitly", () => {
+    const wideWindowMs = 24 * 60 * 60 * 1000;
+    const wide = new Date(historySinceIso(now, wideWindowMs)).getTime();
+    const narrow = new Date(historySinceIso(now)).getTime();
+    expect(wide).toBeLessThan(narrow);
+  });
+});
+
+describe("parseHistoryWindowMs", () => {
+  it("returns undefined for a missing param", () => {
+    expect(parseHistoryWindowMs(null)).toBeUndefined();
+  });
+
+  it("returns undefined for a non-numeric param", () => {
+    expect(parseHistoryWindowMs("not-a-number")).toBeUndefined();
+  });
+
+  it("returns undefined for a zero or negative param", () => {
+    expect(parseHistoryWindowMs("0")).toBeUndefined();
+    expect(parseHistoryWindowMs("-5")).toBeUndefined();
+  });
+
+  it("converts a valid hour count to milliseconds", () => {
+    expect(parseHistoryWindowMs("2")).toBe(2 * 60 * 60 * 1000);
+  });
+
+  it("clamps an excessive hour count to the 48h maximum", () => {
+    expect(parseHistoryWindowMs("1000")).toBe(48 * 60 * 60 * 1000);
   });
 });

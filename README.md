@@ -211,13 +211,6 @@ sessie uit te lezen — daarom bestaat er een eigen, kleine pijplijn ernaast:
   Android SDK) — zie `android/README.md` voor bouwinstructies en bekende
   aandachtspunten (met name achtergrond-locatie-betrouwbaarheid per
   telefoonmerk).
-- `POST /api/live/traccar` (`src/app/api/live/traccar/route.ts`) — voor wie
-  geen (Android-)telefoon bij zich draagt: een los GPS-trackertje (GT06-
-  protocol) via een zelf-gehoste [Traccar](https://www.traccar.org/)
-  instance, die elke gedecodeerde positie doorstuurt naar deze route. Zelfde
-  `live_positions`-tabel en token per `(route, party)` als de Android-app —
-  zie `traccar/README.md` voor de volledige opzet (server, apparaat
-  registreren, SMS-configuratie van het trackertje).
 
 ## Meerdere routes
 

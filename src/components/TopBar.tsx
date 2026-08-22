@@ -129,10 +129,10 @@ export default function TopBar({
   // depend on someone hand-logging a check-in at every one of 23 legs — with
   // the check-in-derived board above as the fallback for whenever GPS hasn't
   // reported yet or has gone stale (see liveTrackProgress.ts's header).
-  // arrivalForecast (a resampled range) is GPS-mode's one deliberate gap: a
-  // continuous GPS position doesn't have discrete per-leg paces to resample
-  // from the way check-ins do, so that field just stays null there and the
-  // single-instant `arrival` carries the ETA instead.
+  // arrivalForecast comes from liveTrackProgress itself now — GPS mode
+  // resamples from the accepted trail's own point-to-point paces instead of
+  // per-leg ones (see estimateLiveArrivalForecast), so the range shows up
+  // for both sources instead of only check-ins.
   const actual: {
     progress: Progress;
     remainingKm: number;
@@ -142,7 +142,7 @@ export default function TopBar({
     scheduleDelta: ScheduleDelta | null;
     source: "gps" | "checkin";
   } | null = useMemo(() => {
-    if (liveTrackProgress) return { ...liveTrackProgress, arrivalForecast: null, source: "gps" };
+    if (liveTrackProgress) return { ...liveTrackProgress, source: "gps" };
     if (checkinActual) return { ...checkinActual, source: "checkin" };
     return null;
   }, [liveTrackProgress, checkinActual]);

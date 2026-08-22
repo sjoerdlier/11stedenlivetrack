@@ -147,9 +147,7 @@ export function buildPartySnapshot(
       paceKmh: liveTrackProgress.paceKmh,
       scheduleDelta: liveTrackProgress.scheduleDelta,
       arrival: liveTrackProgress.arrival,
-      // GPS mode has no resampled range to offer — see liveTrackProgress.ts
-      // for why that's a deliberate scope-trim, same as TopBar's own merge.
-      arrivalForecast: null,
+      arrivalForecast: liveTrackProgress.arrivalForecast,
       lastNote,
       currentPlaats,
       nextPlaats,

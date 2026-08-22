@@ -50,6 +50,7 @@ function makeLiveTrackProgress(overrides: Partial<LiveTrackProgress>): LiveTrack
     remainingKm: 20,
     paceKmh: 5,
     arrival: null,
+    arrivalForecast: null,
     scheduleDelta: null,
     lastFixAt: Date.now(),
     ...overrides,

@@ -192,25 +192,37 @@ hoogtegecorrigeerd, geen platte km/u — een klimstuk laat het tempo dus niet ge
 Garmin LiveTrack bleek geen toegankelijke API te hebben om iemand anders'
 sessie uit te lezen — daarom bestaat er een eigen, kleine pijplijn ernaast:
 
-- `live_positions`-tabel: één rij per `(route, party)`, alleen de
-  laatst gerapporteerde positie (geen trackgeschiedenis).
+- `live_positions`-tabel: append-only, primary key `(route, party,
+  recorded_at)` — bewaart de hele trail per party, niet alleen de laatste
+  positie. Nodig omdat GPS nu de *primaire* bron van voortgang is (zie
+  hieronder), niet alleen een puntje op de kaart.
 - `POST /api/live` (`src/app/api/live/route.ts`) — token-geauthenticeerd
   per `(route, party)`; zonder ingesteld token in `/beheer` is een party
   standaard dicht, niet open met een raadbare sleutel.
-- `/beheer` heeft een live-tracking-tokenveld per `(route, party)`, met een
-  "genereer nieuw token"-knop.
-- `RouteMap`'s live bolletje geeft voorrang aan een verse (<3 min,
-  `isLivePositionFresh` in `src/lib/liveMarker.ts`) `live_positions`-rij
-  boven de bestaande check-in-gebaseerde schatting; valt terug op die
-  schatting zodra een tracker stopt met rapporteren. Tempo/ETA blijven wel
-  op check-ins gebaseerd — een los, groter stuk werk om ook uit
-  opeenvolgende GPS-punten af te leiden, bewust niet in deze v1 meegenomen.
+- `/beheer` heeft een live-tracking-tokenveld per `(route, party)` (met een
+  "genereer nieuw token"-knop), plus een tracker-statuspaneel met kaart:
+  wanneer elke tracker voor het laatst iets doorgaf en de afgelegde trail
+  van de laatste 24 uur — zie `TrackerStatus`/`TrackerMap` in
+  `src/app/beheer/`.
+- `src/lib/liveTrackProgress.ts` — GPS is de primaire bron voor
+  voortgang/tempo/ETA/schema-status (niet alleen de kaart-marker): een
+  verse (<20 min, `LIVE_POSITION_MAX_AGE_MS` in `src/lib/liveMarker.ts`)
+  trail wordt op de route geprojecteerd voor een continue km-positie.
+  Check-ins (`src/lib/actualProgress.ts`) zijn de fallback zodra GPS
+  ontbreekt of verlopen is — zie dat bestand zijn eigen kopcommentaar voor
+  de volledige redenering.
 - `android/` — een losstaand Android Studio-project (Kotlin): een
   minimale app die elke ~30s de locatie ophaalt en naar `/api/live` post.
   Geschreven zonder ooit gecompileerd te zijn (deze sandbox had geen
   Android SDK) — zie `android/README.md` voor bouwinstructies en bekende
   aandachtspunten (met name achtergrond-locatie-betrouwbaarheid per
   telefoonmerk).
+- `bridge/` — voor Lowie's eigen GPS-trackertje (los van een telefoon): een
+  Python-scriptje dat gps666.net's eigen (niet-officiële) API polt en
+  posities doorstuurt naar `/api/live`, draaiend op een eigen VM buiten
+  deze repo's deploys. Zie `bridge/README.md` voor de volledige opzet en
+  waarom (het trackertje spreekt geen open protocol dat een standaard
+  GPS-server als Traccar kan decoderen).
 
 ## Meerdere routes
 

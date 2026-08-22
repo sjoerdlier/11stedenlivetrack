@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { parseRouteSlug } from "@/lib/routes";
 import { parsePartySlug } from "@/lib/parties";
 import { getCachedCheckins, getCachedLivePositions, getCachedLivePositionHistory } from "@/lib/cachedData";
-import { historySinceIso } from "@/lib/liveTrackProgress";
+import { historySinceIso, parseHistoryWindowMs } from "@/lib/liveTrackProgress";
 
 // Lightweight JSON companion to the full-page SSR load in page.tsx — polled
 // by AppShell (see its poll effect) instead of router.refresh(), so a
@@ -17,12 +17,6 @@ import { historySinceIso } from "@/lib/liveTrackProgress";
 // repeat requests within the same 20s window cheap.
 export const dynamic = "force-dynamic";
 
-// Clamped so a stray/hostile query param can't force an unbounded
-// live_positions scan — 48h comfortably covers the widest legitimate ask
-// (TRACKER_DASHBOARD_HISTORY_HOURS's 24h battery/stability tests) with room
-// to spare, without allowing "since the beginning of time".
-const MAX_HISTORY_HOURS = 48;
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const route = parseRouteSlug(searchParams.get("route") ?? undefined);
@@ -34,11 +28,7 @@ export async function GET(request: Request) {
   // beyond liveTrackProgress.ts's own pace-calculation default (see
   // LIVE_TRACK_HISTORY_WINDOW_MS) for a caller that wants more of the trail,
   // like /beheer's TrackerStatus dashboard (see TRACKER_DASHBOARD_HISTORY_HOURS).
-  const historyHoursParam = Number(searchParams.get("historyHours"));
-  const historyWindowMs =
-    Number.isFinite(historyHoursParam) && historyHoursParam > 0
-      ? Math.min(historyHoursParam, MAX_HISTORY_HOURS) * 60 * 60 * 1000
-      : undefined;
+  const historyWindowMs = parseHistoryWindowMs(searchParams.get("historyHours"));
 
   try {
     const [checkins, livePositions, livePositionHistory] = await Promise.all([

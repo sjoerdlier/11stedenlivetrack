@@ -191,8 +191,14 @@ const FORECAST_TRIALS = 2000;
 // when nothing about the underlying check-in data actually changed, which
 // reads as broken rather than as a genuine range. Seeding from the
 // check-in data itself (below) means identical data always simulates the
-// same range, and it only shifts once real new check-ins arrive.
-function mulberry32(seed: number): () => number {
+// same range, and it only shifts once real new check-ins arrive. Exported
+// (with percentile) so liveTrackProgress.ts's own bootstrap forecast for
+// GPS mode can reuse the exact same PRNG/percentile logic instead of a
+// second, potentially-diverging copy — unlike ON_SCHEDULE_THRESHOLD_MINUTES/
+// bandForMinutes elsewhere in this file (trivial constants, fine to mirror),
+// duplicating a whole PRNG implementation is a real risk of two copies
+// drifting apart.
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return function random() {
     a = (a + 0x6d2b79f5) | 0;
@@ -202,7 +208,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function percentile(sortedAscending: readonly number[], p: number): number {
+export function percentile(sortedAscending: readonly number[], p: number): number {
   const index = Math.min(sortedAscending.length - 1, Math.max(0, Math.floor(p * (sortedAscending.length - 1))));
   return sortedAscending[index];
 }

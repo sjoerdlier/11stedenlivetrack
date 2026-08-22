@@ -3,7 +3,15 @@ import type { LegSegment } from "./segments";
 import type { LivePositionRow } from "./livePositions";
 import { haversineMeters, nearestPointIndexForward, type LatLng } from "./geo";
 import { totalRouteKm, totalPlannedPaceKmh, type Progress } from "./status";
-import { estimateArrival, type EstimatedArrival, type ScheduleDelta, type ScheduleDeltaBand } from "./actualProgress";
+import {
+  estimateArrival,
+  mulberry32,
+  percentile,
+  type ArrivalForecast,
+  type EstimatedArrival,
+  type ScheduleDelta,
+  type ScheduleDeltaBand,
+} from "./actualProgress";
 import { LIVE_POSITION_MAX_AGE_MS } from "./liveMarker";
 
 // GPS is the *primary* progress mechanism now, not a supplement to
@@ -73,6 +81,25 @@ export function historySinceIso(now: number, windowMs: number = LIVE_TRACK_HISTO
   return new Date(bucketed).toISOString();
 }
 
+// Clamped so a stray/hostile ?historyHours= query param can't force an
+// unbounded live_positions scan — 48h comfortably covers the widest
+// legitimate ask (TRACKER_DASHBOARD_HISTORY_HOURS's 24h battery/stability
+// tests) with room to spare, without allowing "since the beginning of time".
+const MAX_HISTORY_HOURS = 48;
+
+// Parses /api/poll's optional ?historyHours= param into a windowMs for
+// historySinceIso — pulled out as its own pure function (rather than inlined
+// in the route handler) so it's unit-testable without a route-handler test
+// harness, which nothing else in this codebase's test suite uses (see
+// CLAUDE.md — coverage is src/lib/** only). Returns undefined for a
+// missing/invalid/non-positive value, which historySinceIso's own default
+// parameter then falls back to (LIVE_TRACK_HISTORY_WINDOW_MS).
+export function parseHistoryWindowMs(param: string | null): number | undefined {
+  const hours = Number(param);
+  if (!Number.isFinite(hours) || hours <= 0) return undefined;
+  return Math.min(hours, MAX_HISTORY_HOURS) * 60 * 60 * 1000;
+}
+
 // Mirrors actualProgress.ts's own (unexported) ON_SCHEDULE_THRESHOLD_MINUTES
 // — kept at the same value so "op schema" means the same thing everywhere on
 // the board. Not imported from there because this module's schedule delta is
@@ -137,10 +164,72 @@ export interface LiveTrackProgress {
   remainingKm: number;
   paceKmh: number | null;
   arrival: EstimatedArrival | null;
+  // A range instead of arrival's single falsely-precise instant, once
+  // there's enough of the accepted GPS trail to resample a real spread
+  // from — see estimateLiveArrivalForecast. null under the same
+  // "not enough data yet" condition estimateArrival's "gepland" basis
+  // covers, mirroring actualProgress.ts's own arrivalForecast field.
+  arrivalForecast: ArrivalForecast | null;
   scheduleDelta: ScheduleDelta | null;
   // When the position this is all based on was actually recorded — TopBar
   // can use this to show "laatste positie Xm geleden" if needed later.
   lastFixAt: number;
+}
+
+const FORECAST_MIN_SAMPLES = 3;
+const FORECAST_TRIALS = 2000;
+// GPS has no leg boundaries to resample per-leg the way
+// actualProgress.ts's estimateArrivalForecast does for check-ins —
+// splitting the remaining distance into this many equal virtual chunks,
+// each drawing its own independently-resampled pace, keeps the same "more
+// remaining distance -> more independent draws -> narrower range" behavior
+// without needing real legs to split by.
+const FORECAST_VIRTUAL_CHUNKS = 10;
+
+// The GPS-mode equivalent of actualProgress.ts's estimateArrivalForecast: a
+// range of plausible finish times instead of one falsely-precise ETA,
+// bootstrap-resampled from the walker's own observed point-to-point paces
+// across the accepted GPS trail (effortKmAtFix/times — already
+// forward-walked and plausibility-filtered by the caller) rather than
+// per-leg paces, since a continuous GPS position has no leg boundaries.
+function estimateLiveArrivalForecast(
+  effortKmAtFix: number[],
+  times: number[],
+  effortRemainingKm: number,
+  now: number,
+): ArrivalForecast | null {
+  const observedPaces: number[] = [];
+  for (let i = 1; i < times.length; i++) {
+    const hours = (times[i] - times[i - 1]) / (1000 * 60 * 60);
+    const km = effortKmAtFix[i] - effortKmAtFix[i - 1];
+    if (hours > 0 && km > 0) observedPaces.push(km / hours);
+  }
+  if (observedPaces.length < FORECAST_MIN_SAMPLES || effortRemainingKm <= 0) return null;
+
+  // Same "seed from the data itself" reasoning as actualProgress.ts's own
+  // forecast — identical trail always simulates the same range, and it only
+  // shifts once a real new fix arrives.
+  const seed = times.reduce((sum, t) => (sum + Math.round(t)) % 2147483647, 0);
+  const random = mulberry32(seed || 1);
+  const chunkKm = effortRemainingKm / FORECAST_VIRTUAL_CHUNKS;
+
+  const trialFinishTimes: number[] = [];
+  for (let trial = 0; trial < FORECAST_TRIALS; trial++) {
+    let hours = 0;
+    for (let chunk = 0; chunk < FORECAST_VIRTUAL_CHUNKS; chunk++) {
+      const pace = observedPaces[Math.floor(random() * observedPaces.length)];
+      hours += chunkKm / pace;
+    }
+    trialFinishTimes.push(now + hours * 60 * 60 * 1000);
+  }
+  trialFinishTimes.sort((a, b) => a - b);
+
+  return {
+    earliest: percentile(trialFinishTimes, 0.1),
+    median: percentile(trialFinishTimes, 0.5),
+    latest: percentile(trialFinishTimes, 0.9),
+    sampleSize: observedPaces.length,
+  };
 }
 
 function expectedTimeForKm(legs: Leg[], km: number): number | null {
@@ -280,7 +369,8 @@ export function computeLiveTrackProgress(
   // canUseActual condition check-ins drive, just fed from a GPS-derived pace
   // instead of a check-in count.
   const arrival = estimateArrival(now, effortRemainingKm, paceKmh, plannedPaceKmh, paceKmh !== null ? 2 : 0);
+  const arrivalForecast = estimateLiveArrivalForecast(effortKmAtFix, times, effortRemainingKm, now);
   const scheduleDelta = scheduleDeltaForKm(legs, currentKm, now);
 
-  return { progress, remainingKm, paceKmh, arrival, scheduleDelta, lastFixAt: latestFixTime };
+  return { progress, remainingKm, paceKmh, arrival, arrivalForecast, scheduleDelta, lastFixAt: latestFixTime };
 }

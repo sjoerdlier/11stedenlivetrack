@@ -9,10 +9,10 @@ export interface LivePositionRow {
 }
 
 // Append-only history now (primary key (route, party, recorded_at), not
-// (route, party)) — the Android tracker app, Traccar, and the gps666.net
-// bridge script all insert via /api/live and /api/live/traccar roughly
-// every 30s (or whenever a device actually has a new fix, which for some
-// trackers is far sparser). Keeping every row, not just the latest, is what
+// (route, party)) — the Android tracker app and the gps666.net bridge
+// script both insert via /api/live roughly every 30s (or whenever a device
+// actually has a new fix, which for some trackers is far sparser). Keeping
+// every row, not just the latest, is what
 // lets liveTrackProgress.ts derive a real distance-travelled/pace from GPS
 // alone instead of requiring a check-in for every leg — see that file's
 // header comment for why. loadLivePositions still only ever returns the

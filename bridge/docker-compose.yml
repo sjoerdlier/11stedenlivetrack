@@ -1,0 +1,15 @@
+services:
+  gps666-bridge:
+    image: python:3.12-alpine
+    restart: unless-stopped
+    # Reads GPS666_ACCOUNT/GPS666_PASSWORD/LIVETRACK_TOKEN from a sibling
+    # .env file (docker compose loads that automatically) -- see
+    # .env.example. Never hardcode real values in this file: it's committed
+    # to a public repo.
+    environment:
+      GPS666_ACCOUNT: "${GPS666_ACCOUNT}"
+      GPS666_PASSWORD: "${GPS666_PASSWORD}"
+      LIVETRACK_TOKEN: "${LIVETRACK_TOKEN}"
+    volumes:
+      - ./bridge.py:/bridge.py:ro
+    command: python /bridge.py

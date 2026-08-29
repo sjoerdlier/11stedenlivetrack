@@ -5,6 +5,7 @@ import type { Leg } from "@/lib/legs";
 import type { RouteSlug } from "@/lib/routes";
 import PinScreen from "./PinScreen";
 import CheckinForm from "./CheckinForm";
+import RecentCheckins from "./RecentCheckins";
 import styles from "./invoer.module.css";
 
 interface Prefill {
@@ -34,13 +35,16 @@ export default function InvoerClient({
   return (
     <main className={styles.page}>
       {authorized ? (
-        <CheckinForm
-          activeRoute={activeRoute}
-          legs={legs}
-          legsError={legsError}
-          onUnauthorized={() => setAuthorized(false)}
-          prefill={prefill}
-        />
+        <div className={styles.stack}>
+          <CheckinForm
+            activeRoute={activeRoute}
+            legs={legs}
+            legsError={legsError}
+            onUnauthorized={() => setAuthorized(false)}
+            prefill={prefill}
+          />
+          <RecentCheckins activeRoute={activeRoute} onUnauthorized={() => setAuthorized(false)} />
+        </div>
       ) : (
         <PinScreen onSuccess={() => setAuthorized(true)} />
       )}

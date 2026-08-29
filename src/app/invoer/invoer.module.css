@@ -322,3 +322,58 @@
 .trackerMapWrap {
   margin-top: var(--sp-4);
 }
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-xs);
+}
+
+.recentLabel {
+  font-weight: 600;
+  min-width: 6em;
+  flex-shrink: 0;
+}
+
+.recentRow input[type="datetime-local"] {
+  font: inherit;
+  /* iOS Safari auto-zooms the page on focus for any input under 16px. */
+  font-size: 16px;
+  color: var(--db-text);
+  background: var(--db-surface-2);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.recentSaveButton {
+  background: var(--db-surface-2);
+  color: var(--db-text);
+  border: 1px solid var(--db-border);
+  font-family: var(--font-sans-family);
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-3);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.recentSaveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

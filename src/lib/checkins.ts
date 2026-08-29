@@ -52,3 +52,49 @@ export async function loadCheckins(route: RouteSlug): Promise<Checkin[]> {
     throw new Error(`Kon check-ins niet laden uit de database: ${message}`);
   }
 }
+
+export interface CheckinRecord extends Checkin {
+  id: string;
+}
+
+// Separate from loadCheckins (which every progress/pace calculation reads,
+// and whose Checkin shape a dozen call sites and test fixtures already
+// depend on) -- `id` only exists for the /invoer "correct a check-in
+// retroactively" UI, so it gets its own query/type instead of widening the
+// shared one. Most-recent-first and capped at 20: this is a manual
+// correction list for whoever's at /invoer, not a full history view.
+export async function loadRecentCheckinsWithIds(route: RouteSlug): Promise<CheckinRecord[]> {
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      select id, party, tijdstip, leg_nr, lat::float8 as lat, lon::float8 as lon, notitie, invoerder
+      from checkins
+      where route = ${route}
+      order by tijdstip desc
+      limit 20
+    `) as CheckinRecord[];
+    return rows;
+  } catch (err) {
+    console.error(`loadRecentCheckinsWithIds(${route}): query failed`, err);
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    throw new Error(`Kon check-ins niet laden uit de database: ${message}`);
+  }
+}
+
+// route is part of the WHERE clause (not just the id) purely as a
+// belt-and-braces boundary consistent with the rest of this file's
+// per-route scoping -- ids are UUIDs, so there's no real cross-route
+// collision risk, but every other query here is route-scoped too.
+export async function updateCheckinTijdstip(id: string, route: RouteSlug, tijdstip: string): Promise<void> {
+  const sql = getSql();
+  try {
+    await sql`
+      update checkins set tijdstip = ${tijdstip}
+      where id = ${id} and route = ${route}
+    `;
+  } catch (err) {
+    console.error(`updateCheckinTijdstip(id=${id}): query failed`, err);
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    throw new Error(`Kon check-in niet bijwerken: ${message}`);
+  }
+}

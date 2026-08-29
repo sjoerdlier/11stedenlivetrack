@@ -49,6 +49,47 @@ export function computeActualProgress(legs: Leg[], checkinTimes: Map<number, num
   return { km, percent };
 }
 
+// Extrapolates progress.km forward between check-ins using elapsed time at
+// the current pace -- the same "how far into the current leg" fraction
+// liveMarker.ts's estimateLivePosition already uses for the map dot's
+// position, reimplemented here without needing route segment geometry, so a
+// caller like TopBar's headline percent/km/progress-bar can advance the same
+// way instead of sitting frozen at the last check-in's km until the next one
+// lands (pace/ETA already move with `now`; this brings the headline figure
+// in line with them). Caps at the current leg's own end (fraction <= 1) --
+// same "held open" behavior as the map dot -- and never returns less than
+// the real, checked-in km, so a stale/zero pace can't visibly regress it.
+export function estimateInterpolatedProgress(
+  legs: Leg[],
+  checkinTimes: Map<number, number>,
+  now: number,
+  paceKmh: number | null,
+): Progress {
+  const progress = computeActualProgress(legs, checkinTimes);
+  if (paceKmh === null || paceKmh <= 0 || legs.length === 0) return progress;
+
+  const finishLeg = legs[legs.length - 1];
+  if (checkinTimes.has(finishLeg.nr)) return progress;
+
+  let currentIndex = -1;
+  for (let i = 0; i < legs.length - 1; i++) {
+    if (checkinTimes.has(legs[i].nr)) currentIndex = i;
+  }
+  if (currentIndex === -1) return progress;
+
+  const leg = legs[currentIndex];
+  const checkinTime = checkinTimes.get(leg.nr);
+  if (checkinTime === undefined || leg.afstand_km === null || leg.afstand_km <= 0) return progress;
+
+  const elapsedHours = Math.max(0, (now - checkinTime) / (1000 * 60 * 60));
+  const estimatedDurationHours = leg.afstand_km / paceKmh;
+  const fraction = estimatedDurationHours > 0 ? Math.min(1, elapsedHours / estimatedDurationHours) : 1;
+
+  const km = Math.round((leg.cumulatief_start_km + leg.afstand_km * fraction) * 10) / 10;
+  const percent = Math.min(100, Math.max(0, (km / totalRouteKm(legs)) * 100));
+  return { km: Math.max(progress.km, km), percent: Math.max(progress.percent, percent) };
+}
+
 // Actual pace for the stretch just walked to reach this leg: the previous
 // leg's own distance over the real elapsed time between the two check-ins.
 // Requires a check-in for both this leg and the one before it — the first

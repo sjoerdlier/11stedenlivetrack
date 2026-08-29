@@ -3,6 +3,7 @@ import {
   computeActualProgress,
   currentScheduleDelta,
   estimateArrivalForecast,
+  estimateInterpolatedProgress,
   estimateLegArrivals,
   estimateLegArrivalWindows,
   firstCheckinByLeg,
@@ -102,6 +103,52 @@ describe("computeActualProgress", () => {
   it("uses the furthest checked-in leg, not the most recently added one", () => {
     const checkinTimes = new Map([[4, 0], [2, 0]]);
     expect(computeActualProgress(legs, checkinTimes).km).toBe(30);
+  });
+});
+
+describe("estimateInterpolatedProgress", () => {
+  const legs: Leg[] = [
+    makeLeg({ nr: 1, afstand_km: 10, cumulatief_start_km: 0 }),
+    makeLeg({ nr: 2, afstand_km: 10, cumulatief_start_km: 10 }),
+    makeLeg({ nr: 3, afstand_km: 0, cumulatief_start_km: 20 }),
+  ];
+  const H = 60 * 60 * 1000;
+
+  it("falls back to the raw check-in km without a usable pace", () => {
+    const checkinTimes = new Map([[1, 0]]);
+    expect(estimateInterpolatedProgress(legs, checkinTimes, H, null).km).toBe(0);
+    expect(estimateInterpolatedProgress(legs, checkinTimes, H, 0).km).toBe(0);
+  });
+
+  it("advances forward from the last check-in at the given pace", () => {
+    // Checked in at leg 1 (km 0) at t=0; leg 1 is 10km. At 10 km/u, half an
+    // hour in should read as 5km further along.
+    const checkinTimes = new Map([[1, 0]]);
+    const progress = estimateInterpolatedProgress(legs, checkinTimes, 0.5 * H, 10);
+    expect(progress.km).toBe(5);
+  });
+
+  it("never advances past the current leg's own end", () => {
+    // Same setup, but 3 hours in (leg 1 would only take 1h at 10 km/u) --
+    // caps at leg 2's cumulatief_start_km (10), doesn't run off toward leg 3.
+    const checkinTimes = new Map([[1, 0]]);
+    const progress = estimateInterpolatedProgress(legs, checkinTimes, 3 * H, 10);
+    expect(progress.km).toBe(10);
+  });
+
+  it("returns the exact check-in km once the finish leg itself is reached", () => {
+    const checkinTimes = new Map([[1, 0], [2, H], [3, 2 * H]]);
+    const progress = estimateInterpolatedProgress(legs, checkinTimes, 5 * H, 10);
+    expect(progress.km).toBe(20);
+  });
+
+  it("never regresses below the real check-in km", () => {
+    // Pathological case shouldn't be reachable in practice (paceKmh > 0 is
+    // required to enter the interpolation branch at all), but the km floor
+    // is a deliberate belt-and-braces guard -- assert it holds regardless.
+    const checkinTimes = new Map([[2, 0]]);
+    const progress = estimateInterpolatedProgress(legs, checkinTimes, H, 0.0001);
+    expect(progress.km).toBeGreaterThanOrEqual(10);
   });
 });
 

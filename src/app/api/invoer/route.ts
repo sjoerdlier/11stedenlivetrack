@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { CHECKIN_COOKIE, isAuthorized } from "@/lib/checkinAuth";
-import { insertCheckin } from "@/lib/checkins";
+import { insertCheckin, updateCheckinTijdstip } from "@/lib/checkins";
 import { parseRouteSlug } from "@/lib/routes";
 import { parsePartySlug } from "@/lib/parties";
 
@@ -48,6 +48,42 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("POST /api/invoer: insertCheckin failed", err);
+    const message = err instanceof Error ? err.message : "Onbekende fout.";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+// Corrects a single check-in's tijdstip after the fact -- e.g. a screenshot
+// relayed through chat had the wrong time typed in, or the person entering
+// it mixed up two updates. Deliberately narrow (tijdstip only, not leg/notitie)
+// -- that's the specific gap this was asked to close, not a general edit form.
+export async function PATCH(request: Request) {
+  const cookieStore = await cookies();
+  const authorized = await isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
+
+  if (!authorized) {
+    return NextResponse.json({ ok: false, error: "Niet geautoriseerd." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+
+  const id = typeof body?.id === "string" && body.id ? body.id : null;
+  const route = parseRouteSlug(body?.route);
+  const tijdstip =
+    typeof body?.tijdstip === "string" && !Number.isNaN(new Date(body.tijdstip).getTime())
+      ? new Date(body.tijdstip).toISOString()
+      : null;
+
+  if (!id || !tijdstip) {
+    return NextResponse.json({ ok: false, error: "id en een geldig tijdstip zijn verplicht." }, { status: 400 });
+  }
+
+  try {
+    await updateCheckinTijdstip(id, route, tijdstip);
+  } catch (err) {
+    console.error(`PATCH /api/invoer: updateCheckinTijdstip failed (id=${id})`, err);
     const message = err instanceof Error ? err.message : "Onbekende fout.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

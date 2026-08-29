@@ -221,7 +221,7 @@ export default function RouteMap({
         const partyCheckins = checkins.filter((c) => c.party === party.slug);
         const partyCheckinTimes = firstCheckinTimesByLeg(partyCheckins);
         const progress = computeActualProgress(effortLegs, partyCheckinTimes);
-        const actualPaceKmh = actualAveragePaceKmh(partyCheckinTimes, progress.km, now);
+        const actualPaceKmh = actualAveragePaceKmh(effortLegs, partyCheckinTimes, progress.km, now);
         const paceKmh =
           partyCheckinTimes.size >= 2 && actualPaceKmh !== null && actualPaceKmh > 0
             ? actualPaceKmh

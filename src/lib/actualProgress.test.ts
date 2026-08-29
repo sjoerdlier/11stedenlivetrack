@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  actualAveragePaceKmh,
   computeActualProgress,
   currentScheduleDelta,
   estimateArrivalForecast,
@@ -103,6 +104,35 @@ describe("computeActualProgress", () => {
   it("uses the furthest checked-in leg, not the most recently added one", () => {
     const checkinTimes = new Map([[4, 0], [2, 0]]);
     expect(computeActualProgress(legs, checkinTimes).km).toBe(30);
+  });
+});
+
+describe("actualAveragePaceKmh", () => {
+  const legs: Leg[] = [
+    makeLeg({ nr: 1, afstand_km: 10, cumulatief_start_km: 0 }),
+    makeLeg({ nr: 2, afstand_km: 10, cumulatief_start_km: 10 }),
+    makeLeg({ nr: 3, afstand_km: 10, cumulatief_start_km: 20 }),
+  ];
+  const H = 60 * 60 * 1000;
+
+  it("is null with no check-ins", () => {
+    expect(actualAveragePaceKmh(legs, new Map(), 20, H)).toBeNull();
+  });
+
+  // The actual bug this replaced, reproduced at the same scale as the live
+  // event: check-ins start at leg 2 (already 10km "for free" -- walked
+  // before anyone started tracking), then leg 3 lands an hour later at 20km
+  // total. The old version divided the *full* 20km by the 1h since the
+  // first check-in -> 20 km/u, wildly overstating the real pace. Only the
+  // 10km covered *since* that first check-in should count.
+  it("only counts distance covered since the first check-in, not the route's full afgelegdKm", () => {
+    const checkinTimes = new Map([[2, 0], [3, H]]);
+    expect(actualAveragePaceKmh(legs, checkinTimes, 20, H)).toBe(10);
+  });
+
+  it("matches the naive calculation when check-ins start at the very first leg", () => {
+    const checkinTimes = new Map([[1, 0], [2, H]]);
+    expect(actualAveragePaceKmh(legs, checkinTimes, 10, H)).toBe(10);
   });
 });
 

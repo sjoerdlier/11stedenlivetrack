@@ -108,12 +108,12 @@ export default function TopBar({
     if (checkins.length === 0) return null;
     const progress = computeActualProgress(legs, checkinTimes);
     const effortProgress = computeActualProgress(effortLegs, checkinTimes);
-    const paceKmh = actualAveragePaceKmh(checkinTimes, effortProgress.km, now);
+    const paceKmh = actualAveragePaceKmh(effortLegs, checkinTimes, effortProgress.km, now);
     // A real (non-grade-adjusted) pace just for interpolating the plain-km
     // headline below — feeding the grade-adjusted paceKmh into a real-km
     // figure would over/undershoot on any climb or descent (see CLAUDE.md:
     // never mix legs/effortLegs for the same figure).
-    const realPaceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+    const realPaceKmh = actualAveragePaceKmh(legs, checkinTimes, progress.km, now);
     // Interpolated forward from the last check-in at the current pace (same
     // dead-reckoning estimateLivePosition already does for the map dot) so
     // the headline percent/km/progress-bar keeps advancing between

@@ -113,18 +113,41 @@ export function actualLegPaceKmh(
   return prev.afstand_km / hours;
 }
 
-// Actual average pace since the very first check-in of the day: total
-// distance actually covered over the real elapsed time since that moment.
+// Actual average pace since the very first check-in of the day: distance
+// covered *since that check-in* over the real elapsed time since that
+// moment. Deliberately not afgelegdKm/hours-since-first-checkin directly --
+// afgelegdKm (from computeActualProgress) is measured from the route's own
+// km 0, so whenever check-ins start partway into the route (today: the
+// walkers had already covered ~30km before anyone logged the first one),
+// that head start was getting divided by a denominator that only counts
+// time *after* tracking began -- inflating the pace by however much ground
+// was covered "for free" beforehand (~12.5 km/u shown live instead of the
+// real ~6.3 km/u). Subtracting the km already banked at that first
+// check-in fixes the mismatch.
 export function actualAveragePaceKmh(
+  legs: Leg[],
   checkinTimes: Map<number, number>,
   afgelegdKm: number,
   now: number,
 ): number | null {
   if (checkinTimes.size === 0) return null;
-  const firstCheckin = Math.min(...checkinTimes.values());
+
+  let firstLegNr: number | null = null;
+  let firstCheckin = Infinity;
+  checkinTimes.forEach((time, legNr) => {
+    if (time < firstCheckin) {
+      firstCheckin = time;
+      firstLegNr = legNr;
+    }
+  });
+  if (firstLegNr === null) return null;
+
+  const kmAtFirstCheckin = legs.find((leg) => leg.nr === firstLegNr)?.cumulatief_start_km ?? 0;
+  const kmSinceFirstCheckin = Math.max(0, afgelegdKm - kmAtFirstCheckin);
+
   const hours = (now - firstCheckin) / (1000 * 60 * 60);
   if (hours <= 0) return null;
-  return afgelegdKm / hours;
+  return kmSinceFirstCheckin / hours;
 }
 
 // Fixed for now — there's no separate data source for per-checkpoint stop
@@ -334,7 +357,7 @@ export function estimateLegArrivals(
   if (checkinTimes.size < 2) return result;
 
   const progress = computeActualProgress(legs, checkinTimes);
-  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  const paceKmh = actualAveragePaceKmh(legs, checkinTimes, progress.km, now);
   if (paceKmh === null || paceKmh <= 0) return result;
 
   for (const leg of legs) {
@@ -369,7 +392,7 @@ export function estimateLegArrivalWindows(
   if (checkinTimes.size < 2) return result;
 
   const progress = computeActualProgress(legs, checkinTimes);
-  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  const paceKmh = actualAveragePaceKmh(legs, checkinTimes, progress.km, now);
   if (paceKmh === null || paceKmh <= 0) return result;
 
   const fastPaceKmh = paceKmh * (1 + marginRatio);

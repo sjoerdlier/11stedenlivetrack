@@ -7,11 +7,24 @@ import { ROUTES, routeConfig, type RouteSlug } from "@/lib/routes";
 import { partiesForRoute } from "@/lib/parties";
 import styles from "./invoer.module.css";
 
+interface Prefill {
+  party?: string;
+  legNr?: string;
+  tijdstip?: string;
+  notitie?: string;
+}
+
 interface CheckinFormProps {
   activeRoute: RouteSlug;
   legs: Leg[];
   legsError: string | null;
   onUnauthorized: () => void;
+  // Optional tap-to-fill values from the URL (see page.tsx) -- lets a
+  // pre-built link land on this form already filled in (e.g. from a
+  // screenshot relayed through chat), so the only thing left to do here is
+  // check it and hit "Opslaan". Absent for the normal manual-entry flow,
+  // which is unaffected.
+  prefill?: Prefill;
 }
 
 function nowForInput(): string {
@@ -20,22 +33,22 @@ function nowForInput(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function emptyForm(defaultParty: string) {
+function emptyForm(defaultParty: string, prefill?: Prefill) {
   return {
-    party: defaultParty,
-    tijdstip: nowForInput(),
-    legNr: "",
+    party: prefill?.party ?? defaultParty,
+    tijdstip: prefill?.tijdstip ?? nowForInput(),
+    legNr: prefill?.legNr ?? "",
     lat: "",
     lon: "",
-    notitie: "",
+    notitie: prefill?.notitie ?? "",
     invoerder: "",
   };
 }
 
-export default function CheckinForm({ activeRoute, legs, legsError, onUnauthorized }: CheckinFormProps) {
+export default function CheckinForm({ activeRoute, legs, legsError, onUnauthorized, prefill }: CheckinFormProps) {
   const config = routeConfig(activeRoute);
   const parties = partiesForRoute(activeRoute);
-  const [form, setForm] = useState(() => emptyForm(parties[0].slug));
+  const [form, setForm] = useState(() => emptyForm(parties[0].slug, prefill));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -110,6 +123,9 @@ export default function CheckinForm({ activeRoute, legs, legsError, onUnauthoriz
       </div>
 
       {confirmed && <div className={styles.confirmation}>✓ Check-in opgeslagen.</div>}
+      {!confirmed && prefill && (prefill.party || prefill.legNr || prefill.tijdstip) && (
+        <div className={styles.prefillNotice}>Vooringevuld vanuit screenshot — controleer de velden en sla op.</div>
+      )}
       {error && <div className={styles.formError}>{error}</div>}
       {legsError && (
         <div className={styles.formError}>

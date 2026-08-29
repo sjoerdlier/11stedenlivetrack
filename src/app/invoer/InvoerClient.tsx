@@ -7,11 +7,19 @@ import PinScreen from "./PinScreen";
 import CheckinForm from "./CheckinForm";
 import styles from "./invoer.module.css";
 
+interface Prefill {
+  party?: string;
+  legNr?: string;
+  tijdstip?: string;
+  notitie?: string;
+}
+
 interface InvoerClientProps {
   activeRoute: RouteSlug;
   initialAuthorized: boolean;
   legs: Leg[];
   legsError: string | null;
+  prefill?: Prefill;
 }
 
 export default function InvoerClient({
@@ -19,6 +27,7 @@ export default function InvoerClient({
   initialAuthorized,
   legs,
   legsError,
+  prefill,
 }: InvoerClientProps) {
   const [authorized, setAuthorized] = useState(initialAuthorized);
 
@@ -30,6 +39,7 @@ export default function InvoerClient({
           legs={legs}
           legsError={legsError}
           onUnauthorized={() => setAuthorized(false)}
+          prefill={prefill}
         />
       ) : (
         <PinScreen onSuccess={() => setAuthorized(true)} />

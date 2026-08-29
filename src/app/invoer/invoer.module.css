@@ -159,6 +159,16 @@
   margin-bottom: var(--sp-4);
 }
 
+.prefillNotice {
+  background: color-mix(in srgb, var(--db-amber) 16%, var(--db-surface));
+  border-left: 3px solid var(--db-amber);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-sans-family);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-4);
+}
+
 .formError {
   background: color-mix(in srgb, var(--db-signal-red) 16%, var(--db-surface));
   border-left: 3px solid var(--db-signal-red);

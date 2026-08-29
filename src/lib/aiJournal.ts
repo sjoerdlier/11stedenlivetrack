@@ -157,7 +157,7 @@ export function buildPartySnapshot(
   const checkinTimes = firstCheckinTimesByLeg(partyCheckins);
   const progress = computeActualProgress(legs, checkinTimes);
   const remainingKm = Math.max(0, totalKm - progress.km);
-  const paceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+  const paceKmh = actualAveragePaceKmh(legs, checkinTimes, progress.km, now);
   const arrival = estimateArrival(now, remainingKm, paceKmh, plannedPaceKmh, partyCheckins.length);
   const arrivalForecast = estimateArrivalForecast(legs, checkinTimes, now);
   const scheduleDelta = currentScheduleDelta(legs, checkinTimes);

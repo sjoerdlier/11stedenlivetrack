@@ -26,15 +26,22 @@ export function firstCheckinTimesByLeg(checkins: Checkin[]): Map<number, number>
   return map;
 }
 
-// Distance actually covered: the sum of afstand_km for every leg whose
-// endpoint (the next leg's start) has a check-in. Legs assumed sorted by nr.
+// Distance actually covered: cumulatief_start_km of whichever checked-in leg
+// is furthest along the route. Deliberately NOT "sum afstand_km for every leg
+// whose next has a check-in" (an earlier version did that) -- that requires
+// an unbroken check-in at *every* leg boundary to count anything at all, so
+// a real walker who gets checked in at leg 5 without anyone having logged
+// legs 2-4 individually (entirely normal -- check-ins land wherever a
+// screenshot/GPS fix happens to be, not on a leg-by-leg cadence) would have
+// legs 1-4's distance silently dropped, undercounting progress by however
+// far in they started logging. cumulatief_start_km already *is* that sum
+// for an unbroken chain, so this is equivalent in the case the old version
+// handled and correct in the gap case it didn't.
 export function computeActualProgress(legs: Leg[], checkinTimes: Map<number, number>): Progress {
   let km = 0;
-  for (let i = 0; i < legs.length - 1; i++) {
-    const leg = legs[i];
-    const next = legs[i + 1];
-    if (leg.afstand_km !== null && checkinTimes.has(next.nr)) {
-      km += leg.afstand_km;
+  for (const leg of legs) {
+    if (checkinTimes.has(leg.nr) && leg.cumulatief_start_km > km) {
+      km = leg.cumulatief_start_km;
     }
   }
   km = Math.round(km * 10) / 10;
@@ -234,14 +241,16 @@ export function estimateArrivalForecast(
   }
   if (observedPaces.length < FORECAST_MIN_SAMPLES) return null;
 
-  // Same "which legs are still ahead" condition computeActualProgress uses:
-  // leg i's own distance is still remaining whenever the next leg hasn't
-  // been checked into yet.
+  // A leg counts as "still remaining" once its own start is at or past the
+  // furthest point actually reached (per computeActualProgress) -- not
+  // "the next leg has no check-in yet", which would also catch legs *before*
+  // wherever check-ins actually started (see computeActualProgress's own
+  // comment for why that under-counts).
+  const progress = computeActualProgress(legs, checkinTimes);
   const remainingLegKm: number[] = [];
   for (let i = 0; i < legs.length - 1; i++) {
     const leg = legs[i];
-    const next = legs[i + 1];
-    if (leg.afstand_km !== null && !checkinTimes.has(next.nr)) {
+    if (leg.afstand_km !== null && leg.cumulatief_start_km >= progress.km) {
       remainingLegKm.push(leg.afstand_km);
     }
   }

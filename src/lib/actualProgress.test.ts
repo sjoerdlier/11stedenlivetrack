@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeActualProgress,
   currentScheduleDelta,
   estimateArrivalForecast,
   estimateLegArrivals,
@@ -66,6 +67,41 @@ describe("firstCheckinTimesByLeg", () => {
     ];
     const times = firstCheckinTimesByLeg(checkins);
     expect(times.get(2)).toBe(new Date("2026-08-08T08:00:00Z").getTime());
+  });
+});
+
+describe("computeActualProgress", () => {
+  const legs: Leg[] = [
+    makeLeg({ nr: 1, afstand_km: 10, cumulatief_start_km: 0 }),
+    makeLeg({ nr: 2, afstand_km: 10, cumulatief_start_km: 10 }),
+    makeLeg({ nr: 3, afstand_km: 10, cumulatief_start_km: 20 }),
+    makeLeg({ nr: 4, afstand_km: 10, cumulatief_start_km: 30 }),
+    makeLeg({ nr: 5, afstand_km: 0, cumulatief_start_km: 40 }),
+  ];
+
+  it("is 0 with no check-ins", () => {
+    expect(computeActualProgress(legs, new Map()).km).toBe(0);
+  });
+
+  it("credits the full unbroken chain up to the last checked-in leg", () => {
+    const checkinTimes = new Map([[1, 0], [2, 0], [3, 0]]);
+    expect(computeActualProgress(legs, checkinTimes).km).toBe(20);
+  });
+
+  // The actual bug this replaced: check-ins in this event don't land on
+  // every leg boundary in order -- someone gets checked in wherever a
+  // screenshot happens to place them (leg 4 here), with legs 2-3 never
+  // individually logged. The old sum-consecutive-hops version credited 0 km
+  // for this (no leg's "next" was ever checked in), which is exactly the
+  // "23,3 km van 202" bug reported live during the event.
+  it("still credits the walker's real distance when earlier legs were never individually checked in", () => {
+    const checkinTimes = new Map([[4, 0]]);
+    expect(computeActualProgress(legs, checkinTimes).km).toBe(30);
+  });
+
+  it("uses the furthest checked-in leg, not the most recently added one", () => {
+    const checkinTimes = new Map([[4, 0], [2, 0]]);
+    expect(computeActualProgress(legs, checkinTimes).km).toBe(30);
   });
 });
 
@@ -165,6 +201,16 @@ describe("estimateArrivalForecast", () => {
     expect(forecast).not.toBeNull();
     expect(forecast!.earliest).toBeLessThan(forecast!.median);
     expect(forecast!.median).toBeLessThan(forecast!.latest);
+  });
+
+  it("doesn't resample legs before wherever check-ins actually started", () => {
+    // Check-ins land on legs 3-6 only (legs 1-2 never individually logged,
+    // same gap as computeActualProgress's regression case). Once leg 6 (the
+    // last leg, 0km of its own) is reached, nothing should remain to
+    // forecast -- if legs 1-2 were wrongly still counted as "ahead", this
+    // would return a forecast instead of null.
+    const checkinTimes = new Map([[3, 0], [4, H], [5, 2 * H], [6, 3 * H]]);
+    expect(estimateArrivalForecast(legs, checkinTimes, 3 * H)).toBeNull();
   });
 
   it("is deterministic for the same check-in data — no flicker on a plain refresh", () => {

@@ -16,7 +16,12 @@ import InvoerClient from "./InvoerClient";
 export const dynamic = "force-dynamic";
 
 interface InvoerPageProps {
-  searchParams: Promise<{ route?: string }>;
+  // party/legNr/tijdstip/notitie are optional prefill values for a tap-to-fill
+  // link (see CheckinForm's `prefill` prop) -- e.g. built from a screenshot
+  // someone sends in chat, so opening the link only needs "Opslaan", not
+  // retyping the whole form. Absent entirely for the normal, manual-entry
+  // flow, which behaves exactly as before.
+  searchParams: Promise<{ route?: string; party?: string; legNr?: string; tijdstip?: string; notitie?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: InvoerPageProps): Promise<Metadata> {
@@ -35,7 +40,7 @@ export async function generateMetadata({ searchParams }: InvoerPageProps): Promi
 const getCachedLegs = unstable_cache(loadLegs, ["legs"], { revalidate: 20 });
 
 export default async function InvoerPage({ searchParams }: InvoerPageProps) {
-  const { route } = await searchParams;
+  const { route, party, legNr, tijdstip, notitie } = await searchParams;
   const activeRoute = parseRouteSlug(route);
   const cookieStore = await cookies();
   const authorized = await isAuthorized(cookieStore.get(CHECKIN_COOKIE)?.value);
@@ -56,6 +61,7 @@ export default async function InvoerPage({ searchParams }: InvoerPageProps) {
       initialAuthorized={authorized}
       legs={legs}
       legsError={legsError}
+      prefill={{ party, legNr, tijdstip, notitie }}
     />
   );
 }

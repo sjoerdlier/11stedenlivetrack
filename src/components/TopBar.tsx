@@ -11,6 +11,7 @@ import {
   currentScheduleDelta,
   estimateArrival,
   estimateArrivalForecast,
+  estimateInterpolatedProgress,
   type ArrivalForecast,
   type EstimatedArrival,
   type ScheduleDelta,
@@ -107,9 +108,22 @@ export default function TopBar({
     if (checkins.length === 0) return null;
     const progress = computeActualProgress(legs, checkinTimes);
     const effortProgress = computeActualProgress(effortLegs, checkinTimes);
-    const remainingKm = Math.max(0, totalKm - progress.km);
-    const effortRemainingKm = Math.max(0, totalEffortKm - effortProgress.km);
     const paceKmh = actualAveragePaceKmh(checkinTimes, effortProgress.km, now);
+    // A real (non-grade-adjusted) pace just for interpolating the plain-km
+    // headline below — feeding the grade-adjusted paceKmh into a real-km
+    // figure would over/undershoot on any climb or descent (see CLAUDE.md:
+    // never mix legs/effortLegs for the same figure).
+    const realPaceKmh = actualAveragePaceKmh(checkinTimes, progress.km, now);
+    // Interpolated forward from the last check-in at the current pace (same
+    // dead-reckoning estimateLivePosition already does for the map dot) so
+    // the headline percent/km/progress-bar keeps advancing between
+    // check-ins instead of sitting frozen at the last one's km — `now`
+    // itself already ticks every 30s (see AppShell's STATUS_REFRESH_MS), so
+    // this recomputes on the same cadence with no extra polling needed.
+    const displayProgress = estimateInterpolatedProgress(legs, checkinTimes, now, realPaceKmh);
+    const effortDisplayProgress = estimateInterpolatedProgress(effortLegs, checkinTimes, now, paceKmh);
+    const remainingKm = Math.max(0, totalKm - displayProgress.km);
+    const effortRemainingKm = Math.max(0, totalEffortKm - effortDisplayProgress.km);
     const arrival = estimateArrival(now, effortRemainingKm, paceKmh, plannedPaceKmh, checkins.length);
     // A range instead of arrival's single falsely-precise instant, once
     // there's enough completed-leg spread to resample from (see
@@ -121,7 +135,7 @@ export default function TopBar({
     // the real (unadjusted) legs, since geplande_tijd is a wall-clock time,
     // not a distance the grade adjustment would apply to.
     const scheduleDelta = currentScheduleDelta(legs, checkinTimes);
-    return { progress, remainingKm, paceKmh, arrival, arrivalForecast, scheduleDelta };
+    return { progress: displayProgress, remainingKm, paceKmh, arrival, arrivalForecast, scheduleDelta };
   }, [checkins.length, legs, effortLegs, checkinTimes, now, plannedPaceKmh, totalKm, totalEffortKm]);
 
   // The board TopBar actually renders: GPS (liveTrackProgress) whenever it's
